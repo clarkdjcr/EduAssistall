@@ -227,7 +227,7 @@ struct ParentDashboardView: View {
         pendingRecs = (try? await FirestoreService.shared.fetchPendingRecommendations(studentIds: ids)) ?? []
 
         var summaries: [String: (Int, Int)] = [:]
-        var activity: [(String, String, StudentProgress)] = []
+        var activity: [(studentId: String, email: String, progress: StudentProgress)] = []
 
         await withTaskGroup(of: (String, String, Int, Int, [StudentProgress]).self) { group in
             for link in confirmedStudents {
@@ -250,7 +250,9 @@ struct ParentDashboardView: View {
         }
 
         progressSummaries = summaries
-        recentActivity = activity.sorted { ($0.progress.completedAt ?? .distantPast) > ($1.progress.completedAt ?? .distantPast) }
+        recentActivity = activity.sorted { a, b in
+            (a.progress.completedAt ?? .distantPast) > (b.progress.completedAt ?? .distantPast)
+        }
         isLoading = false
     }
 }
