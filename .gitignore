@@ -3,20 +3,37 @@
 .DS_Store
 
 # Xcode user-specific
-*.xcuserstate
 xcuserdata/
+*.xcuserstate
 *.xcworkspace/xcuserdata/
 *.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 
+# Obj-C / Swift
+*.hmap
+
 # Build output
 build/
+.build/
 DerivedData/
 *.ipa
 *.dSYM.zip
 *.dSYM
 
-# CocoaPods (not used here, but just in case)
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# CocoaPods
 Pods/
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
 
 # Firebase credentials — never commit
 GoogleService-Info.plist
