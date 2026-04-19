@@ -1,32 +1,56 @@
-//
-//  EduAssistallApp.swift
-//  EduAssistall
-//
-//  Created by Donald Clark on 4/14/26.
-//
-
 import SwiftUI
-import SwiftData
+import FirebaseCore
+#if os(iOS)
+import FirebaseMessaging
+import UIKit
+import UserNotifications
+
+class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
+
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        UNUserNotificationCenter.current().delegate = self
+        Messaging.messaging().delegate = self
+        return true
+    }
+
+    func application(_ application: UIApplication,
+                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let token = fcmToken else { return }
+        Task { @MainActor in
+            NotificationService.shared.onTokenRefresh(token)
+        }
+    }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                 willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        [.banner, .badge, .sound]
+    }
+}
+#endif
 
 @main
 struct EduAssistallApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    #if os(iOS)
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #endif
+    @State private var authViewModel = AuthViewModel()
 
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    init() {
+        FirebaseApp.configure()
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            AppRootView()
+                .environment(authViewModel)
+                .task {
+                    authViewModel.startListening()
+                }
         }
-        .modelContainer(sharedModelContainer)
     }
 }

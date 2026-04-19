@@ -1,0 +1,30 @@
+# macOS metadata
+._*
+.DS_Store
+
+# Xcode user-specific
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+
+# Build output
+build/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# CocoaPods (not used here, but just in case)
+Pods/
+
+# Firebase credentials — never commit
+GoogleService-Info.plist
+
+# Node / Firebase Functions
+functions/node_modules/
+functions/.env
+
+# Secrets
+*.env
+secrets/

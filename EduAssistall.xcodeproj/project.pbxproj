@@ -6,6 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		9238A6E62F905B4C00297DA1 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 9238A6E52F905B4C00297DA1 /* FirebaseAuth */; };
+		9238A6E82F905B4C00297DA1 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9238A6E72F905B4C00297DA1 /* FirebaseCore */; };
+		9238A6EA2F905B4C00297DA1 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 9238A6E92F905B4C00297DA1 /* FirebaseFirestore */; };
+		9238A6EC2F905B4C00297DA1 /* FirebaseFirestoreCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 9238A6EB2F905B4C00297DA1 /* FirebaseFirestoreCombine-Community */; };
+		92443D232F932D9600009983 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 92443D222F932D9600009983 /* FirebaseFunctions */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		92B2FAF62F8EE96700EDC823 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,9 +37,22 @@
 		92B2FAFF2F8EE96700EDC823 /* EduAssistallUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EduAssistallUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		92443D202F9320BC00009983 /* Exceptions for "EduAssistall" folder in "EduAssistall" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 92B2FAE52F8EE96500EDC823 /* EduAssistall */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		92B2FAE82F8EE96500EDC823 /* EduAssistall */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				92443D202F9320BC00009983 /* Exceptions for "EduAssistall" folder in "EduAssistall" target */,
+			);
 			path = EduAssistall;
 			sourceTree = "<group>";
 		};
@@ -52,6 +73,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9238A6E82F905B4C00297DA1 /* FirebaseCore in Frameworks */,
+				9238A6EC2F905B4C00297DA1 /* FirebaseFirestoreCombine-Community in Frameworks */,
+				92443D232F932D9600009983 /* FirebaseFunctions in Frameworks */,
+				9238A6E62F905B4C00297DA1 /* FirebaseAuth in Frameworks */,
+				9238A6EA2F905B4C00297DA1 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,12 +98,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		92443D212F93210500009983 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		92B2FADD2F8EE96500EDC823 = {
 			isa = PBXGroup;
 			children = (
 				92B2FAE82F8EE96500EDC823 /* EduAssistall */,
 				92B2FAF82F8EE96700EDC823 /* EduAssistallTests */,
 				92B2FB022F8EE96700EDC823 /* EduAssistallUITests */,
+				92443D212F93210500009983 /* Frameworks */,
 				92B2FAE72F8EE96500EDC823 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -112,6 +146,11 @@
 			);
 			name = EduAssistall;
 			packageProductDependencies = (
+				9238A6E52F905B4C00297DA1 /* FirebaseAuth */,
+				9238A6E72F905B4C00297DA1 /* FirebaseCore */,
+				9238A6E92F905B4C00297DA1 /* FirebaseFirestore */,
+				9238A6EB2F905B4C00297DA1 /* FirebaseFirestoreCombine-Community */,
+				92443D222F932D9600009983 /* FirebaseFunctions */,
 			);
 			productName = EduAssistall;
 			productReference = 92B2FAE62F8EE96500EDC823 /* EduAssistall.app */;
@@ -195,6 +234,9 @@
 			);
 			mainGroup = 92B2FADD2F8EE96500EDC823;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				9238A6E42F905B4C00297DA1 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 92B2FAE72F8EE96500EDC823 /* Products */;
 			projectDirPath = "";
@@ -398,6 +440,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = EduAssistall/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -442,6 +485,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = EduAssistall/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -615,6 +659,45 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		9238A6E42F905B4C00297DA1 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.12.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9238A6E52F905B4C00297DA1 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9238A6E42F905B4C00297DA1 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		9238A6E72F905B4C00297DA1 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9238A6E42F905B4C00297DA1 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		9238A6E92F905B4C00297DA1 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9238A6E42F905B4C00297DA1 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		9238A6EB2F905B4C00297DA1 /* FirebaseFirestoreCombine-Community */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9238A6E42F905B4C00297DA1 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseFirestoreCombine-Community";
+		};
+		92443D222F932D9600009983 /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9238A6E42F905B4C00297DA1 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 92B2FADE2F8EE96500EDC823 /* Project object */;
 }
