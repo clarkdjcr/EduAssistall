@@ -2,11 +2,8 @@ import Foundation
 #if os(iOS)
 import UIKit
 import FirebaseAuth
+import FirebaseMessaging
 import UserNotifications
-
-// FCM token registration requires the FirebaseMessaging package.
-// Add it later via: File → Add Package Dependencies → firebase-ios-sdk → FirebaseMessaging
-// For now this service requests system notification permission only.
 
 @MainActor
 final class NotificationService: NSObject {
@@ -20,6 +17,14 @@ final class NotificationService: NSObject {
         if granted {
             await UIApplication.shared.registerForRemoteNotifications()
         }
+    }
+
+    func onTokenRefresh(_ token: String) {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        Task {
+            try? await FirestoreService.shared.saveFCMToken(userId: uid, token: token)
+        }
+        AuditService.shared.log(.fcmTokenRefreshed, userId: uid)
     }
 }
 #endif
