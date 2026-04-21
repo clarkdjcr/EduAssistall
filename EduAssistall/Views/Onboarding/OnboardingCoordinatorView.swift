@@ -50,7 +50,7 @@ struct OnboardingCoordinatorView: View {
                     }
 
                 case .teacherSetup:
-                    TeacherSetupView(school: $teacherSchool, grades: $teacherGrades) {
+                    TeacherSetupView(school: $teacherSchool, grades: $teacherGrades, teacherId: profile.id) {
                         step = .complete
                     }
 

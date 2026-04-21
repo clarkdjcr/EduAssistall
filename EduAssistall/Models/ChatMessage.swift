@@ -5,7 +5,7 @@ enum MessageRole: String, Codable {
     case assistant
 }
 
-struct ChatMessage: Identifiable {
+struct ChatMessage: Identifiable, Codable {
     let id: String
     let role: MessageRole
     let text: String
@@ -17,4 +17,23 @@ struct ChatMessage: Identifiable {
         self.text = text
         self.createdAt = Date()
     }
+
+    init(id: String, role: MessageRole, text: String, createdAt: Date) {
+        self.id = id
+        self.role = role
+        self.text = text
+        self.createdAt = createdAt
+    }
+}
+
+/// Tracks whether a student has an active companion session (FR-200).
+/// Written at `activeSessions/{studentId}`.
+struct ActiveSession: Codable, Identifiable {
+    var id: String          // equals studentId
+    var studentId: String
+    var studentEmail: String
+    var isActive: Bool
+    var startedAt: Date?
+    var lastMessageAt: Date?
+    var messageCount: Int
 }

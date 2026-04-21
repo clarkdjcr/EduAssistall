@@ -3,10 +3,13 @@ import SwiftUI
 struct LearningPathDetailView: View {
     let path: LearningPath
     let studentId: String
+    /// When true, show the answer-mode toggle (teacher/admin only).
+    var showAnswerModeToggle: Bool = false
 
     @State private var contentItems: [String: ContentItem] = [:]
     @State private var progressMap: [String: StudentProgress] = [:]
     @State private var isLoading = true
+    @State private var answerModeEnabled: Bool = false
 
     private var sortedItems: [LearningPathItem] { path.sortedItems }
 
@@ -86,7 +89,32 @@ struct LearningPathDetailView: View {
         .background(Color.appGroupedBackground)
         .navigationTitle(path.title)
         .inlineNavigationTitle()
-        .task { await load() }
+        .toolbar {
+            // FR-006: Answer mode toggle — only visible to teachers/admins.
+            if showAnswerModeToggle {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Toggle(isOn: $answerModeEnabled) {
+                        Label(
+                            answerModeEnabled ? "Answer Mode On" : "Answer Mode Off",
+                            systemImage: answerModeEnabled ? "lock.open.fill" : "lock.fill"
+                        )
+                        .labelStyle(.iconOnly)
+                    }
+                    .tint(.orange)
+                    .onChange(of: answerModeEnabled) { _, newValue in
+                        Task {
+                            try? await FirestoreService.shared.setAnswerMode(
+                                pathId: path.id, enabled: newValue
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        .task {
+            answerModeEnabled = path.answerModeEnabled
+            await load()
+        }
     }
 
     private func load() async {

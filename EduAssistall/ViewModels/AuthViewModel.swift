@@ -107,6 +107,17 @@ final class AuthViewModel {
         }
         AuditService.shared.log(.signIn, userId: authResult.user.uid, metadata: ["provider": "google"])
     }
+    func requestClassroomScopes(presenting viewController: UIViewController) async throws -> String {
+        let scopes = [
+            "https://www.googleapis.com/auth/classroom.courses.readonly",
+            "https://www.googleapis.com/auth/classroom.rosters.readonly"
+        ]
+        let result = try await GIDSignIn.sharedInstance.addScopes(scopes, presenting: viewController)
+        guard let token = result?.user.accessToken.tokenString else {
+            throw AuthError.missingToken
+        }
+        return token
+    }
     #endif
 
     // MARK: - Sign In

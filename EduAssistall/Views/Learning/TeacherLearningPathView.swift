@@ -18,7 +18,11 @@ struct TeacherLearningPathView: View {
                 List {
                     ForEach(paths) { path in
                         NavigationLink {
-                            LearningPathDetailView(path: path, studentId: path.studentId)
+                            LearningPathDetailView(
+                                path: path,
+                                studentId: path.studentId,
+                                showAnswerModeToggle: true   // FR-006: teachers can toggle answer mode
+                            )
                         } label: {
                             TeacherPathRow(path: path)
                         }

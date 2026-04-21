@@ -87,22 +87,21 @@ struct ParentSetupView: View {
         isLinking = true
         errorMessage = nil
         do {
-            guard let student = try await FirestoreService.shared.findStudentByEmail(studentEmail) else {
-                errorMessage = "No student account found with that email. Check the address and try again."
-                isLinking = false
-                return
-            }
+            // Server-side lookup — only parents can call this; returns only studentId + name.
+            let result = try await CloudFunctionService.shared.lookupStudentByEmail(studentEmail)
             let link = StudentAdultLink(
-                studentId: student.id,
+                studentId: result.studentId,
                 adultId: adultId,
                 adultRole: .parent,
                 studentEmail: studentEmail
             )
             try await FirestoreService.shared.createStudentAdultLink(link)
-            successMessage = "Link request sent! Your child will see it in their account."
-            // Auto-advance after a brief pause
+            successMessage = "Link request sent to \(result.displayName)! They'll see it in their account."
             try? await Task.sleep(for: .seconds(1.5))
             onComplete()
+        } catch let error as NSError where error.domain == "com.firebase.functions" {
+            // Surface the server's error message directly (not-found, permission-denied, etc.)
+            errorMessage = error.localizedDescription
         } catch {
             errorMessage = "Something went wrong. Please try again."
         }

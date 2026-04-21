@@ -11,6 +11,8 @@ enum AuditEventType: String, Codable {
     case fcmTokenRefreshed
     case contentViewed
     case testAttempted
+    case companionLocked    // FR-106
+    case companionUnlocked  // FR-106
 }
 
 struct AuditEvent: Codable, Identifiable {

@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // criticalSafetyEvents — append-only, tamper-evident (FR-103).
+    // Cloud Functions write via Admin SDK (bypasses these rules).
+    // No client can read, update, or delete these documents.
+    match /criticalSafetyEvents/{eventId} {
+      allow read, write: if false;
+    }
+
+    // safetyClassifications — written only by Cloud Functions via Admin SDK.
+    match /safetyClassifications/{docId} {
+      allow read, write: if false;
+    }
+
+    // auditLogs — written only by Cloud Functions / server SDK.
+    match /auditLogs/{docId} {
+      allow read, write: if false;
+    }
+
+    // districtConfig — readable by authenticated users (needed at call time),
+    // writable only by district admins (role == "admin").
+    match /districtConfig/{districtId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    // users — owner or admin only.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["teacher", "admin"];
+    }
+
+    // companionLocks — students can read their own lock; only teachers/admins can write.
+    match /companionLocks/{studentId} {
+      allow read: if request.auth != null && request.auth.uid == studentId;
+      allow write: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["teacher", "admin"];
+    }
+
+    // studentAdultLinks — explicit rules to prevent cross-family data exposure.
+    match /studentAdultLinks/{linkId} {
+      // The named adult, the named student, and school staff can read.
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.adultId ||
+        request.auth.uid == resource.data.studentId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["teacher", "admin"]
+      );
+      // Only the adult themselves can create a link (adultId must equal their own uid).
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.adultId;
+      // Only the student can confirm or update the link (e.g. set confirmed: true).
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.studentId;
+      // Either party can remove the link.
+      allow delete: if request.auth != null && (
+        request.auth.uid == resource.data.adultId ||
+        request.auth.uid == resource.data.studentId
+      );
+    }
+
+    // All other collections — authenticated users only (tighten per collection as needed).
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

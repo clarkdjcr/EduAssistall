@@ -292,6 +292,36 @@ private struct ProfileSettingsView: View {
                     } label: {
                         Label("Privacy & Data", systemImage: "lock.shield")
                     }
+
+                    // FR-203: Classroom configuration — visible to teachers
+                    if let profile = authVM.currentProfile, profile.role == .teacher {
+                        NavigationLink {
+                            ClassroomConfigView(teacherProfile: profile)
+                        } label: {
+                            Label("Classroom Config", systemImage: "slider.horizontal.3")
+                        }
+                    }
+
+                    // FR-105: Topic boundaries — visible to teachers and admins who have a districtId
+                    if let profile = authVM.currentProfile,
+                       (profile.role == .teacher || profile.role == .admin),
+                       let districtId = profile.districtId {
+                        NavigationLink {
+                            TopicBoundariesView(districtId: districtId)
+                        } label: {
+                            Label("Topic Boundaries", systemImage: "shield.lefthalf.filled")
+                        }
+                    }
+
+                    // Admin setup — visible to teachers and admins
+                    if let profile = authVM.currentProfile,
+                       profile.role == .teacher || profile.role == .admin {
+                        NavigationLink {
+                            SchoolAdminSetupView(profile: profile)
+                        } label: {
+                            Label("Admin Setup", systemImage: "building.2")
+                        }
+                    }
                 }
 
                 Section {

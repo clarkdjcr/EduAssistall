@@ -7,12 +7,21 @@ struct ContentCatalogView: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var subject = "Math"
+    @State private var source = "khanacademy"
     @State private var items: [CatalogItem] = []
     @State private var isLoading = false
     @State private var hasSearched = false
     @State private var errorMessage: String?
 
     private let subjects = ["Math", "Science", "Computing", "History", "English", "Economics", "Art"]
+
+    private var sourceDisplayName: String {
+        switch source {
+        case "edx": return "edX"
+        case "nasa": return "NASA STEM"
+        default: return "Khan Academy"
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -22,7 +31,7 @@ struct ContentCatalogView: View {
                 content
             }
             .background(Color.appGroupedBackground)
-            .navigationTitle("Khan Academy Catalog")
+            .navigationTitle("Content Catalog")
             .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -36,6 +45,21 @@ struct ContentCatalogView: View {
 
     private var filterBar: some View {
         VStack(spacing: 12) {
+            // Source toggle
+            Picker("Source", selection: $source) {
+                Text("Khan Academy").tag("khanacademy")
+                Text("edX").tag("edx")
+                Text("NASA STEM").tag("nasa")
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .onChange(of: source) { _, _ in
+                items = []
+                hasSearched = false
+                errorMessage = nil
+            }
+
+            // Subject chips
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(subjects, id: \.self) { s in
@@ -60,7 +84,7 @@ struct ContentCatalogView: View {
                     } else {
                         Image(systemName: "magnifyingglass")
                     }
-                    Text(isLoading ? "Fetching from Khan Academy…" : "Find \(subject) Content")
+                    Text(isLoading ? "Searching \(sourceDisplayName)…" : "Find \(subject) Content")
                         .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
@@ -83,7 +107,7 @@ struct ContentCatalogView: View {
         if isLoading {
             VStack(spacing: 14) {
                 ProgressView()
-                Text("Searching Khan Academy…")
+                Text("Searching \(sourceDisplayName)…")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -109,7 +133,7 @@ struct ContentCatalogView: View {
                     .foregroundStyle(.tertiary)
                 Text("No results found")
                     .font(.headline)
-                Text("Try a different subject.")
+                Text("Try a different subject or source.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -153,7 +177,8 @@ struct ContentCatalogView: View {
         do {
             items = try await CloudFunctionService.shared.curateContent(
                 subject: subject,
-                gradeLevel: gradeLevel
+                gradeLevel: gradeLevel,
+                source: source
             )
         } catch {
             errorMessage = error.localizedDescription
@@ -170,6 +195,13 @@ private struct CatalogItemRow: View {
 
     private var typeIcon: String { item.contentType == "video" ? "play.rectangle.fill" : "doc.text.fill" }
     private var typeColor: Color { item.contentType == "video" ? .red : .blue }
+    private var sourceLabel: String {
+        switch item.source {
+        case "edx": return "edX"
+        case "nasa": return "NASA STEM"
+        default: return "Khan Academy"
+        }
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -197,8 +229,7 @@ private struct CatalogItemRow: View {
                         .font(.caption2)
                         .foregroundStyle(.secondary)
 
-                    Label(item.source == "khanacademy" ? "Khan Academy" : item.source,
-                          systemImage: "checkmark.seal.fill")
+                    Label(sourceLabel, systemImage: "checkmark.seal.fill")
                         .font(.caption2)
                         .foregroundStyle(.green)
                 }

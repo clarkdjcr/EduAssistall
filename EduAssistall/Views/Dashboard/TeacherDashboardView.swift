@@ -7,6 +7,8 @@ struct TeacherDashboardView: View {
     @State private var pendingByStudent: [String: Int] = [:]
     @State private var isLoading = true
     @State private var showAllStudents = false
+    @State private var showImport = false
+    @State private var showManageRoster = false
 
     private var confirmedStudents: [StudentAdultLink] {
         linkedStudents.filter(\.confirmed)
@@ -34,6 +36,12 @@ struct TeacherDashboardView: View {
                 AllStudentsSheet(students: confirmedStudents,
                                  pendingByStudent: pendingByStudent,
                                  teacherProfile: profile)
+            }
+            .sheet(isPresented: $showImport, onDismiss: { Task { await loadStudents() } }) {
+                BulkImportView(teacherProfile: profile)
+            }
+            .navigationDestination(isPresented: $showManageRoster) {
+                RosterManagementView(teacherProfile: profile)
             }
         }
     }
@@ -158,6 +166,16 @@ struct TeacherDashboardView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(confirmedStudents.isEmpty)
+
+                Button { showImport = true } label: {
+                    QuickActionCard(icon: "arrow.down.doc.fill", label: "Import Roster", color: .indigo)
+                }
+                .buttonStyle(.plain)
+
+                Button { showManageRoster = true } label: {
+                    QuickActionCard(icon: "person.fill.badge.minus", label: "Manage Roster", color: .gray)
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 20)
         }

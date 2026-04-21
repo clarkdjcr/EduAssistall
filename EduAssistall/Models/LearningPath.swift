@@ -21,6 +21,9 @@ struct LearningPath: Codable, Identifiable {
     var items: [LearningPathItem]
     var isActive: Bool
     var createdAt: Date
+    /// FR-006: When false (default), the companion scaffolds but never gives direct answers.
+    /// Educators must explicitly enable this per path for answer-mode to activate.
+    var answerModeEnabled: Bool
 
     init(title: String, description: String, studentId: String, createdBy: String) {
         self.id = UUID().uuidString
@@ -31,6 +34,7 @@ struct LearningPath: Codable, Identifiable {
         self.items = []
         self.isActive = true
         self.createdAt = Date()
+        self.answerModeEnabled = false
     }
 
     var sortedItems: [LearningPathItem] {

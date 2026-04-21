@@ -15,7 +15,7 @@ final class NotificationService: NSObject {
         let center = UNUserNotificationCenter.current()
         let granted = (try? await center.requestAuthorization(options: [.alert, .badge, .sound])) ?? false
         if granted {
-            await UIApplication.shared.registerForRemoteNotifications()
+            UIApplication.shared.registerForRemoteNotifications()
         }
     }
 

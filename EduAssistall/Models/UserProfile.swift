@@ -17,6 +17,7 @@ struct UserProfile: Codable, Identifiable {
     var fcmToken: String?
     var privacyConsentGiven: Bool
     var privacyConsentAt: Date?
+    var districtId: String?
 
     init(id: String, email: String, displayName: String, role: UserRole, privacyConsentGiven: Bool = false) {
         self.id = id

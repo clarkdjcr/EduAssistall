@@ -53,13 +53,51 @@ final class FirestoreService {
         return try snapshot.documents.map { try $0.data(as: StudentAdultLink.self) }
     }
 
-    func findStudentByEmail(_ email: String) async throws -> UserProfile? {
-        let snapshot = try await db.collection("users")
+    /// Returns unconfirmed link requests directed at this student.
+    func fetchPendingLinks(studentId: String) async throws -> [StudentAdultLink] {
+        let snapshot = try await db.collection("studentAdultLinks")
+            .whereField("studentId", isEqualTo: studentId)
+            .whereField("confirmed", isEqualTo: false)
+            .getDocuments()
+        return try snapshot.documents.map { try $0.data(as: StudentAdultLink.self) }
+    }
+
+    func confirmLink(linkId: String) async throws {
+        try await db.collection("studentAdultLinks").document(linkId)
+            .updateData(["confirmed": true])
+    }
+
+    func declineLink(linkId: String) async throws {
+        try await db.collection("studentAdultLinks").document(linkId).delete()
+    }
+
+    /// Looks up a teacher account by email — used by the transfer flow.
+    func fetchTeacherByEmail(_ email: String) async throws -> UserProfile? {
+        let snap = try await db.collection("users")
             .whereField("email", isEqualTo: email)
-            .whereField("role", isEqualTo: UserRole.student.rawValue)
+            .whereField("role", isEqualTo: UserRole.teacher.rawValue)
             .limit(to: 1)
             .getDocuments()
-        return try snapshot.documents.first.map { try $0.data(as: UserProfile.self) }
+        return try snap.documents.first.map { try $0.data(as: UserProfile.self) }
+    }
+
+    /// Moves a student from the current teacher to a new teacher.
+    /// Deletes the old link and creates a confirmed link for the new teacher.
+    func transferStudent(linkId: String, studentId: String, studentEmail: String, newTeacherId: String) async throws {
+        let batch = db.batch()
+        batch.deleteDocument(db.collection("studentAdultLinks").document(linkId))
+        let newLinkId = "\(newTeacherId)_\(studentId)"
+        let newLinkRef = db.collection("studentAdultLinks").document(newLinkId)
+        batch.setData([
+            "id": newLinkId,
+            "adultId": newTeacherId,
+            "studentId": studentId,
+            "adultRole": AdultRole.teacher.rawValue,
+            "studentEmail": studentEmail,
+            "confirmed": true,
+            "createdAt": FieldValue.serverTimestamp()
+        ], forDocument: newLinkRef, merge: true)
+        try await batch.commit()
     }
 
     // MARK: - ContentItems
@@ -120,15 +158,34 @@ final class FirestoreService {
         return try snapshot.documents.map { try $0.data(as: LearningPath.self) }
     }
 
+    /// FR-006: Toggle answer mode for a learning path without overwriting other fields.
+    func setAnswerMode(pathId: String, enabled: Bool) async throws {
+        try await db.collection("learningPaths").document(pathId)
+            .updateData(["answerModeEnabled": enabled])
+    }
+
     func deleteLearningPath(id: String) async throws {
         try await db.collection("learningPaths").document(id).delete()
     }
 
     // MARK: - StudentProgress
 
-    func saveProgress(_ progress: StudentProgress) async throws {
+    func saveProgress(_ progress: StudentProgress, contentTitle: String = "", subject: String = "") async throws {
         let data = try Firestore.Encoder().encode(progress)
         try await db.collection("studentProgress").document(progress.id).setData(data)
+
+        // FR-002: auto-record a milestone when content is marked complete.
+        if progress.status == .completed, !contentTitle.isEmpty {
+            let milestone = LearningMilestone(
+                id: UUID().uuidString,
+                studentId: progress.studentId,
+                type: .contentCompleted,
+                title: contentTitle,
+                subject: subject,
+                achievedAt: progress.completedAt ?? Date()
+            )
+            try? await saveMilestone(milestone)
+        }
     }
 
     func fetchProgress(studentId: String, contentItemId: String) async throws -> StudentProgress? {
@@ -288,6 +345,311 @@ final class FirestoreService {
             .whereField("confirmed", isEqualTo: true)
             .getDocuments()
         return try snapshot.documents.map { try $0.data(as: StudentAdultLink.self) }
+    }
+
+    // MARK: - Active Sessions (FR-200)
+
+    func setActiveSession(studentId: String, studentEmail: String, isActive: Bool) {
+        let data: [String: Any] = [
+            "id": studentId,
+            "studentId": studentId,
+            "studentEmail": studentEmail,
+            "isActive": isActive,
+            "lastMessageAt": FieldValue.serverTimestamp(),
+            "messageCount": 0,
+        ]
+        // Use merge so we don't overwrite startedAt on subsequent updates.
+        var merged = data
+        if isActive { merged["startedAt"] = FieldValue.serverTimestamp() }
+        db.collection("activeSessions").document(studentId)
+            .setData(merged, merge: true)
+    }
+
+    /// Real-time listener for active sessions of the given student IDs.
+    /// Fires within ~1 s of any session change — well under the 5 s SLA (FR-200).
+    func listenActiveSessions(
+        studentIds: [String],
+        onChange: @escaping ([String: ActiveSession]) -> Void
+    ) -> ListenerRegistration {
+        // Firestore `in` queries support up to 30 values; chunk if needed.
+        let ids = Array(studentIds.prefix(30))
+        return db.collection("activeSessions")
+            .whereField("studentId", in: ids)
+            .addSnapshotListener { snapshot, _ in
+                guard let docs = snapshot?.documents else { return }
+                var result: [String: ActiveSession] = [:]
+                for doc in docs {
+                    if let session = try? doc.data(as: ActiveSession.self) {
+                        result[session.studentId] = session
+                    }
+                }
+                onChange(result)
+            }
+    }
+
+    /// Real-time listener for a student's conversation messages (read-only transcript).
+    func listenConversationMessages(
+        studentId: String,
+        onChange: @escaping ([ChatMessage]) -> Void
+    ) -> ListenerRegistration {
+        db.collection("conversations")
+            .document(studentId)
+            .collection("messages")
+            .order(by: "createdAt", descending: false)
+            .limit(to: 40)
+            .addSnapshotListener { snapshot, _ in
+                guard let docs = snapshot?.documents else { return }
+                let messages: [ChatMessage] = docs.compactMap { doc in
+                    let d = doc.data()
+                    guard let roleRaw = d["role"] as? String,
+                          let role = MessageRole(rawValue: roleRaw),
+                          let text = d["text"] as? String else { return nil }
+                    let createdAt = (d["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+                    return ChatMessage(id: doc.documentID, role: role, text: text, createdAt: createdAt)
+                }
+                onChange(messages)
+            }
+    }
+
+    // MARK: - Session Flags (FR-201)
+
+    /// Real-time listener for recent session flags for a single student.
+    /// Delivers the 20 most recent unacknowledged flags, sorted newest first.
+    func listenSessionFlags(
+        studentId: String,
+        onChange: @escaping ([SessionFlag]) -> Void
+    ) -> ListenerRegistration {
+        db.collection("sessionFlags")
+            .document(studentId)
+            .collection("flags")
+            .order(by: "createdAt", descending: true)
+            .limit(to: 20)
+            .addSnapshotListener { snapshot, _ in
+                guard let docs = snapshot?.documents else { return }
+                let flags: [SessionFlag] = docs.compactMap { doc in
+                    let d = doc.data()
+                    guard let typeRaw = d["type"] as? String,
+                          let type_ = SessionFlagType(rawValue: typeRaw),
+                          let reason = d["reason"] as? String else { return nil }
+                    let createdAt = (d["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+                    return SessionFlag(
+                        id: doc.documentID,
+                        studentId: studentId,
+                        type: type_,
+                        reason: reason,
+                        messagePreview: d["messagePreview"] as? String,
+                        acknowledged: d["acknowledged"] as? Bool ?? false,
+                        createdAt: createdAt
+                    )
+                }
+                onChange(flags)
+            }
+    }
+
+    func acknowledgeFlag(studentId: String, flagId: String) async throws {
+        try await db.collection("sessionFlags")
+            .document(studentId)
+            .collection("flags")
+            .document(flagId)
+            .updateData(["acknowledged": true])
+    }
+
+    // MARK: - Teacher Hints (FR-204)
+
+    func sendTeacherHint(studentId: String, text: String, teacher: UserProfile) async throws {
+        let hint: [String: Any] = [
+            "text": text,
+            "teacherId": teacher.id,
+            "teacherName": teacher.displayName,
+            "consumed": false,
+            "createdAt": FieldValue.serverTimestamp(),
+        ]
+        try await db.collection("teacherHints").document(studentId).setData(hint)
+    }
+
+    func listenPendingHint(studentId: String, onChange: @escaping (TeacherHint?) -> Void) -> ListenerRegistration {
+        db.collection("teacherHints").document(studentId)
+            .addSnapshotListener { snapshot, _ in
+                guard let d = snapshot?.data(),
+                      let text = d["text"] as? String,
+                      !(d["consumed"] as? Bool ?? true) else {
+                    onChange(nil)
+                    return
+                }
+                let hint = TeacherHint(
+                    text: text,
+                    teacherId: d["teacherId"] as? String ?? "",
+                    teacherName: d["teacherName"] as? String ?? "Your teacher",
+                    consumed: false,
+                    createdAt: (d["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+                )
+                onChange(hint)
+            }
+    }
+
+    // MARK: - Classroom Config (FR-203)
+
+    func fetchClassroomConfig(teacherId: String) async throws -> ClassroomConfig {
+        let snapshot = try await db.collection("classroomConfig").document(teacherId).getDocument()
+        if snapshot.exists, let config = try? snapshot.data(as: ClassroomConfig.self) {
+            return config
+        }
+        return ClassroomConfig(teacherId: teacherId)
+    }
+
+    func saveClassroomConfig(_ config: ClassroomConfig) async throws {
+        let data = try Firestore.Encoder().encode(config)
+        try await db.collection("classroomConfig").document(config.teacherId).setData(data)
+    }
+
+    /// Applies classroom-config defaults to a student's learning profile fields.
+    func applyClassroomDefaults(config: ClassroomConfig, to studentId: String) async throws {
+        try await db.collection("learningProfiles").document(studentId).updateData([
+            "defaultInteractionMode": config.defaultInteractionMode.rawValue,
+            "allowedInteractionModes": config.allowedInteractionModes.map(\.rawValue),
+            "currentInteractionMode": config.defaultInteractionMode.rawValue,
+            "responseStyle": config.responseStyle.rawValue,
+        ])
+    }
+
+    // MARK: - Interaction Mode (FR-003)
+
+    /// Updates only the student's current mode — must be within their allowed list.
+    func setInteractionMode(_ mode: InteractionMode, for studentId: String, allowed: [InteractionMode]) async throws {
+        guard allowed.contains(mode) else {
+            throw NSError(domain: "EduAssist", code: 403,
+                          userInfo: [NSLocalizedDescriptionKey: "That mode is not permitted by your educator."])
+        }
+        try await db.collection("learningProfiles").document(studentId)
+            .updateData(["currentInteractionMode": mode.rawValue])
+    }
+
+    // MARK: - Learning Milestones (FR-002)
+
+    func saveMilestone(_ milestone: LearningMilestone) async throws {
+        let data = try Firestore.Encoder().encode(milestone)
+        try await db.collection("learningMilestones")
+            .document(milestone.studentId)
+            .collection("milestones")
+            .document(milestone.id)
+            .setData(data)
+    }
+
+    /// Returns up to `limit` milestones ordered newest-first.
+    func fetchRecentMilestones(studentId: String, limit: Int = 5) async throws -> [LearningMilestone] {
+        let snap = try await db.collection("learningMilestones")
+            .document(studentId)
+            .collection("milestones")
+            .order(by: "achievedAt", descending: true)
+            .limit(to: limit)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: LearningMilestone.self) }
+    }
+
+    /// Returns the most recent `limit` messages from a student's conversation (FR-300 dashboard).
+    func fetchRecentConversationMessages(studentId: String, limit: Int = 4) async throws -> [ChatMessage] {
+        let snap = try await db.collection("conversations")
+            .document(studentId)
+            .collection("messages")
+            .order(by: "createdAt", descending: true)
+            .limit(to: limit)
+            .getDocuments()
+        return snap.documents.reversed().compactMap { doc in
+            let d = doc.data()
+            guard let roleRaw = d["role"] as? String,
+                  let role = MessageRole(rawValue: roleRaw),
+                  let text = d["text"] as? String else { return nil }
+            let createdAt = (d["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+            return ChatMessage(id: doc.documentID, role: role, text: text, createdAt: createdAt)
+        }
+    }
+
+    // MARK: - Learning Goals (FR-301)
+
+    func saveGoal(_ goal: LearningGoal) async throws {
+        let data = try Firestore.Encoder().encode(goal)
+        try await db.collection("learningGoals")
+            .document(goal.studentId)
+            .collection("goals")
+            .document(goal.id)
+            .setData(data)
+    }
+
+    func fetchGoals(studentId: String) async throws -> [LearningGoal] {
+        let snap = try await db.collection("learningGoals")
+            .document(studentId)
+            .collection("goals")
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: LearningGoal.self) }
+    }
+
+    func updateGoalStatus(goalId: String, studentId: String, status: GoalStatus) async throws {
+        try await db.collection("learningGoals")
+            .document(studentId)
+            .collection("goals")
+            .document(goalId)
+            .updateData(["status": status.rawValue])
+    }
+
+    func deleteGoal(goalId: String, studentId: String) async throws {
+        try await db.collection("learningGoals")
+            .document(studentId)
+            .collection("goals")
+            .document(goalId)
+            .delete()
+    }
+
+    // MARK: - Companion Lock (FR-106)
+
+    func setCompanionLock(studentId: String, locked: Bool, by educator: UserProfile, reason: String) async throws {
+        let lock = CompanionLock(
+            id: studentId,
+            studentId: studentId,
+            isLocked: locked,
+            lockedBy: educator.id,
+            lockedByName: educator.displayName,
+            reason: reason,
+            lockedAt: locked ? Date() : nil,
+            unlockedAt: locked ? nil : Date()
+        )
+        let data = try Firestore.Encoder().encode(lock)
+        try await db.collection("companionLocks").document(studentId).setData(data)
+
+        // Audit every activation with reason and actor (FR-106 acceptance criteria).
+        AuditService.shared.log(
+            locked ? .companionLocked : .companionUnlocked,
+            userId: educator.id,
+            metadata: ["studentId": studentId, "reason": reason]
+        )
+    }
+
+    /// Returns a Firestore listener that fires within ~1 second of a lock state change.
+    /// Caller must store the returned `ListenerRegistration` and call `.remove()` on deinit.
+    func listenCompanionLock(studentId: String, onChange: @escaping (Bool) -> Void) -> ListenerRegistration {
+        db.collection("companionLocks").document(studentId)
+            .addSnapshotListener { snapshot, _ in
+                let isLocked = (snapshot?.data()?["isLocked"] as? Bool) ?? false
+                onChange(isLocked)
+            }
+    }
+
+    // MARK: - District Config (FR-105)
+
+    func fetchDistrictConfig(districtId: String) async throws -> DistrictConfig? {
+        let snap = try await db.collection("districtConfig").document(districtId).getDocument()
+        guard snap.exists else { return nil }
+        return try snap.data(as: DistrictConfig.self)
+    }
+
+    func saveDistrictConfig(_ config: DistrictConfig) async throws {
+        var data = try Firestore.Encoder().encode(config)
+        data["updatedAt"] = FieldValue.serverTimestamp()
+        try await db.collection("districtConfig").document(config.id).setData(data)
+    }
+
+    func updateDistrictId(uid: String, districtId: String) async throws {
+        try await db.collection("users").document(uid).updateData(["districtId": districtId])
     }
 
     // MARK: - Push Notifications

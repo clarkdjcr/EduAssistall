@@ -8,6 +8,8 @@ struct StudentDashboardView: View {
     @State private var completedCount: Int = 0
     @State private var currentStreak: Int = 0
     @State private var thisWeekPercent: Int = 0
+    @State private var milestones: [LearningMilestone] = []       // FR-300
+    @State private var recentMessages: [ChatMessage] = []         // FR-300
     @State private var isLoading = true
     @State private var showProfile = false
 
@@ -105,6 +107,67 @@ struct StudentDashboardView: View {
                                 }
                                 .padding(.horizontal, 20)
                             }
+                        }
+                    }
+
+                    // FR-300: Achievements
+                    if !milestones.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Recent Achievements")
+                                .font(.headline)
+                                .padding(.horizontal, 20)
+
+                            ForEach(milestones) { milestone in
+                                MilestoneCard(milestone: milestone)
+                                    .padding(.horizontal, 20)
+                            }
+                        }
+                    }
+
+                    // FR-300: Goals CTA (goal-setting flow in FR-301)
+                    NavigationLink {
+                        GoalSettingView(profile: profile)
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("My Goals")
+                                    .font(.headline)
+                                    .foregroundStyle(Color.white)
+                                Text("Set and track your learning goals")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.white.opacity(0.8))
+                            }
+                            Spacer()
+                            Image(systemName: "target")
+                                .font(.title2)
+                                .foregroundStyle(Color.white.opacity(0.9))
+                        }
+                        .padding()
+                        .background(
+                            LinearGradient(
+                                colors: [Color.indigo, Color.purple.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 20)
+
+                    // FR-300: Recent Interactions
+                    if !recentMessages.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Recent AI Interactions")
+                                .font(.headline)
+                                .padding(.horizontal, 20)
+
+                            VStack(spacing: 8) {
+                                ForEach(recentMessages) { msg in
+                                    RecentMessageRow(message: msg)
+                                }
+                            }
+                            .padding(.horizontal, 20)
                         }
                     }
 
@@ -206,8 +269,12 @@ struct StudentDashboardView: View {
         async let profileFetch = FirestoreService.shared.fetchLearningProfile(studentId: profile.id)
         async let pathsFetch = FirestoreService.shared.fetchLearningPaths(studentId: profile.id)
         async let progressFetch = FirestoreService.shared.fetchAllProgress(studentId: profile.id)
+        async let milestonesFetch = FirestoreService.shared.fetchRecentMilestones(studentId: profile.id, limit: 3)
+        async let messagesFetch = FirestoreService.shared.fetchRecentConversationMessages(studentId: profile.id, limit: 4)
 
         learningProfile = try? await profileFetch
+        milestones = (try? await milestonesFetch) ?? []
+        recentMessages = (try? await messagesFetch) ?? []
 
         let paths = (try? await pathsFetch) ?? []
         activePath = paths.first(where: { $0.isActive }) ?? paths.first
@@ -362,6 +429,7 @@ private struct LearningStyleCard: View {
 struct StudentProfileSheet: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(\.dismiss) private var dismiss
+    @State private var pendingCount = 0
 
     var body: some View {
         NavigationStack {
@@ -387,6 +455,32 @@ struct StudentProfileSheet: View {
                         }
                         .padding(.vertical, 6)
                     }
+
+                    Section {
+                        NavigationLink {
+                            PendingLinksView(studentId: profile.id)
+                        } label: {
+                            HStack {
+                                Label("Link Requests", systemImage: "person.badge.plus")
+                                Spacer()
+                                if pendingCount > 0 {
+                                    Text("\(pendingCount)")
+                                        .font(.caption.bold())
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(Color.orange)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+
+                        NavigationLink {
+                            DataPrivacyView()
+                        } label: {
+                            Label("Privacy & Data", systemImage: "lock.shield")
+                        }
+                    }
                 }
 
                 Section {
@@ -404,7 +498,96 @@ struct StudentProfileSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
+            .task {
+                if let id = authVM.currentProfile?.id {
+                    let pending = (try? await FirestoreService.shared.fetchPendingLinks(studentId: id)) ?? []
+                    pendingCount = pending.count
+                }
+            }
         }
+    }
+}
+
+// MARK: - FR-300 Supporting Views
+
+private struct MilestoneCard: View {
+    let milestone: LearningMilestone
+
+    private var icon: String {
+        switch milestone.type {
+        case .contentCompleted: return "checkmark.circle.fill"
+        case .quizPassed:       return "star.fill"
+        case .pathCompleted:    return "trophy.fill"
+        case .topicMastered:    return "seal.fill"
+        }
+    }
+
+    private var color: Color {
+        switch milestone.type {
+        case .contentCompleted: return .blue
+        case .quizPassed:       return .orange
+        case .pathCompleted:    return .yellow
+        case .topicMastered:    return .green
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(color)
+                .frame(width: 40, height: 40)
+                .background(color.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(milestone.title)
+                    .font(.subheadline.bold())
+                    .lineLimit(1)
+                Text("\(milestone.type.verb.capitalized) • \(milestone.subject)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Text(milestone.achievedAt, style: .relative)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(12)
+        .background(Color.appSecondaryGroupedBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+private struct RecentMessageRow: View {
+    let message: ChatMessage
+
+    private var isUser: Bool { message.role == .user }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: isUser ? "person.circle.fill" : "brain.filled.head.profile")
+                .font(.subheadline)
+                .foregroundStyle(isUser ? Color.secondary : Color.blue)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(isUser ? "You" : "AI Companion")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.secondary)
+                Text(message.text)
+                    .font(.caption)
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(Color.appSecondaryGroupedBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
 

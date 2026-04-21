@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseFirestore
 
 struct CompanionView: View {
     let profile: UserProfile
@@ -9,9 +10,28 @@ struct CompanionView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
 
+    // FR-106: real-time lock state — listener fires within ~1 s of educator activation
+    @State private var isLocked = false
+    @State private var lockListener: ListenerRegistration?
+
+    // FR-204: pending teacher hint
+    @State private var pendingHint: TeacherHint?
+    @State private var hintListener: ListenerRegistration?
+
+    // FR-003: Interaction mode
+    @State private var currentMode: InteractionMode = .guidedDiscovery
+    @State private var allowedModes: [InteractionMode] = InteractionMode.allCases
+    @State private var showModePicker = false
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                if isLocked {
+                    lockedBanner
+                }
+                if pendingHint != nil {
+                    hintBanner
+                }
                 messageList
                 Divider()
                 inputBar
@@ -19,8 +39,82 @@ struct CompanionView: View {
             .background(Color.appGroupedBackground)
             .navigationTitle("AI Companion")
             .inlineNavigationTitle()
-            .task { await loadHistory() }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showModePicker = true
+                    } label: {
+                        Label(currentMode.displayName, systemImage: "dial.medium")
+                            .labelStyle(.iconOnly)
+                    }
+                }
+            }
+            .sheet(isPresented: $showModePicker) {
+                ModePickerSheet(
+                    currentMode: $currentMode,
+                    allowedModes: allowedModes,
+                    studentId: profile.id
+                )
+                .presentationDetents([.medium])
+            }
+            .task {
+                await loadHistory()
+                await loadModeFromProfile()
+            }
+            .onAppear {
+                startLockListener()
+                hintListener = FirestoreService.shared.listenPendingHint(studentId: profile.id) { hint in
+                    withAnimation { pendingHint = hint }
+                }
+                // FR-200: Mark session active so educators see it within <5 s.
+                FirestoreService.shared.setActiveSession(
+                    studentId: profile.id,
+                    studentEmail: profile.email,
+                    isActive: true
+                )
+            }
+            .onDisappear {
+                lockListener?.remove()
+                hintListener?.remove()
+                FirestoreService.shared.setActiveSession(
+                    studentId: profile.id,
+                    studentEmail: profile.email,
+                    isActive: false
+                )
+            }
         }
+    }
+
+    // MARK: - Lock Banner (FR-106)
+
+    private var lockedBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "lock.fill")
+            Text("Your companion session has been paused by your educator.")
+                .font(.caption.bold())
+                .multilineTextAlignment(.leading)
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.orange)
+    }
+
+    // MARK: - Hint Banner (FR-204)
+
+    private var hintBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "lightbulb.fill")
+            Text("Your teacher has sent you a hint — it will guide my next response.")
+                .font(.caption.bold())
+                .multilineTextAlignment(.leading)
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.indigo)
     }
 
     // MARK: - Message List
@@ -129,7 +223,19 @@ struct CompanionView: View {
     // MARK: - Helpers
 
     private var canSend: Bool {
-        !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isThinking
+        !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isThinking && !isLocked
+    }
+
+    private func loadModeFromProfile() async {
+        guard let lp = try? await FirestoreService.shared.fetchLearningProfile(studentId: profile.id) else { return }
+        allowedModes = lp.allowedInteractionModes.isEmpty ? InteractionMode.allCases : lp.allowedInteractionModes
+        currentMode = allowedModes.contains(lp.currentInteractionMode) ? lp.currentInteractionMode : (allowedModes.first ?? .guidedDiscovery)
+    }
+
+    private func startLockListener() {
+        lockListener = FirestoreService.shared.listenCompanionLock(studentId: profile.id) { locked in
+            withAnimation { isLocked = locked }
+        }
     }
 
     private func sendMessage() async {
@@ -138,6 +244,7 @@ struct CompanionView: View {
 
         inputText = ""
         errorMessage = nil
+        withAnimation { pendingHint = nil } // hint consumed on next Cloud Function call
 
         let userMessage = ChatMessage(role: .user, text: text)
         messages.append(userMessage)
@@ -146,7 +253,8 @@ struct CompanionView: View {
         do {
             let reply = try await CloudFunctionService.shared.askCompanion(
                 message: text,
-                studentId: profile.id
+                studentId: profile.id,
+                mode: currentMode
             )
             messages.append(ChatMessage(role: .assistant, text: reply))
         } catch {
@@ -266,5 +374,72 @@ private struct SuggestionChip: View {
                 )
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Mode Picker Sheet (FR-003)
+
+private struct ModePickerSheet: View {
+    @Binding var currentMode: InteractionMode
+    let allowedModes: [InteractionMode]
+    let studentId: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List(allowedModes) { mode in
+                Button {
+                    currentMode = mode
+                    Task {
+                        try? await FirestoreService.shared.setInteractionMode(
+                            mode, for: studentId, allowed: allowedModes
+                        )
+                    }
+                    dismiss()
+                } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: iconName(for: mode))
+                            .foregroundStyle(.blue)
+                            .frame(width: 28)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(mode.displayName)
+                                .font(.subheadline.bold())
+                                .foregroundStyle(.primary)
+                            Text(mode.description)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if mode == currentMode {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(.plain)
+            }
+            #if os(iOS)
+            .listStyle(.insetGrouped)
+            #else
+            .listStyle(.inset)
+            #endif
+            .navigationTitle("Learning Mode")
+            .inlineNavigationTitle()
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func iconName(for mode: InteractionMode) -> String {
+        switch mode {
+        case .guidedDiscovery:    return "magnifyingglass"
+        case .coCreation:         return "person.2.fill"
+        case .reflectiveCoaching: return "brain.head.profile"
+        case .silentSupport:      return "ear"
+        }
     }
 }
