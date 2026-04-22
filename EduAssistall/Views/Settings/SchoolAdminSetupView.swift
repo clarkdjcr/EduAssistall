@@ -185,7 +185,7 @@ struct SchoolAdminSetupView: View {
     private func saveConfig() async {
         guard !districtId.isEmpty else { return }
         isSaving = true
-        var config = DistrictConfig(id: districtId, districtName: schoolName)
+        let config = DistrictConfig(id: districtId, districtName: schoolName)
         try? await FirestoreService.shared.saveDistrictConfig(config)
         // Stamp the district ID onto the teacher's own profile
         try? await FirestoreService.shared.updateDistrictId(uid: profile.id, districtId: districtId)

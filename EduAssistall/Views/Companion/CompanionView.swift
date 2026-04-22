@@ -23,6 +23,9 @@ struct CompanionView: View {
     @State private var allowedModes: [InteractionMode] = InteractionMode.allCases
     @State private var showModePicker = false
 
+    // Context-aware suggestion chips
+    @State private var activePath: LearningPath?
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -31,6 +34,9 @@ struct CompanionView: View {
                 }
                 if pendingHint != nil {
                     hintBanner
+                }
+                if !ConnectivityService.shared.isOnline {
+                    offlineBanner
                 }
                 messageList
                 Divider()
@@ -60,6 +66,7 @@ struct CompanionView: View {
             .task {
                 await loadHistory()
                 await loadModeFromProfile()
+                await loadActivePath()
             }
             .onAppear {
                 startLockListener()
@@ -81,6 +88,13 @@ struct CompanionView: View {
                     studentEmail: profile.email,
                     isActive: false
                 )
+                // FR-302: Generate journal entry if the session had at least 4 messages (2 exchanges).
+                if messages.count >= 4 {
+                    CloudFunctionService.shared.generateJournalEntry(
+                        studentId: profile.id,
+                        conversationId: profile.id
+                    )
+                }
             }
         }
     }
@@ -99,6 +113,22 @@ struct CompanionView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(Color.orange)
+    }
+
+    // MARK: - Offline Banner
+
+    private var offlineBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "wifi.slash")
+            Text("You're offline. Messages will fail until your connection is restored.")
+                .font(.caption.bold())
+                .multilineTextAlignment(.leading)
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.gray)
     }
 
     // MARK: - Hint Banner (FR-204)
@@ -174,6 +204,8 @@ struct CompanionView: View {
                 .padding(.vertical, 10)
                 .background(Color.appSecondaryGroupedBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
+                .accessibilityLabel("Message input")
+                .accessibilityHint("Type your question or message to the AI companion")
 
             Button {
                 Task { await sendMessage() }
@@ -183,6 +215,9 @@ struct CompanionView: View {
                     .foregroundStyle(canSend ? Color.blue : Color.secondary)
             }
             .disabled(!canSend)
+            .keyboardShortcut(.return, modifiers: .command)
+            .accessibilityLabel("Send message")
+            .accessibilityHint(canSend ? "Sends your message to the AI companion" : "Type a message first")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -205,11 +240,20 @@ struct CompanionView: View {
                 .padding(.horizontal, 32)
 
             VStack(alignment: .leading, spacing: 10) {
-                SuggestionChip(text: "Help me understand fractions") {
-                    inputText = "Help me understand fractions"
-                }
-                SuggestionChip(text: "What is photosynthesis?") {
-                    inputText = "What is photosynthesis?"
+                if let path = activePath {
+                    SuggestionChip(text: "Help me with \(path.title)") {
+                        inputText = "Help me with \(path.title)"
+                    }
+                    SuggestionChip(text: "Quiz me on \(path.title)") {
+                        inputText = "Quiz me on \(path.title)"
+                    }
+                } else {
+                    SuggestionChip(text: "Help me understand fractions") {
+                        inputText = "Help me understand fractions"
+                    }
+                    SuggestionChip(text: "What is photosynthesis?") {
+                        inputText = "What is photosynthesis?"
+                    }
                 }
                 SuggestionChip(text: "Can you quiz me on my current lesson?") {
                     inputText = "Can you quiz me on my current lesson?"
@@ -244,7 +288,7 @@ struct CompanionView: View {
 
         inputText = ""
         errorMessage = nil
-        withAnimation { pendingHint = nil } // hint consumed on next Cloud Function call
+        withAnimation { pendingHint = nil }
 
         let userMessage = ChatMessage(role: .user, text: text)
         messages.append(userMessage)
@@ -257,8 +301,14 @@ struct CompanionView: View {
                 mode: currentMode
             )
             messages.append(ChatMessage(role: .assistant, text: reply))
+        } catch let ce as CompanionError {
+            messages.removeLast() // remove the optimistically-added user bubble on failure
+            inputText = ce.isRetryable ? text : ""  // restore input so student can retry easily
+            errorMessage = ce.errorDescription
         } catch {
-            errorMessage = "Couldn't reach the AI. Please try again."
+            messages.removeLast()
+            inputText = text
+            errorMessage = "Something went wrong. Please try again."
         }
 
         isThinking = false
@@ -266,9 +316,14 @@ struct CompanionView: View {
 
     private func loadHistory() async {
         isLoading = true
-        // History is stored server-side — start fresh each session for simplicity.
-        // Future enhancement: load from Firestore conversations/{studentId}/messages
+        messages = (try? await FirestoreService.shared.fetchRecentConversationMessages(
+            studentId: profile.id, limit: 20
+        )) ?? []
         isLoading = false
+    }
+
+    private func loadActivePath() async {
+        activePath = try? await FirestoreService.shared.fetchLearningPaths(studentId: profile.id).first
     }
 }
 
@@ -278,6 +333,15 @@ struct ChatBubbleView: View {
     let message: ChatMessage
 
     private var isUser: Bool { message.role == .user }
+
+    private var assistantAttributed: AttributedString {
+        (try? AttributedString(
+            markdown: message.text,
+            options: AttributedString.MarkdownParsingOptions(
+                interpretedSyntax: .inlineOnlyPreservingWhitespace
+            )
+        )) ?? AttributedString(message.text)
+    }
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
@@ -292,15 +356,19 @@ struct ChatBubbleView: View {
                     .clipShape(Circle())
             }
 
-            Text(message.text)
-                .font(.body)
-                .foregroundStyle(isUser ? Color.white : Color.primary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(isUser ? Color.blue : Color.appSecondaryGroupedBackground)
-                .clipShape(
-                    RoundedRectangle(cornerRadius: 18)
-                )
+            Group {
+                if isUser {
+                    Text(message.text)
+                } else {
+                    Text(assistantAttributed)
+                }
+            }
+            .font(.body)
+            .foregroundStyle(isUser ? Color.white : Color.primary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(isUser ? Color.blue : Color.appSecondaryGroupedBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
 
             if isUser {
                 Image(systemName: "person.circle.fill")

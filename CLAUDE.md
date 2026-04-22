@@ -112,6 +112,27 @@ Additional collections used by safety/session features:
 - `sessionFlags/{studentId}/flags/{autoId}` — educator-visible frustration/safety flags
 - `activeSessions/{studentId}` — live session tracking (FR-200), written by CompanionView
 
+Additional collections added for NFRs:
+- `performanceMetrics/{autoId}` — per-call APM data: `fn`, `latencyMs`, `gradeBand`, `timestamp` (NFR-001)
+- `latencyStats/current` — hourly p50/p95/p99 snapshot written by `computeLatencyStats` (NFR-001)
+- `healthPing/probe` — heartbeat doc written by `healthCheck` HTTP function (NFR-002)
+- `safetyBenchmarks/{autoId}` — benchmark run results: TPR, FPR, corpus size (NFR-004)
+- `drBackupLog/{autoId}` — daily Firestore export status records (NFR-007)
+
+### NFR Functions
+
+**`computeLatencyStats`** — scheduled hourly: reads last 60 min of `performanceMetrics`, computes p50/p95/p99, writes to `latencyStats/current`. Sets `breachingTarget: true` if p95 > 2000ms.
+
+**`healthCheck`** — HTTP (unauthenticated): writes heartbeat to Firestore, returns JSON `{ status, p95Ms, timestamp }`. Used by external uptime monitors every 30s (NFR-002).
+
+**`runSafetyBenchmark`** — callable (teacher/admin): runs input+output classifiers against a built-in 22-sample labeled corpus, returns TPR/FPR, writes to `safetyBenchmarks`. NFR-004 target: TPR ≥ 99.5%, FPR < 0.5%.
+
+**`dailyFirestoreBackup`** — scheduled 04:00 UTC: calls Firestore Admin export API to `gs://{projectId}-backups/firestore/{date}`. Requires GCS bucket `{projectId}-backups` to exist. Logs to `drBackupLog`. NFR-007 DR support.
+
+### NFR-005 Accessibility
+
+`AccessibilitySettingsView` (Settings tab) exposes dyslexia-friendly font, high-contrast mode, larger text, and reduce motion toggles. All preferences are persisted via `@AppStorage` with keys `a11y_*` and injected into the SwiftUI environment at app root via custom `EnvironmentKey` values (`dyslexiaFont`, `a11yHighContrast`, `a11yLargeText`, `a11yReduceMotion`). Views that need to adapt to these read them via `@Environment(\.dyslexiaFont)` etc.
+
 The iOS side calls `askCompanion` through `CloudFunctionService.shared` (`Services/CloudFunctionService.swift`). One conversation per student — `conversationId` equals `studentId`.
 
 ### Multi-Platform Target Workarounds

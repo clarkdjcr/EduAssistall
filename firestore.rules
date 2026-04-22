@@ -2,69 +2,325 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // criticalSafetyEvents — append-only, tamper-evident (FR-103).
-    // Cloud Functions write via Admin SDK (bypasses these rules).
-    // No client can read, update, or delete these documents.
-    match /criticalSafetyEvents/{eventId} {
-      allow read, write: if false;
+    // -------------------------------------------------------------------------
+    // Helper functions
+    // -------------------------------------------------------------------------
+
+    // Reads the caller's user document (cached within a request — counts as 1 get).
+    function callerData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function isAdmin()   { return callerData().role == "admin"; }
+    function isEducator(){ return callerData().role in ["teacher", "admin"]; }
+
+    // True if the caller has a confirmed studentAdultLink to studentId.
+    // Requires document IDs in the form {adultId}_{studentId} (enforced in StudentAdultLink.init).
+    // Both exists() and get() hit the same path — Firestore caches the read.
+    function isLinked(studentId) {
+      let p = /databases/$(database)/documents/studentAdultLinks/$(request.auth.uid + '_' + studentId);
+      return exists(p) && get(p).data.confirmed == true;
     }
 
-    // safetyClassifications — written only by Cloud Functions via Admin SDK.
-    match /safetyClassifications/{docId} {
-      allow read, write: if false;
+    function isLinkedTeacher(studentId) {
+      let p = /databases/$(database)/documents/studentAdultLinks/$(request.auth.uid + '_' + studentId);
+      return exists(p)
+          && get(p).data.confirmed == true
+          && get(p).data.adultRole == "teacher";
     }
 
-    // auditLogs — written only by Cloud Functions / server SDK.
-    match /auditLogs/{docId} {
-      allow read, write: if false;
+    function isLinkedParent(studentId) {
+      let p = /databases/$(database)/documents/studentAdultLinks/$(request.auth.uid + '_' + studentId);
+      return exists(p)
+          && get(p).data.confirmed == true
+          && get(p).data.adultRole == "parent";
     }
 
-    // districtConfig — readable by authenticated users (needed at call time),
-    // writable only by district admins (role == "admin").
-    match /districtConfig/{districtId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
-    }
-
-    // users — owner or admin only.
+    // -------------------------------------------------------------------------
+    // users/{uid}
+    // Owner read/write always allowed. Linked adults can read (for dashboard display).
+    // Admins can read all profiles.
+    // Role changes require admin — enforced by checking that a non-admin cannot
+    // change the role field.
+    // -------------------------------------------------------------------------
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-      allow read: if request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["teacher", "admin"];
+      allow read, write: if request.auth != null && request.auth.uid == uid
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["role"])
+              || isAdmin());
+      allow read: if request.auth != null && (isLinked(uid) || isAdmin());
+      // First-time profile creation (onboarding): allow if uid matches.
+      allow create: if request.auth != null && request.auth.uid == uid;
     }
 
-    // companionLocks — students can read their own lock; only teachers/admins can write.
+    // -------------------------------------------------------------------------
+    // learningProfiles/{studentId}
+    // -------------------------------------------------------------------------
+    match /learningProfiles/{studentId} {
+      allow read, write: if request.auth != null && request.auth.uid == studentId;
+      allow read, write: if request.auth != null && isLinkedTeacher(studentId);
+      allow read:        if request.auth != null && isLinkedParent(studentId);
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // studentAdultLinks/{linkId}  (linkId == "{adultId}_{studentId}")
+    //
+    // COPPA mutual-verification contract:
+    //   CREATE  — adult initiates; link starts confirmed=false, expiresAt set by client.
+    //   UPDATE  — ONLY the student may confirm. The parent/teacher cannot flip
+    //             confirmed=true themselves. Only the `confirmed` field may change,
+    //             and it must move to true (decline = delete, not update).
+    //             The request must arrive before expiresAt.
+    //   DELETE  — either party withdraws/declines at any time.
+    // -------------------------------------------------------------------------
+    match /studentAdultLinks/{linkId} {
+      allow read: if request.auth != null && (
+          request.auth.uid == resource.data.adultId ||
+          request.auth.uid == resource.data.studentId ||
+          isAdmin()
+      );
+
+      // Adult creates the link; must be unconfirmed so student confirmation is mandatory.
+      allow create: if request.auth != null
+          && request.auth.uid == request.resource.data.adultId
+          && request.resource.data.confirmed == false;
+
+      // ONLY the student can confirm. Constraints:
+      //   • caller must be the named student
+      //   • only the `confirmed` field changes (no other data mutated)
+      //   • confirmed must be set to true (not false — decline uses delete)
+      //   • link must not have expired
+      allow update: if request.auth != null
+          && request.auth.uid == resource.data.studentId
+          && request.resource.data.confirmed == true
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["confirmed"])
+          && request.time < resource.data.expiresAt;
+
+      // Either party may remove: adult withdraws the request, student declines it.
+      allow delete: if request.auth != null && (
+          request.auth.uid == resource.data.adultId ||
+          request.auth.uid == resource.data.studentId
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // learningPaths/{pathId}
+    // -------------------------------------------------------------------------
+    match /learningPaths/{pathId} {
+      allow read: if request.auth != null && (
+          resource.data.studentId == request.auth.uid ||
+          isLinked(resource.data.studentId) ||
+          isAdmin()
+      );
+      allow create, update: if request.auth != null && (
+          isLinkedTeacher(request.resource.data.studentId) || isAdmin()
+      );
+      allow delete: if request.auth != null && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // contentItems/{itemId}  — shared catalog, contains no personal data
+    // -------------------------------------------------------------------------
+    match /contentItems/{itemId} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // studentProgress/{docId}  (docId == "{studentId}_{contentItemId}")
+    // -------------------------------------------------------------------------
+    match /studentProgress/{docId} {
+      allow read: if request.auth != null && (
+          resource.data.studentId == request.auth.uid ||
+          isLinked(resource.data.studentId) ||
+          isAdmin()
+      );
+      allow create: if request.auth != null && (
+          request.resource.data.studentId == request.auth.uid || isAdmin()
+      );
+      allow update: if request.auth != null && (
+          resource.data.studentId == request.auth.uid ||
+          isLinkedTeacher(resource.data.studentId) ||
+          isAdmin()
+      );
+      allow delete: if request.auth != null && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // conversations/{studentId}/messages/{msgId}
+    // Students write their own messages. Cloud Functions write AI replies via
+    // Admin SDK (bypasses these rules). No client can update or delete.
+    // -------------------------------------------------------------------------
+    match /conversations/{studentId}/messages/{msgId} {
+      allow read: if request.auth != null && (
+          request.auth.uid == studentId ||
+          isLinked(studentId) ||
+          isAdmin()
+      );
+      allow create: if request.auth != null && request.auth.uid == studentId;
+      allow update, delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // recommendations/{recId}
+    // Cloud Functions create; linked teachers can approve/reject; students and
+    // linked parents can read.
+    // -------------------------------------------------------------------------
+    match /recommendations/{recId} {
+      allow read: if request.auth != null && (
+          resource.data.studentId == request.auth.uid ||
+          isLinked(resource.data.studentId) ||
+          isAdmin()
+      );
+      allow update: if request.auth != null && (
+          isLinkedTeacher(resource.data.studentId) || isAdmin()
+      );
+      allow create, delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // messageThreads/{threadId}  +  messages subcollection
+    // Access is restricted to thread participants (stored in participantIds array).
+    // -------------------------------------------------------------------------
+    match /messageThreads/{threadId} {
+      allow read: if request.auth != null
+          && request.auth.uid in resource.data.participantIds;
+      allow create: if request.auth != null
+          && request.auth.uid in request.resource.data.participantIds;
+      allow update: if request.auth != null
+          && request.auth.uid in resource.data.participantIds;
+      allow delete: if false;
+    }
+    match /messageThreads/{threadId}/messages/{msgId} {
+      allow read: if request.auth != null
+          && request.auth.uid in
+             get(/databases/$(database)/documents/messageThreads/$(threadId)).data.participantIds;
+      allow create: if request.auth != null
+          && request.auth.uid in
+             get(/databases/$(database)/documents/messageThreads/$(threadId)).data.participantIds
+          && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // learningMilestones/{studentId}/milestones/{milestoneId}
+    // Written only by Cloud Functions (Admin SDK).
+    // -------------------------------------------------------------------------
+    match /learningMilestones/{studentId}/milestones/{milestoneId} {
+      allow read: if request.auth != null && (
+          request.auth.uid == studentId ||
+          isLinked(studentId) ||
+          isAdmin()
+      );
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // learningJournal/{studentId}/entries/{entryId}
+    // Written only by Cloud Functions (Admin SDK).
+    // -------------------------------------------------------------------------
+    match /learningJournal/{studentId}/entries/{entryId} {
+      allow read: if request.auth != null && (
+          request.auth.uid == studentId ||
+          isLinked(studentId) ||
+          isAdmin()
+      );
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // companionLocks/{studentId}
+    // Students read their own lock status. Only educators can lock/unlock.
+    // -------------------------------------------------------------------------
     match /companionLocks/{studentId} {
       allow read: if request.auth != null && request.auth.uid == studentId;
-      allow write: if request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["teacher", "admin"];
+      allow write: if request.auth != null && isEducator();
     }
 
-    // studentAdultLinks — explicit rules to prevent cross-family data exposure.
-    match /studentAdultLinks/{linkId} {
-      // The named adult, the named student, and school staff can read.
+    // -------------------------------------------------------------------------
+    // activeSessions/{studentId}  (FR-200 live session tracking)
+    // Students write their own session. Linked teachers and admins can read
+    // (for the live monitor tab).
+    // -------------------------------------------------------------------------
+    match /activeSessions/{studentId} {
+      allow read, write: if request.auth != null && request.auth.uid == studentId;
+      allow read: if request.auth != null && (isLinkedTeacher(studentId) || isAdmin());
+    }
+
+    // -------------------------------------------------------------------------
+    // sessionFlags/{studentId}/flags/{flagId}
+    // Educator-only view — students must NOT see their own flags (it would reveal
+    // frustration/safety classification details that could be gamed).
+    // Written only by Cloud Functions.
+    // -------------------------------------------------------------------------
+    match /sessionFlags/{studentId}/flags/{flagId} {
       allow read: if request.auth != null && (
-        request.auth.uid == resource.data.adultId ||
-        request.auth.uid == resource.data.studentId ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["teacher", "admin"]
+          isLinkedTeacher(studentId) ||
+          isLinkedParent(studentId) ||
+          isAdmin()
       );
-      // Only the adult themselves can create a link (adultId must equal their own uid).
-      allow create: if request.auth != null
-        && request.auth.uid == request.resource.data.adultId;
-      // Only the student can confirm or update the link (e.g. set confirmed: true).
-      allow update: if request.auth != null
-        && request.auth.uid == resource.data.studentId;
-      // Either party can remove the link.
-      allow delete: if request.auth != null && (
-        request.auth.uid == resource.data.adultId ||
-        request.auth.uid == resource.data.studentId
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // districtConfig/{districtId}
+    // -------------------------------------------------------------------------
+    match /districtConfig/{districtId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // classroomConfig/{teacherId}
+    // -------------------------------------------------------------------------
+    match /classroomConfig/{teacherId} {
+      allow read, write: if request.auth != null && request.auth.uid == teacherId;
+      allow read, write: if request.auth != null && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // teacherHints/{studentId}  — one doc per student, written by linked teacher
+    // -------------------------------------------------------------------------
+    match /teacherHints/{studentId} {
+      allow read: if request.auth != null && (
+          request.auth.uid == studentId ||
+          isLinkedTeacher(studentId) ||
+          isAdmin()
+      );
+      allow write: if request.auth != null && (
+          isLinkedTeacher(studentId) || isAdmin()
       );
     }
 
-    // All other collections — authenticated users only (tighten per collection as needed).
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // -------------------------------------------------------------------------
+    // systemConfig/{docId}  — admin-only (data residency, etc.)
+    // -------------------------------------------------------------------------
+    match /systemConfig/{docId} {
+      allow read, write: if request.auth != null && isAdmin();
     }
+
+    // -------------------------------------------------------------------------
+    // Educator / ops monitoring — readable by teachers+admins, written by Functions
+    // -------------------------------------------------------------------------
+    match /latencyStats/{docId}     { allow read: if request.auth != null && isEducator(); allow write: if false; }
+    match /safetyBenchmarks/{docId} { allow read: if request.auth != null && isEducator(); allow write: if false; }
+    match /piiScanLogs/{docId}      { allow read: if request.auth != null && isEducator(); allow write: if false; }
+    match /piiScanResults/{docId}   { allow read: if request.auth != null && isAdmin();    allow write: if false; }
+    match /drBackupLog/{docId}      { allow read: if request.auth != null && isAdmin();    allow write: if false; }
+
+    // -------------------------------------------------------------------------
+    // Collections written exclusively by Cloud Functions via Admin SDK.
+    // Admin SDK bypasses these rules, so `write: if false` purely prevents
+    // any client from writing directly.
+    // -------------------------------------------------------------------------
+    match /criticalSafetyEvents/{eventId} { allow read, write: if false; }
+    match /safetyClassifications/{docId}  { allow read, write: if false; }
+    match /auditLogs/{docId}              { allow read, write: if false; }
+    match /rateLimits/{docId}             { allow read, write: if false; }
+    match /performanceMetrics/{docId}     { allow read, write: if false; }
+    match /healthPing/{docId}             { allow read, write: if false; }
+
+    // NOTE: no catch-all. Firestore denies by default — any collection not
+    // listed above is implicitly inaccessible to all clients.
+
   }
 }

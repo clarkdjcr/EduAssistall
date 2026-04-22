@@ -292,6 +292,15 @@ private struct ProfileSettingsView: View {
                     } label: {
                         Label("Privacy & Data", systemImage: "lock.shield")
                     }
+                    .accessibilityLabel("Privacy and data settings")
+
+                    // NFR-005: accessibility preferences
+                    NavigationLink {
+                        AccessibilitySettingsView()
+                    } label: {
+                        Label("Accessibility", systemImage: "accessibility")
+                    }
+                    .accessibilityLabel("Accessibility settings")
 
                     // FR-203: Classroom configuration — visible to teachers
                     if let profile = authVM.currentProfile, profile.role == .teacher {
@@ -320,6 +329,26 @@ private struct ProfileSettingsView: View {
                             SchoolAdminSetupView(profile: profile)
                         } label: {
                             Label("Admin Setup", systemImage: "building.2")
+                        }
+                    }
+
+                    // FR-402: Data retention config — admins and teachers only
+                    if let profile = authVM.currentProfile,
+                       profile.role == .teacher || profile.role == .admin {
+                        NavigationLink {
+                            DataRetentionView(profile: profile)
+                        } label: {
+                            Label("Data Retention", systemImage: "clock.arrow.circlepath")
+                        }
+                    }
+
+                    // FR-405: PII scan results — admins and teachers only
+                    if let profile = authVM.currentProfile,
+                       profile.role == .teacher || profile.role == .admin {
+                        NavigationLink {
+                            PIIScanResultsView()
+                        } label: {
+                            Label("PII Scan Results", systemImage: "magnifyingglass.circle")
                         }
                     }
                 }

@@ -13,6 +13,11 @@ enum AuditEventType: String, Codable {
     case testAttempted
     case companionLocked    // FR-106
     case companionUnlocked  // FR-106
+    case securityVerified        // FR-400
+    case dataResidencyConfirmed  // FR-401
+    case dataRetentionPurge // FR-402
+    case dataExportRequested // FR-403
+    case trainingConsentSet // FR-404
 }
 
 struct AuditEvent: Codable, Identifiable {

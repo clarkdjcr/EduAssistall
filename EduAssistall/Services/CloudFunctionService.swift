@@ -1,6 +1,50 @@
 import Foundation
 import FirebaseFunctions
 
+// MARK: - CompanionError
+
+/// Typed errors returned by askCompanion. All raw Firebase/network errors are
+/// translated here so views never need to inspect FunctionsErrorCode directly.
+enum CompanionError: LocalizedError {
+    /// Per-user hourly call limit reached (server rate limit).
+    case rateLimited
+    /// Educator has paused this student's companion session (kill switch).
+    case sessionLocked
+    /// Claude API is temporarily down or overloaded.
+    case aiUnavailable
+    /// Claude API call timed out.
+    case aiTimeout
+    /// Device has no network connectivity.
+    case offline
+    /// Any other unexpected failure.
+    case unknown(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .rateLimited:
+            return "You've reached your message limit for this hour. You can send more messages after the hour resets."
+        case .sessionLocked:
+            return "Your companion session has been paused by your educator. Please speak with them to continue."
+        case .aiUnavailable:
+            return "The AI is temporarily unavailable. Please try again in a moment."
+        case .aiTimeout:
+            return "The AI took too long to respond. Please try again."
+        case .offline:
+            return "You appear to be offline. Please check your connection and try again."
+        case .unknown(let detail):
+            return detail.isEmpty ? "Something went wrong. Please try again." : detail
+        }
+    }
+
+    /// True for transient errors the user can immediately retry.
+    var isRetryable: Bool {
+        switch self {
+        case .aiUnavailable, .aiTimeout, .offline, .unknown: return true
+        case .rateLimited, .sessionLocked: return false
+        }
+    }
+}
+
 // MARK: - Catalog Item (returned by curateContent Cloud Function)
 
 struct CatalogItem: Identifiable {
@@ -108,18 +152,76 @@ final class CloudFunctionService {
         _ = try? await functions.httpsCallable("recordMilestone").call(data)
     }
 
+    /// FR-403: Request a full data export for a student. Returns pretty-printed JSON string.
+    func requestDataExport(studentId: String) async throws -> String {
+        let result = try await functions.httpsCallable("requestDataExport").call(["studentId": studentId])
+        guard let dict = result.data as? [String: Any],
+              let exportObj = dict["export"] else {
+            throw URLError(.badServerResponse)
+        }
+        let data = try JSONSerialization.data(withJSONObject: exportObj, options: [.prettyPrinted, .sortedKeys])
+        return String(data: data, encoding: .utf8) ?? "{}"
+    }
+
+    /// FR-302: Ask the server to generate a learning journal entry for the just-completed session.
+    /// Fire-and-forget — caller should not await or handle errors.
+    func generateJournalEntry(studentId: String, conversationId: String) {
+        Task {
+            _ = try? await functions.httpsCallable("generateJournalEntry").call([
+                "studentId": studentId,
+                "conversationId": conversationId,
+            ])
+        }
+    }
+
     func askCompanion(message: String, studentId: String, mode: InteractionMode = .guidedDiscovery) async throws -> String {
         let data: [String: Any] = [
             "message": message,
             "studentId": studentId,
-            "conversationId": studentId,  // one persistent conversation per student
+            "conversationId": studentId,
             "interactionMode": mode.rawValue,
         ]
-        let result = try await functions.httpsCallable("askCompanion").call(data)
-        guard let dict = result.data as? [String: Any],
-              let reply = dict["reply"] as? String else {
-            throw URLError(.badServerResponse)
+        do {
+            let result = try await functions.httpsCallable("askCompanion").call(data)
+            guard let dict = result.data as? [String: Any],
+                  let reply = dict["reply"] as? String else {
+                throw CompanionError.unknown("")
+            }
+            return reply
+        } catch let error as NSError {
+            throw companionError(from: error)
         }
-        return reply
+    }
+
+    /// Translates any NSError from the Firebase Functions SDK into a typed CompanionError.
+    private func companionError(from error: NSError) -> CompanionError {
+        // Already a CompanionError (e.g. from the guard above) — pass through.
+        if let ce = error as? CompanionError { return ce }
+
+        // Network unreachable — check before Firebase codes so URLError is caught too.
+        if error.domain == NSURLErrorDomain {
+            let code = URLError.Code(rawValue: error.code)
+            if [.notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost].contains(code) {
+                return .offline
+            }
+            return .aiUnavailable
+        }
+
+        // Firebase Functions errors carry the gRPC status code in the error code field.
+        guard error.domain == FunctionsErrorDomain else {
+            return .unknown("")
+        }
+
+        switch FunctionsErrorCode(rawValue: error.code) {
+        case .resourceExhausted:  return .rateLimited
+        case .permissionDenied:   return .sessionLocked
+        case .unavailable:        return .aiUnavailable
+        case .deadlineExceeded:   return .aiTimeout
+        case .unauthenticated:
+            // Surface the server message directly — it says "Must be signed in."
+            return .unknown(error.localizedDescription)
+        default:
+            return .unknown("")
+        }
     }
 }

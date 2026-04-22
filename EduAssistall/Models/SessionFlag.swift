@@ -44,3 +44,15 @@ struct SessionFlag: Identifiable, Codable {
     var acknowledged: Bool
     var createdAt: Date
 }
+
+/// Tracks whether a student has an active companion session (FR-200).
+/// Written at `activeSessions/{studentId}`.
+struct ActiveSession: Codable, Identifiable {
+    var id: String          // equals studentId
+    var studentId: String
+    var studentEmail: String
+    var isActive: Bool
+    var startedAt: Date?
+    var lastMessageAt: Date?
+    var messageCount: Int
+}

@@ -8,8 +8,42 @@ struct DataPrivacyView: View {
     @State private var isDeleting = false
     @State private var deleteError: String?
 
+    // FR-403: data export state
+    @State private var isExporting = false
+    @State private var exportError: String?
+    @State private var exportedJSON: String?
+    @State private var showExportSheet = false
+
+    // FR-404
+    @State private var aiTrainingConsent: Bool = false
+    @State private var isUpdatingConsent = false
+
     var body: some View {
         List {
+            // FR-404: AI training consent toggle
+            Section {
+                Toggle(isOn: $aiTrainingConsent) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Help Improve EduAssist")
+                            .font(.subheadline.bold())
+                        Text("Allow anonymised interaction summaries to be used for AI improvement")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .disabled(isUpdatingConsent)
+                .onChange(of: aiTrainingConsent) { _, newValue in
+                    guard let uid = authVM.currentProfile?.id else { return }
+                    isUpdatingConsent = true
+                    Task {
+                        try? await FirestoreService.shared.updateTrainingConsent(userId: uid, consent: newValue)
+                        isUpdatingConsent = false
+                    }
+                }
+            } footer: {
+                Text("Your name, email, and school are never included. You can change this at any time.")
+            }
+
             Section("Your Data") {
                 Label("EduAssist stores your profile, learning progress, quiz results, messages, and test attempts in Firebase.", systemImage: "info.circle")
                     .font(.subheadline)
@@ -26,6 +60,27 @@ struct DataPrivacyView: View {
                 ForEach(dataTypes, id: \.self) { item in
                     Label(item, systemImage: "checkmark.circle")
                         .font(.subheadline)
+                }
+            }
+
+            // FR-403: Data export — visible to parents and the student themselves
+            if let profile = authVM.currentProfile,
+               profile.role == .parent || profile.role == .student {
+                Section {
+                    if let err = exportError {
+                        Text(err).foregroundStyle(.red).font(.footnote)
+                    }
+                    Button {
+                        Task { await exportData() }
+                    } label: {
+                        Label(
+                            isExporting ? "Preparing Export…" : "Export My Data (JSON)",
+                            systemImage: "square.and.arrow.up"
+                        )
+                    }
+                    .disabled(isExporting)
+                } footer: {
+                    Text("Exports your full data record as a JSON file. Available immediately in compliance with COPPA's 72-hour requirement.")
                 }
             }
 
@@ -49,6 +104,14 @@ struct DataPrivacyView: View {
         #endif
         .navigationTitle("Privacy & Data")
         .inlineNavigationTitle()
+        .onAppear {
+            aiTrainingConsent = authVM.currentProfile?.aiTrainingConsent ?? false
+        }
+        .sheet(isPresented: $showExportSheet) {
+            if let json = exportedJSON {
+                ExportShareSheet(json: json, studentId: authVM.currentProfile?.id ?? "export")
+            }
+        }
         .confirmationDialog("Delete Account", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("Delete Everything", role: .destructive) { Task { await deleteAccount() } }
             Button("Cancel", role: .cancel) {}
@@ -63,6 +126,21 @@ struct DataPrivacyView: View {
          "Messages with teachers and parents", "Device push notification token"]
     }
 
+    private func exportData() async {
+        guard let profile = authVM.currentProfile else { return }
+        isExporting = true
+        exportError = nil
+        do {
+            let json = try await CloudFunctionService.shared.requestDataExport(studentId: profile.id)
+            AuditService.shared.log(.dataExportRequested, userId: profile.id)
+            exportedJSON = json
+            showExportSheet = true
+        } catch {
+            exportError = "Export failed. Please try again."
+        }
+        isExporting = false
+    }
+
     private func deleteAccount() async {
         guard let uid = authVM.currentProfile?.id else { return }
         isDeleting = true
@@ -75,6 +153,35 @@ struct DataPrivacyView: View {
         } catch {
             deleteError = "Deletion failed. Please try again."
             isDeleting = false
+        }
+    }
+}
+
+// MARK: - FR-403: Share Sheet
+
+private struct ExportShareSheet: View {
+    let json: String
+    let studentId: String
+
+    private var fileURL: URL? {
+        let name = "eduassist-export-\(studentId).json"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
+        try? json.write(to: url, atomically: true, encoding: .utf8)
+        return url
+    }
+
+    var body: some View {
+        if let url = fileURL {
+            ShareLink(
+                item: url,
+                subject: Text("EduAssist Data Export"),
+                message: Text("Your EduAssist data export — generated \(Date().formatted(date: .abbreviated, time: .shortened)).")
+            ) {
+                Label("Share Export File", systemImage: "square.and.arrow.up")
+                    .font(.headline)
+                    .padding()
+            }
+            .presentationDetents([.fraction(0.25)])
         }
     }
 }

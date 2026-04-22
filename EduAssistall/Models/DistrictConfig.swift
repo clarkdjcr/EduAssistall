@@ -46,3 +46,21 @@ struct DistrictConfig: Codable, Identifiable {
         return Array(Set(blockedTopics + bandSpecific))
     }
 }
+
+/// Configurable per-collection data retention periods (FR-402).
+/// Stored at systemConfig/dataRetention — one document for the whole installation.
+struct DataRetentionConfig: Codable {
+    var conversationRetentionDays: Int
+    var sessionFlagRetentionDays: Int
+    var classificationRetentionDays: Int
+    var auditLogRetentionDays: Int
+    var updatedAt: Date?
+    var updatedBy: String?
+
+    init() {
+        conversationRetentionDays   = 90
+        sessionFlagRetentionDays    = 30
+        classificationRetentionDays = 90
+        auditLogRetentionDays       = 365
+    }
+}

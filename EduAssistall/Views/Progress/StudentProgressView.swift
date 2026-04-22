@@ -6,6 +6,7 @@ struct StudentProgressView: View {
     @State private var paths: [LearningPath] = []
     @State private var progressMap: [String: StudentProgress] = [:]
     @State private var contentItems: [String: ContentItem] = [:]
+    @State private var gradeBand: GradeBand = .sixToEight   // FR-303
     @State private var isLoading = true
 
     private var allItems: [LearningPathItem] { paths.flatMap(\.items) }
@@ -57,24 +58,40 @@ struct StudentProgressView: View {
         }
     }
 
-    // MARK: - Overall Card
+    // MARK: - Overall Card (FR-303: switches on grade band)
 
+    @ViewBuilder
     private var overallCard: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 24) {
-                ProgressRing(fraction: overallFraction, size: 90)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    StatRow(value: "\(completedCount)", label: "Lessons Completed", color: .green)
-                    StatRow(value: "\(totalCount - completedCount)", label: "Remaining", color: .orange)
-                    StatRow(value: "\(paths.count)", label: "Learning Paths", color: .blue)
+        switch gradeBand {
+        case .kTo2:
+            EarlyProgressCard(completed: completedCount, total: totalCount)
+                .padding(.horizontal, 20)
+        case .threeToFive:
+            ElementaryProgressCard(completed: completedCount, total: totalCount, fraction: overallFraction)
+                .padding(.horizontal, 20)
+        case .sixToEight, .nineTo12:
+            VStack(spacing: 16) {
+                HStack(spacing: 24) {
+                    ProgressRing(fraction: overallFraction, size: 90)
+                    VStack(alignment: .leading, spacing: 10) {
+                        StatRow(value: "\(completedCount)", label: "Lessons Completed", color: .green)
+                        StatRow(value: "\(totalCount - completedCount)", label: "Remaining", color: .orange)
+                        StatRow(value: "\(paths.count)", label: "Learning Paths", color: .blue)
+                        if gradeBand == .nineTo12, totalCount > 0 {
+                            StatRow(
+                                value: "\(Int(overallFraction * 100))%",
+                                label: "Completion Rate",
+                                color: overallFraction >= 0.75 ? .green : .blue
+                            )
+                        }
+                    }
                 }
             }
+            .padding(20)
+            .background(Color.appSecondaryGroupedBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 20)
         }
-        .padding(20)
-        .background(Color.appSecondaryGroupedBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .padding(.horizontal, 20)
     }
 
     // MARK: - Standards Readiness Section
@@ -158,9 +175,13 @@ struct StudentProgressView: View {
         isLoading = true
         async let fetchPaths = FirestoreService.shared.fetchAllLearningPaths(studentId: profile.id)
         async let fetchProgress = FirestoreService.shared.fetchAllProgress(studentId: profile.id)
+        async let fetchLearningProfile = FirestoreService.shared.fetchLearningProfile(studentId: profile.id)
 
         let loadedPaths = (try? await fetchPaths) ?? []
         let progressList = (try? await fetchProgress) ?? []
+        if let lp = try? await fetchLearningProfile {
+            gradeBand = GradeBand.from(grade: lp.grade)
+        }
 
         paths = loadedPaths.sorted { $0.createdAt > $1.createdAt }
         progressMap = Dictionary(uniqueKeysWithValues: progressList.map { ($0.contentItemId, $0) })
@@ -250,6 +271,117 @@ struct PathProgressCard: View {
         .padding(14)
         .background(Color.appSecondaryGroupedBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+// MARK: - FR-303: Early Learner Progress Card (K-2)
+// Stars instead of percentages — concrete, visual, age-appropriate.
+
+private struct EarlyProgressCard: View {
+    let completed: Int
+    let total: Int
+
+    private var starCount: Int { min(total, 10) }
+    private var filledStars: Int { total > 0 ? Int(Double(completed) / Double(total) * Double(starCount)) : 0 }
+    private var label: String {
+        switch completed {
+        case 0:      return "Let's get started!"
+        case 1:      return "Great start!"
+        case total where total > 0: return "Amazing — all done!"
+        default:     return "Keep going, you're doing great!"
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 6) {
+                ForEach(0..<starCount, id: \.self) { i in
+                    Image(systemName: i < filledStars ? "star.fill" : "star")
+                        .font(.title2)
+                        .foregroundStyle(i < filledStars ? Color.yellow : Color.secondary.opacity(0.3))
+                        .animation(.spring(duration: 0.4).delay(Double(i) * 0.05), value: filledStars)
+                }
+            }
+            Text(label)
+                .font(.headline)
+            if total > 10 {
+                Text("\(completed) of \(total) lessons done")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(20)
+        .background(Color.yellow.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+// MARK: - FR-303: Elementary Progress Card (3-5)
+// Colorful bar with friendly labels.
+
+private struct ElementaryProgressCard: View {
+    let completed: Int
+    let total: Int
+    let fraction: Double
+
+    private var encouragement: String {
+        switch fraction {
+        case 0:          return "Ready to start your adventure?"
+        case ..<0.33:    return "You're off to a great start!"
+        case ..<0.67:    return "Halfway there — keep it up!"
+        case ..<1.0:     return "Almost there, finish strong!"
+        default:         return "You did it! Path complete!"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("📚")
+                    .font(.title)
+                Spacer()
+                Text(encouragement)
+                    .font(.subheadline.bold())
+                    .multilineTextAlignment(.trailing)
+                Spacer()
+                Text("🏆")
+                    .font(.title)
+                    .opacity(fraction >= 1.0 ? 1 : 0.25)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.green.opacity(0.15))
+                        .frame(height: 14)
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [.green, .blue],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * fraction, height: 14)
+                        .animation(.easeInOut(duration: 0.7), value: fraction)
+                }
+            }
+            .frame(height: 14)
+
+            HStack {
+                Text("\(completed) lessons done")
+                    .font(.caption.bold())
+                    .foregroundStyle(.green)
+                Spacer()
+                Text("\(total - completed) to go")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(20)
+        .background(Color.green.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 

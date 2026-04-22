@@ -26,6 +26,14 @@ final class FirestoreService {
         ])
     }
 
+    /// Refreshes the stored IANA timezone for an existing user. Called on every sign-in
+    /// so the digest schedule stays correct after a move, travel, or DST rollover.
+    func updateTimezone(uid: String) async throws {
+        try await db.collection("users").document(uid).updateData([
+            "timezone": TimeZone.current.identifier
+        ])
+    }
+
     // MARK: - LearningProfile
 
     func saveLearningProfile(_ profile: LearningProfile) async throws {
@@ -598,6 +606,48 @@ final class FirestoreService {
             .collection("goals")
             .document(goalId)
             .delete()
+    }
+
+    // MARK: - Learning Journal (FR-302)
+
+    func fetchJournalEntries(studentId: String, limit: Int = 20) async throws -> [LearningJournalEntry] {
+        let snap = try await db.collection("learningJournal")
+            .document(studentId)
+            .collection("entries")
+            .order(by: "sessionDate", descending: true)
+            .limit(to: limit)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: LearningJournalEntry.self) }
+    }
+
+    // MARK: - Data Retention Config (FR-402)
+
+    func fetchDataRetentionConfig() async throws -> DataRetentionConfig {
+        let snap = try await db.collection("systemConfig").document("dataRetention").getDocument()
+        return (try? snap.data(as: DataRetentionConfig.self)) ?? DataRetentionConfig()
+    }
+
+    func saveDataRetentionConfig(_ config: DataRetentionConfig, updatedBy userId: String) async throws {
+        var data = try Firestore.Encoder().encode(config)
+        data["updatedAt"] = FieldValue.serverTimestamp()
+        data["updatedBy"] = userId
+        try await db.collection("systemConfig").document("dataRetention").setData(data, merge: true)
+        AuditService.shared.log(.dataRetentionPurge, userId: userId,
+                                metadata: ["action": "config_updated"])
+    }
+
+    // MARK: - AI Training Consent (FR-404)
+
+    func updateTrainingConsent(userId: String, consent: Bool) async throws {
+        try await db.collection("users").document(userId).updateData([
+            "aiTrainingConsent": consent,
+            "aiTrainingConsentAt": FieldValue.serverTimestamp(),
+        ])
+        AuditService.shared.log(
+            .trainingConsentSet,
+            userId: userId,
+            metadata: ["consent": consent ? "granted" : "denied"]
+        )
     }
 
     // MARK: - Companion Lock (FR-106)

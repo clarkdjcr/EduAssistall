@@ -7,7 +7,7 @@ enum AuthError: Error {
     case missingToken
 }
 
-enum AuthState {
+enum AuthState: Equatable {
     case loading
     case unauthenticated
     case onboarding(UserProfile)
@@ -52,6 +52,8 @@ final class AuthViewModel {
         do {
             if let profile = try await FirestoreService.shared.fetchUserProfile(uid: user.uid) {
                 authState = profile.onboardingComplete ? .authenticated(profile) : .onboarding(profile)
+                // Refresh timezone on every sign-in — fire-and-forget, never blocks navigation.
+                Task { try? await FirestoreService.shared.updateTimezone(uid: user.uid) }
             } else {
                 // User exists in Auth but has no Firestore profile (edge case — treat as unauthenticated)
                 try? Auth.auth().signOut()

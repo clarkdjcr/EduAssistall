@@ -12,6 +12,7 @@ struct StudentDashboardView: View {
     @State private var recentMessages: [ChatMessage] = []         // FR-300
     @State private var isLoading = true
     @State private var showProfile = false
+    @State private var pendingLinks: [StudentAdultLink] = []
 
     var body: some View {
         NavigationStack {
@@ -27,6 +28,17 @@ struct StudentDashboardView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
+
+                    // COPPA: pending link-request banner — shown at top so student can't miss it
+                    if !pendingLinks.isEmpty {
+                        NavigationLink {
+                            PendingLinksView(studentId: profile.id)
+                        } label: {
+                            PendingLinksBanner(count: pendingLinks.count)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 20)
+                    }
 
                     // Stats Row
                     HStack(spacing: 12) {
@@ -146,6 +158,37 @@ struct StudentDashboardView: View {
                         .background(
                             LinearGradient(
                                 colors: [Color.indigo, Color.purple.opacity(0.8)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 20)
+
+                    // FR-302: Learning Journal CTA
+                    NavigationLink {
+                        LearningJournalView(profile: profile)
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Learning Journal")
+                                    .font(.headline)
+                                    .foregroundStyle(Color.white)
+                                Text("Auto-generated summaries of your sessions")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.white.opacity(0.8))
+                            }
+                            Spacer()
+                            Image(systemName: "book.closed.fill")
+                                .font(.title2)
+                                .foregroundStyle(Color.white.opacity(0.9))
+                        }
+                        .padding()
+                        .background(
+                            LinearGradient(
+                                colors: [Color.orange, Color.red.opacity(0.8)],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -286,6 +329,9 @@ struct StudentDashboardView: View {
         thisWeekPercent = calculateThisWeekPercent(from: completed, total: allProgress.count)
 
         isLoading = false
+
+        // Load pending link requests separately — don't block the main content load.
+        pendingLinks = (try? await FirestoreService.shared.fetchPendingLinks(studentId: profile.id)) ?? []
     }
 
     private func calculateStreak(from completed: [StudentProgress]) -> Int {
@@ -501,7 +547,9 @@ struct StudentProfileSheet: View {
             .task {
                 if let id = authVM.currentProfile?.id {
                     let pending = (try? await FirestoreService.shared.fetchPendingLinks(studentId: id)) ?? []
-                    pendingCount = pending.count
+                    // Only count non-expired requests (expired ones are cleaned up nightly but may
+                    // linger briefly; filter client-side so the badge stays accurate).
+                    pendingCount = pending.filter { $0.expiresAt > Date() }.count
                 }
             }
         }
@@ -609,5 +657,43 @@ private struct EmptyStateCard: View {
         .padding(24)
         .background(Color.appSecondaryGroupedBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+// MARK: - COPPA: Pending Links Banner
+
+private struct PendingLinksBanner: View {
+    let count: Int
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "person.badge.clock.fill")
+                .font(.title2)
+                .foregroundStyle(.orange)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(count == 1 ? "1 Link Request Waiting" : "\(count) Link Requests Waiting")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
+                Text("A parent or teacher wants to connect to your account. Tap to review.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .background(Color.orange.opacity(0.10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.orange.opacity(0.35), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityLabel("\(count) pending link \(count == 1 ? "request" : "requests")")
+        .accessibilityHint("Tap to review and approve or decline")
     }
 }
