@@ -71,19 +71,18 @@ options are available in Settings.
 AI tutor,K-12,homework help,learning,education,students,teachers,study,COPPA,classroom
 ```
 
-### Support URL **[REQUIRED — must be live before submission]**
+https://github.com/clarkdjcr/EduAssistall
 ```
 https://[YOUR DOMAIN]/support
 ```
 
-### Marketing URL (optional)
-```
-https://[YOUR DOMAIN]
+### Marketing URL
+https://https://github.com/clarkdjcr/EduAssistall
 ```
 
 ### Privacy Policy URL **[REQUIRED — must be live before submission]**
 ```
-https://[YOUR DOMAIN]/privacy
+https://https://github.com/clarkdjcr/EduAssistall))]/privacy
 ```
 
 > Host the content from `docs/PRIVACY_POLICY.md` at this URL. It must be
