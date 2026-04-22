@@ -1,13 +1,13 @@
 # EduAssist Privacy Policy
 
-**Effective Date:** [INSERT DATE BEFORE SUBMISSION]
-**Last Updated:** [INSERT DATE BEFORE SUBMISSION]
+**Effective Date:** 4/22/2026
+**Last Updated:** 4/22/2026
 
 ---
 
 ## 1. Who We Are
 
-EduAssist ("we", "us", or "our") is an AI-powered learning companion application for K–12 students, operated by **[YOUR LEGAL ENTITY NAME]** ("Company"), located at **[YOUR ADDRESS]**. Contact: **[YOUR EMAIL]**
+EduAssist ("we", "us", or "our") is an AI-powered learning companion application for K–12 students, operated by Donald James Clark (Self), located at 8622 Lake Pines Drive. Contact: donc542@me.com
 
 ---
 
@@ -138,7 +138,7 @@ Depending on your jurisdiction, you or your child's parent/guardian may have the
 - **Withdraw consent** for optional AI training data use at any time (Settings → Privacy & Data)
 - **Restrict or object** to certain processing (contact us)
 
-To exercise any right not available in-app, contact us at **[YOUR EMAIL]**. We will respond within 30 days.
+To exercise any right not available in-app, contact us at donc542@me.com. We will respond within 30 days.
 
 ---
 
@@ -150,6 +150,7 @@ We will notify users of material changes by displaying a notice within the app a
 
 ## 11. Contact Us
 
-**[YOUR LEGAL ENTITY NAME]**
-**[YOUR ADDRESS]**
-Email: **[YOUR EMAIL]**
+Donald James Clark
+8622 Lake Pines Drive
+Cornelius, North Carolina 28031
+Email: donc542@me.com
