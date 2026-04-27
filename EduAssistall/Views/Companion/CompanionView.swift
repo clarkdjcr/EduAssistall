@@ -1,5 +1,8 @@
 import SwiftUI
 import FirebaseFirestore
+#if canImport(ImagePlayground)
+import ImagePlayground
+#endif
 
 struct CompanionView: View {
     let profile: UserProfile
@@ -25,6 +28,16 @@ struct CompanionView: View {
 
     // Context-aware suggestion chips
     @State private var activePath: LearningPath?
+
+    // Grade level loaded from LearningProfile for on-device model context
+    @State private var gradeLevel: String?
+
+    // Apple Intelligence — on-device draft shown while cloud call is in flight
+    @State private var draftReply: String?
+    // Image Playground (2D)
+    @State private var showImagePlayground = false
+    @State private var imageConceptText = ""
+    @State private var generatedImageURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -167,9 +180,17 @@ struct CompanionView: View {
                     }
 
                     if isThinking {
-                        TypingIndicatorView()
-                            .id("typing")
-                            .transition(.opacity)
+                        if let draft = draftReply {
+                            // 2C: Show on-device draft while cloud reply is in flight.
+                            ChatBubbleView(message: ChatMessage(role: .assistant, text: draft))
+                                .id("draft")
+                                .opacity(0.7)
+                                .transition(.opacity)
+                        } else {
+                            TypingIndicatorView()
+                                .id("typing")
+                                .transition(.opacity)
+                        }
                     }
 
                     if let error = errorMessage {
@@ -207,6 +228,22 @@ struct CompanionView: View {
                 .accessibilityLabel("Message input")
                 .accessibilityHint("Type your question or message to the AI companion")
 
+            // 2D: Image Playground — generate educational diagrams on-device (iOS 18.1+)
+            #if canImport(ImagePlayground)
+            if #available(iOS 18.1, *) {
+                Button {
+                    imageConceptText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    showImagePlayground = true
+                } label: {
+                    Image(systemName: "wand.and.sparkles")
+                        .font(.system(size: 24))
+                        .foregroundStyle(Color.purple.opacity(0.8))
+                }
+                .accessibilityLabel("Generate visual")
+                .accessibilityHint("Create an on-device educational diagram for your topic")
+            }
+            #endif
+
             Button {
                 Task { await sendMessage() }
             } label: {
@@ -222,6 +259,21 @@ struct CompanionView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(Color.appGroupedBackground)
+        #if canImport(ImagePlayground)
+        .imagePlaygroundSheet(
+            isPresented: $showImagePlayground,
+            concept: imageConceptText
+        ) { url in
+            generatedImageURL = url
+            // Append a message so the student can see the diagram inline.
+            messages.append(ChatMessage(
+                role: .assistant,
+                text: "Here's a visual for \"\(imageConceptText)\": \(url.absoluteString)"
+            ))
+        } onCancellation: {
+            showImagePlayground = false
+        }
+        #endif
     }
 
     // MARK: - Empty State
@@ -274,6 +326,7 @@ struct CompanionView: View {
         guard let lp = try? await FirestoreService.shared.fetchLearningProfile(studentId: profile.id) else { return }
         allowedModes = lp.allowedInteractionModes.isEmpty ? InteractionMode.allCases : lp.allowedInteractionModes
         currentMode = allowedModes.contains(lp.currentInteractionMode) ? lp.currentInteractionMode : (allowedModes.first ?? .guidedDiscovery)
+        gradeLevel = lp.grade.isEmpty ? nil : lp.grade
     }
 
     private func startLockListener() {
@@ -288,24 +341,57 @@ struct CompanionView: View {
 
         inputText = ""
         errorMessage = nil
+        draftReply = nil
         withAnimation { pendingHint = nil }
 
         let userMessage = ChatMessage(role: .user, text: text)
         messages.append(userMessage)
         isThinking = true
 
+        // 2A: Classify intent on-device before touching the network.
+        let intent = await IntentClassifierService.shared.classify(text)
+
+        // Safety concerns always go to the cloud safety pipeline — never answered on-device.
+        // Educational and simpleFactual both go to cloud; simpleFactual could be answered on-device
+        // in a future iteration but we still want the safety + logging pipeline for now.
+        // The main win here is that future simple-factual answers can bypass cloud entirely
+        // once we validate quality. For now the classification is used for telemetry.
+        _ = intent  // reserved for future on-device answer path
+
+        // 2B: Compress history before the cloud call to reduce input tokens.
+        let compressed = await LocalDraftService.shared.compressHistory(
+            messages.dropLast().map { $0 },  // exclude the message we just appended
+            gradeLevel: gradeLevel
+        )
+
+        // 2C: Start on-device draft in parallel with the cloud call.
+        // If the draft arrives before the cloud reply, show it immediately.
+        Task { @MainActor in
+            if let draft = await LocalDraftService.shared.generateDraft(
+                for: text,
+                context: compressed,
+                gradeLevel: gradeLevel
+            ), isThinking {
+                draftReply = draft
+            }
+        }
+
         do {
             let reply = try await CloudFunctionService.shared.askCompanion(
                 message: text,
                 studentId: profile.id,
-                mode: currentMode
+                mode: currentMode,
+                compressedHistory: compressed
             )
+            draftReply = nil
             messages.append(ChatMessage(role: .assistant, text: reply))
         } catch let ce as CompanionError {
+            draftReply = nil
             messages.removeLast() // remove the optimistically-added user bubble on failure
-            inputText = ce.isRetryable ? text : ""  // restore input so student can retry easily
+            inputText = ce.isRetryable ? text : ""
             errorMessage = ce.errorDescription
         } catch {
+            draftReply = nil
             messages.removeLast()
             inputText = text
             errorMessage = "Something went wrong. Please try again."

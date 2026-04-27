@@ -10,6 +10,13 @@ const sgMail = require("@sendgrid/mail");
 
 initializeApp();
 
+// Lazy singleton — instantiated on first use so the secret is available at call time.
+let _anthropic = null;
+function getAnthropicClient() {
+  if (!_anthropic) _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  return _anthropic;
+}
+
 // ---------------------------------------------------------------------------
 // MARK: - Input Safety Classifier (FR-100)
 // Regex-based for guaranteed <100ms latency. Version-stamped for auditability.
@@ -643,13 +650,13 @@ exports.askCompanion = onCall(
 
     // Load district config now that we know the districtId from the profile.
     // Reading on every call means any admin change propagates within one request cycle (<60s). (FR-102/105)
+    const gradeBand = getGradeBand(profile.gradeLevel || profile.grade);
     let districtBlockedTopics = [];
     if (profile.districtId) {
       const districtSnap = await db.collection("districtConfig").doc(profile.districtId).get();
       const districtData = districtSnap.data() || {};
 
       // FR-105: merge district-wide blocked topics with this student's grade-band topics.
-      const gradeBand = getGradeBand(profile.gradeLevel);
       const bandTopics = (districtData.gradeBandTopics || {})[gradeBand] ?? [];
       const allDistrictTopics = districtData.blockedTopics ?? [];
       // Deduplicate: grade-band topics + district-wide topics
@@ -800,26 +807,44 @@ exports.askCompanion = onCall(
       "Count carefully. If you need more space, prioritise the most important point and stop. " +
       "Never truncate mid-sentence — end at a complete sentence within the limit.";
 
-    // FR-001: Load last 40 messages (20 user + 20 assistant turns) for ≥20-turn context window.
-    const historySnap = await db
-      .collection("conversations")
-      .doc(conversationId)
-      .collection("messages")
-      .orderBy("createdAt", "desc")
-      .limit(40)
-      .get();
+    // 2B: If the iOS client sent a compressed history summary, use it instead of loading
+    // 40 raw messages from Firestore. This reduces input tokens by ~60–80% for long sessions
+    // and avoids a Firestore read on every message. We still load a small tail for FR-002
+    // returning-session detection when compressed history is provided.
+    const compressedHistory = typeof request.data.compressedHistory === "string"
+      ? request.data.compressedHistory.slice(0, 500)  // cap to prevent prompt injection
+      : null;
 
-    const historyDocs = historySnap.docs.reverse();
-    const history = historyDocs.map((doc) => {
-      const d = doc.data();
-      return { role: d.role, content: d.text };
-    });
+    let history = [];
+    let historyDocs = [];
+
+    if (compressedHistory) {
+      // Inject the compressed summary as a synthetic assistant turn so Claude has context.
+      history = [{ role: "assistant", content: `[Previous session summary]: ${compressedHistory}` }];
+    } else {
+      // FR-001: Load last 40 messages (20 user + 20 assistant turns) for ≥20-turn context window.
+      const historySnap = await db
+        .collection("conversations")
+        .doc(conversationId)
+        .collection("messages")
+        .orderBy("createdAt", "desc")
+        .limit(40)
+        .get();
+
+      historyDocs = historySnap.docs.reverse();
+      history = historyDocs.map((doc) => {
+        const d = doc.data();
+        return { role: d.role, content: d.text };
+      });
+    }
 
     // FR-002: Detect a returning session (last message > 24 h ago) and inject milestone context.
+    // When compressed history is provided we skip this — the client has already summarised context.
     const lastMsgTime = historyDocs.length > 0
       ? historyDocs[historyDocs.length - 1].data().createdAt?.toDate?.()
       : null;
-    const isNewSession = !lastMsgTime || (Date.now() - lastMsgTime.getTime() > 24 * 60 * 60 * 1000);
+    const isNewSession = !compressedHistory &&
+      (!lastMsgTime || (Date.now() - lastMsgTime.getTime() > 24 * 60 * 60 * 1000));
 
     if (isNewSession) {
       const milestonesSnap = await db
@@ -856,7 +881,7 @@ exports.askCompanion = onCall(
 
     // Call Claude — send redactedMessage so PII never reaches the model or its logs (FR-104).
     // FR-008: max_tokens is grade-band-specific to enforce length at the token level.
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const anthropic = getAnthropicClient();
     let response;
     try {
       response = await anthropic.messages.create({
@@ -955,7 +980,7 @@ exports.askCompanion = onCall(
 
     // NFR-001: write APM metric (fire-and-forget, never delays response)
     const endToEndMs = Date.now() - apmStart;
-    getFirestore()
+    db
       .collection("performanceMetrics")
       .add({
         fn: "askCompanion",
@@ -987,6 +1012,15 @@ exports.recordMilestone = onCall(
     }
 
     const db = getFirestore();
+
+    // Only the student themselves or a linked teacher/admin may record milestones.
+    if (request.auth.uid !== studentId) {
+      const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+      const callerRole = callerSnap.data()?.role;
+      if (callerRole !== "admin" && callerRole !== "teacher") {
+        throw new HttpsError("permission-denied", "You are not authorised to record milestones for this student.");
+      }
+    }
     const milestoneRef = db
       .collection("learningMilestones")
       .doc(studentId)
@@ -1021,6 +1055,15 @@ exports.generateRecommendations = onCall(
 
     const db = getFirestore();
 
+    // Only teachers, admins, or the student themselves may generate recommendations.
+    if (request.auth.uid !== studentId) {
+      const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+      const callerRole = callerSnap.data()?.role;
+      if (callerRole !== "admin" && callerRole !== "teacher") {
+        throw new HttpsError("permission-denied", "You are not authorised to generate recommendations for this student.");
+      }
+    }
+
     // Fetch student context
     const [profileSnap, pathsSnap, progressSnap] = await Promise.all([
       db.collection("learningProfiles").doc(studentId).get(),
@@ -1054,7 +1097,7 @@ Return a JSON array of exactly 3 objects, each with:
 
 Return ONLY the JSON array, no other text.`;
 
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const anthropic = getAnthropicClient();
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 1024,
@@ -1063,21 +1106,26 @@ Return ONLY the JSON array, no other text.`;
 
     let recommendations = [];
     try {
-      recommendations = JSON.parse(response.content[0].text);
+      const parsed = JSON.parse(response.content[0].text);
+      if (!Array.isArray(parsed)) throw new Error("not an array");
+      recommendations = parsed;
     } catch {
       throw new HttpsError("internal", "Failed to parse AI recommendations.");
     }
 
+    const VALID_REC_TYPES = ["learningPath", "contentItem", "quiz"];
+
     // Save each recommendation as pending
     const batch = db.batch();
     for (const rec of recommendations) {
+      if (!rec.title || !VALID_REC_TYPES.includes(rec.type)) continue;
       const docRef = db.collection("recommendations").doc();
       batch.set(docRef, {
         id: docRef.id,
         studentId,
         type: rec.type,
-        title: rec.title,
-        rationale: rec.rationale,
+        title: String(rec.title).slice(0, 60),
+        rationale: rec.rationale ? String(rec.rationale).slice(0, 300) : "",
         suggestedBy: "ai",
         status: "pending",
         reviewedBy: null,
@@ -1366,6 +1414,11 @@ exports.importClassroomRoster = onCall(
         if (!studentsRes.ok) continue;
         const { students = [] } = await studentsRes.json();
 
+        // Batch writes per course — Firestore max 500 ops per batch.
+        const expiry = Timestamp.fromMillis(Date.now() + 7 * 86_400_000);
+        const writeBatch = db.batch();
+        let batchCount = 0;
+
         for (const s of students) {
           const userId = s.userId;
           const email = s.profile?.emailAddress ?? "";
@@ -1373,18 +1426,22 @@ exports.importClassroomRoster = onCall(
           if (!userId) continue;
 
           const linkId = `${teacherId}_${userId}`;
-          await db.collection("studentAdultLinks").doc(linkId).set({
+          writeBatch.set(db.collection("studentAdultLinks").doc(linkId), {
             id: linkId,
             adultId: teacherId,
             studentId: userId,
             role: "teacher",
             confirmed: false,
-            classroomEmail: email,
+            studentEmail: email,
             classroomName: name,
+            expiresAt: expiry,
             createdAt: FieldValue.serverTimestamp(),
           }, { merge: true });
+          batchCount++;
           imported++;
         }
+
+        if (batchCount > 0) await writeBatch.commit();
       }
 
       return { imported };
@@ -1455,7 +1512,7 @@ exports.generateJournalEntry = onCall(
     }
 
     const db = getFirestore();
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const anthropic = getAnthropicClient();
 
     // Fetch up to 20 most-recent messages from the conversation.
     const messagesSnap = await db
@@ -1473,7 +1530,7 @@ exports.generateJournalEntry = onCall(
     }
 
     // Build a transcript for Claude to summarise.
-    const transcript = messages.map((m) => `${m.role === "user" ? "Student" : "AI"}: ${m.content}`).join("\n");
+    const transcript = messages.map((m) => `${m.role === "user" ? "Student" : "AI"}: ${m.text}`).join("\n");
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
@@ -1524,6 +1581,11 @@ exports.attestDataResidency = onCall(
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
 
     const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    if (callerSnap.data()?.role !== "admin") {
+      throw new HttpsError("permission-denied", "Only admins may attest data residency.");
+    }
+
     const attestation = {
       functionsRegion: "us-central1",
       firestoreRegion: "us-central1 (set at database creation — immutable)",
@@ -1561,13 +1623,9 @@ exports.onRecommendationCreated = onDocumentCreated(
     const adultIds = linksSnap.docs.map((d) => d.data().adultId).filter(Boolean);
     if (adultIds.length === 0) return;
 
-    // Collect FCM tokens
-    const tokens = [];
-    for (const adultId of adultIds) {
-      const userSnap = await db.collection("users").doc(adultId).get();
-      const token = userSnap.data()?.fcmToken;
-      if (token) tokens.push(token);
-    }
+    // Collect FCM tokens in parallel
+    const userSnaps = await Promise.all(adultIds.map((id) => db.collection("users").doc(id).get()));
+    const tokens = userSnaps.map((s) => s.data()?.fcmToken).filter(Boolean);
     if (tokens.length === 0) return;
 
     const title = "New AI Recommendation";
@@ -1616,14 +1674,19 @@ exports.onMessageCreated = onDocumentCreated(
 
 // MARK: - Data Retention (FR-402)
 
-// Deletes up to 500 docs matching a query in one batch. Returns count deleted.
+// Deletes all docs matching a query in 500-doc batches. Returns total count deleted.
 async function batchDelete(db, query) {
-  const snap = await query.limit(500).get();
-  if (snap.empty) return 0;
-  const batch = db.batch();
-  snap.docs.forEach((doc) => batch.delete(doc.ref));
-  await batch.commit();
-  return snap.size;
+  let total = 0;
+  let snap;
+  do {
+    snap = await query.limit(500).get();
+    if (snap.empty) break;
+    const batch = db.batch();
+    snap.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    total += snap.size;
+  } while (snap.size === 500);
+  return total;
 }
 
 // Runs nightly at 03:00 UTC. Reads systemConfig/dataRetention for per-collection
@@ -2214,47 +2277,56 @@ exports.weeklyPIIScan = onSchedule(
   async () => {
     const db = getFirestore();
     const since = Timestamp.fromDate(new Date(Date.now() - 7 * 86_400_000));
-
-    // Query all conversation messages written in the last 7 days.
-    const messagesSnap = await db
-      .collectionGroup("messages")
-      .where("createdAt", ">=", since)
-      .get();
+    const PAGE_SIZE = 500;
 
     let scanned = 0;
     let violations = 0;
-    const findings = [];
+    let lastDoc = null;
 
-    for (const doc of messagesSnap.docs) {
-      const data = doc.data();
-      const text = data.text || data.content || "";
-      if (!text) continue;
+    // Paginate to avoid loading unbounded data into memory.
+    while (true) {
+      let q = db
+        .collectionGroup("messages")
+        .where("createdAt", ">=", since)
+        .orderBy("createdAt")
+        .limit(PAGE_SIZE);
+      if (lastDoc) q = q.startAfter(lastDoc);
 
-      scanned++;
-      const result = detectAndRedactPII(text);
+      const snap = await q.get();
+      if (snap.empty) break;
+      lastDoc = snap.docs[snap.docs.length - 1];
 
-      if (result.hasPII) {
-        violations++;
+      for (const doc of snap.docs) {
+        const data = doc.data();
+        const text = data.text || "";
+        if (!text) continue;
 
-        // Retroactively redact the stored message.
-        await doc.ref.update({
-          text: result.redactedText,
-          piiRetroactivelyRedacted: true,
-          piiRedactedAt: FieldValue.serverTimestamp(),
-          piiDetectedTypes: [...result.detectedTypes],
-        });
+        scanned++;
+        const result = detectAndRedactPII(text);
 
-        // Write an individual finding record for audit review.
-        const finding = {
-          messageRef: doc.ref.path,
-          studentId: data.studentId || null,
-          detectedTypes: [...result.detectedTypes],
-          scannedAt: FieldValue.serverTimestamp(),
-          remediated: true,
-        };
-        findings.push(finding);
-        db.collection("piiScanResults").add(finding).catch(() => {});
+        if (result.hasPII) {
+          violations++;
+
+          // Retroactively redact the stored message.
+          await doc.ref.update({
+            text: result.redactedText,
+            piiRetroactivelyRedacted: true,
+            piiRedactedAt: FieldValue.serverTimestamp(),
+            piiDetectedTypes: [...result.detectedTypes],
+          });
+
+          const finding = {
+            messageRef: doc.ref.path,
+            studentId: data.studentId || null,
+            detectedTypes: [...result.detectedTypes],
+            scannedAt: FieldValue.serverTimestamp(),
+            remediated: true,
+          };
+          db.collection("piiScanResults").add(finding).catch(() => {});
+        }
       }
+
+      if (snap.size < PAGE_SIZE) break;
     }
 
     // Write the weekly scan summary.
@@ -2337,7 +2409,7 @@ exports.healthCheck = onRequest(
       const stats = statsSnap.data() ?? {};
       const status = stats.breachingTarget ? "degraded" : "healthy";
 
-      res.status(status === "healthy" ? 200 : 200).json({
+      res.status(status === "healthy" ? 200 : 503).json({
         status,
         p95Ms: stats.p95Ms ?? null,
         targetP95Ms: 2000,

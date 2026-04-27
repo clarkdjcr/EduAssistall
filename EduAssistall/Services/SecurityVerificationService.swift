@@ -17,7 +17,7 @@ final class SecurityVerificationService {
     func verifyAndLog(userId: String) {
         Task.detached(priority: .background) {
             let tlsVersion = await self.probeTLSVersion()
-            AuditService.shared.log(
+            await AuditService.shared.log(
                 .securityVerified,
                 userId: userId,
                 metadata: [
