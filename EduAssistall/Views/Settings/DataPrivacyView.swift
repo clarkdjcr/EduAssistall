@@ -14,36 +14,8 @@ struct DataPrivacyView: View {
     @State private var exportedJSON: String?
     @State private var showExportSheet = false
 
-    // FR-404
-    @State private var aiTrainingConsent: Bool = false
-    @State private var isUpdatingConsent = false
-
     var body: some View {
         List {
-            // FR-404: AI training consent toggle
-            Section {
-                Toggle(isOn: $aiTrainingConsent) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Help Improve EduAssist")
-                            .font(.subheadline.bold())
-                        Text("Allow anonymised interaction summaries to be used for AI improvement")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .disabled(isUpdatingConsent)
-                .onChange(of: aiTrainingConsent) { _, newValue in
-                    guard let uid = authVM.currentProfile?.id else { return }
-                    isUpdatingConsent = true
-                    Task {
-                        try? await FirestoreService.shared.updateTrainingConsent(userId: uid, consent: newValue)
-                        isUpdatingConsent = false
-                    }
-                }
-            } footer: {
-                Text("Your name, email, and school are never included. You can change this at any time.")
-            }
-
             Section("Your Data") {
                 Label("EduAssist stores your profile, learning progress, quiz results, messages, and test attempts in Firebase.", systemImage: "info.circle")
                     .font(.subheadline)
@@ -54,6 +26,24 @@ struct DataPrivacyView: View {
                 DataRightRow(icon: "eye.slash", title: "Data Access", detail: "All data is private and only accessible to you, your linked teachers, and linked parents.")
                 DataRightRow(icon: "lock.shield", title: "Security", detail: "Data is encrypted in transit and at rest via Firebase's security infrastructure.")
                 DataRightRow(icon: "person.badge.minus", title: "Right to Erasure", detail: "You may permanently delete your account and all associated data at any time.")
+            }
+
+            Section("AI Companion Monitoring") {
+                DataRightRow(
+                    icon: "chart.bar.doc.horizontal",
+                    title: "Learning Support Signals",
+                    detail: "The AI companion detects signs of frustration or confusion (e.g. 'I give up', 'this makes no sense') and notifies your teacher so they can offer help. These signals are used only to support your learning."
+                )
+                DataRightRow(
+                    icon: "nosign",
+                    title: "Never Used for Discipline",
+                    detail: "AI monitoring signals are never used for grades, discipline, placement, or any official school record. Only qualified educators make those decisions."
+                )
+                DataRightRow(
+                    icon: "person.2",
+                    title: "Educator Visibility",
+                    detail: "Teachers and linked parents can view your conversation history and receive real-time alerts if the AI detects a potential safety concern."
+                )
             }
 
             Section("Data Collected") {
@@ -104,9 +94,6 @@ struct DataPrivacyView: View {
         #endif
         .navigationTitle("Privacy & Data")
         .inlineNavigationTitle()
-        .onAppear {
-            aiTrainingConsent = authVM.currentProfile?.aiTrainingConsent ?? false
-        }
         .sheet(isPresented: $showExportSheet) {
             if let json = exportedJSON {
                 ExportShareSheet(json: json, studentId: authVM.currentProfile?.id ?? "export")

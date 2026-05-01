@@ -7,7 +7,7 @@ enum OnboardingStep {
     case gradeSelection           // student only
     case teacherSetup             // teacher only
     case parentSetup              // parent only
-    case trainingConsent          // student + parent (FR-404)
+    case aiDisclosure             // student + parent: required AI usage disclosure
     case complete
 }
 
@@ -47,7 +47,7 @@ struct OnboardingCoordinatorView: View {
 
                 case .gradeSelection:
                     GradeSelectionView(profile: $learningProfile) {
-                        step = .trainingConsent
+                        step = .aiDisclosure
                     }
 
                 case .teacherSetup:
@@ -57,11 +57,11 @@ struct OnboardingCoordinatorView: View {
 
                 case .parentSetup:
                     ParentSetupView(studentEmail: $linkedStudentEmail, adultId: profile.id) {
-                        step = .trainingConsent
+                        step = .aiDisclosure
                     }
 
-                case .trainingConsent:
-                    TrainingConsentView(userId: profile.id) { _ in
+                case .aiDisclosure:
+                    AIDisclosureView {
                         step = .complete
                     }
 

@@ -201,6 +201,15 @@ final class CloudFunctionService {
         }
     }
 
+    /// COPPA: sends a parental consent email for an under-13 student.
+    /// Called immediately after account creation; failure is non-fatal (account still created).
+    func sendParentalConsentEmail(studentId: String, parentEmail: String) async throws {
+        _ = try await functions.httpsCallable("sendParentalConsentEmail").call([
+            "studentId": studentId,
+            "parentEmail": parentEmail,
+        ])
+    }
+
     /// Translates any NSError from the Firebase Functions SDK into a typed CompanionError.
     private func companionError(from error: NSError) -> CompanionError {
         // Already a CompanionError (e.g. from the guard above) — pass through.

@@ -1,57 +1,63 @@
 import SwiftUI
 
-struct TrainingConsentView: View {
-    let userId: String
-    let onComplete: (Bool) -> Void   // passes the chosen consent value
-
-    @State private var isSaving = false
+// Replaces the former AI Training Consent screen (FR-404, removed per NYC DOE guidance).
+// Students and parents must acknowledge AI usage, teacher visibility, and behavioral
+// monitoring before accessing the companion for the first time.
+struct AIDisclosureView: View {
+    let onComplete: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("AI Improvement Consent")
+                        Text("About Your AI Companion")
                             .font(.largeTitle.bold())
-                        Text("Help make EduAssist better for every student")
+                        Text("Please read before using the AI chat feature")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
 
                     VStack(alignment: .leading, spacing: 16) {
-                        ConsentPoint(
-                            icon: "brain",
+                        DisclosurePoint(
+                            icon: "brain.head.profile",
                             color: .blue,
-                            title: "What this covers",
-                            detail: "Your anonymised conversation summaries may be used to improve future versions of the educational AI — for example, making explanations clearer for your grade level."
+                            title: "Powered by AI",
+                            detail: "Your learning companion is an AI system powered by Claude (Anthropic). It can make mistakes — always verify important information with your teacher."
                         )
-                        ConsentPoint(
-                            icon: "eye.slash",
-                            color: .green,
-                            title: "What is never shared",
-                            detail: "Your name, email, school, or any personally identifiable information is never included. All data is stripped of identity before any analysis."
+                        DisclosurePoint(
+                            icon: "eye",
+                            color: .indigo,
+                            title: "Teachers and parents can see this",
+                            detail: "Your teachers and linked parents can review your conversation history at any time. Never share passwords, phone numbers, addresses, or other personal information in chat."
                         )
-                        ConsentPoint(
-                            icon: "arrow.uturn.backward",
+                        DisclosurePoint(
+                            icon: "chart.bar.doc.horizontal",
                             color: .orange,
-                            title: "You can change your mind",
-                            detail: "You can withdraw this consent at any time from Settings → Privacy & Data. Withdrawing consent does not affect your access to EduAssist."
+                            title: "Supports your learning",
+                            detail: "The AI notices when you may be feeling frustrated or stuck, and alerts your teacher so they can offer extra help. This is only used to support your learning — never for grades or discipline."
+                        )
+                        DisclosurePoint(
+                            icon: "person.fill.checkmark",
+                            color: .green,
+                            title: "Not a counselor",
+                            detail: "The AI cannot provide counseling or handle personal crises. If you are struggling emotionally or feel unsafe, please talk to a trusted adult, your school counselor, or call/text 988."
+                        )
+                        DisclosurePoint(
+                            icon: "nosign",
+                            color: .red,
+                            title: "What AI cannot do",
+                            detail: "AI is never used to make decisions about your grades, placement, discipline, or any official school records. Those decisions always involve a qualified human educator."
                         )
                     }
-
-                    Text("This consent is optional. EduAssist works exactly the same whether you choose to help or not.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 8)
                 }
                 .padding(24)
             }
 
-            VStack(spacing: 12) {
-                Button {
-                    save(consent: true)
-                } label: {
-                    Text("Allow — Help Improve EduAssist")
+            VStack(spacing: 0) {
+                Divider()
+                Button(action: onComplete) {
+                    Text("I Understand")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -59,34 +65,16 @@ struct TrainingConsentView: View {
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .disabled(isSaving)
-
-                Button {
-                    save(consent: false)
-                } label: {
-                    Text("Don't Allow")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .disabled(isSaving)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 24)
+                .background(Color.appGroupedBackground)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 32)
-            .background(Color.appGroupedBackground)
         }
         .background(Color.appGroupedBackground)
     }
-
-    private func save(consent: Bool) {
-        isSaving = true
-        Task {
-            try? await FirestoreService.shared.updateTrainingConsent(userId: userId, consent: consent)
-            onComplete(consent)
-        }
-    }
 }
 
-private struct ConsentPoint: View {
+private struct DisclosurePoint: View {
     let icon: String
     let color: Color
     let title: String

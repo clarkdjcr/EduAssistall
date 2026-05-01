@@ -10,6 +10,7 @@ enum AuthError: Error {
 enum AuthState: Equatable {
     case loading
     case unauthenticated
+    case pendingParentalConsent(UserProfile)   // COPPA: under-13 student awaiting parent email approval
     case onboarding(UserProfile)
     case authenticated(UserProfile)
 }
@@ -51,7 +52,14 @@ final class AuthViewModel {
         }
         do {
             if let profile = try await FirestoreService.shared.fetchUserProfile(uid: user.uid) {
-                authState = profile.onboardingComplete ? .authenticated(profile) : .onboarding(profile)
+                // COPPA: block under-13 students until a parent has approved via email link.
+                if profile.isPendingParentalConsent {
+                    authState = .pendingParentalConsent(profile)
+                } else if profile.onboardingComplete {
+                    authState = .authenticated(profile)
+                } else {
+                    authState = .onboarding(profile)
+                }
                 // Refresh timezone on every sign-in — fire-and-forget, never blocks navigation.
                 Task { try? await FirestoreService.shared.updateTimezone(uid: user.uid) }
             } else {
@@ -64,19 +72,45 @@ final class AuthViewModel {
         }
     }
 
+    /// Re-fetches the Firestore profile and updates auth state.
+    /// Used by PendingParentalConsentView to check if a parent has approved.
+    func reloadProfile() async {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard let profile = try? await FirestoreService.shared.fetchUserProfile(uid: uid) else { return }
+        if profile.isPendingParentalConsent {
+            authState = .pendingParentalConsent(profile)
+        } else if profile.onboardingComplete {
+            authState = .authenticated(profile)
+        } else {
+            authState = .onboarding(profile)
+        }
+    }
+
     // MARK: - Sign Up
 
-    func signUp(email: String, password: String, displayName: String, role: UserRole, privacyConsentGiven: Bool = false) async throws {
+    func signUp(email: String, password: String, displayName: String, role: UserRole,
+                privacyConsentGiven: Bool = false, birthYear: Int? = nil, parentEmail: String? = nil) async throws {
         let result = try await Auth.auth().createUser(withEmail: email, password: password)
         let profile = UserProfile(
             id: result.user.uid,
             email: email,
             displayName: displayName,
             role: role,
-            privacyConsentGiven: privacyConsentGiven
+            privacyConsentGiven: privacyConsentGiven,
+            birthYear: birthYear,
+            parentEmail: parentEmail
         )
         try await FirestoreService.shared.saveUserProfile(profile)
         AuditService.shared.log(.signUp, userId: result.user.uid)
+
+        // COPPA: if this student is under 13, send the parental consent email.
+        // Account is created but stays in .pendingParentalConsent state until the parent approves.
+        if profile.isPendingParentalConsent, let parentEmail {
+            try? await CloudFunctionService.shared.sendParentalConsentEmail(
+                studentId: result.user.uid,
+                parentEmail: parentEmail
+            )
+        }
     }
 
     // MARK: - Google Sign-In
@@ -154,7 +188,7 @@ final class AuthViewModel {
 
     var currentProfile: UserProfile? {
         switch authState {
-        case .onboarding(let p), .authenticated(let p): return p
+        case .onboarding(let p), .authenticated(let p), .pendingParentalConsent(let p): return p
         default: return nil
         }
     }

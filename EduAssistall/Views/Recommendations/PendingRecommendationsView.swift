@@ -125,7 +125,7 @@ struct RecommendationRow: View {
                 .background(Color.blue.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(recommendation.title)
                     .font(.subheadline.bold())
                     .lineLimit(2)
@@ -133,6 +133,14 @@ struct RecommendationRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
+                // NYC DOE: educators must know this is AI-generated and requires their review.
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles")
+                        .font(.caption2)
+                    Text("AI generated · Requires your review")
+                        .font(.caption2)
+                }
+                .foregroundStyle(.purple.opacity(0.8))
             }
 
             Spacer()

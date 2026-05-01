@@ -13,6 +13,10 @@ struct CompanionView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
 
+    // NYC DOE: first-session AI disclosure modal (shown once per install)
+    @AppStorage("hasSeenAIDisclosure") private var hasSeenAIDisclosure = false
+    @State private var showAIDisclosure = false
+
     // FR-106: real-time lock state — listener fires within ~1 s of educator activation
     @State private var isLocked = false
     @State private var lockListener: ListenerRegistration?
@@ -51,6 +55,7 @@ struct CompanionView: View {
                 if !ConnectivityService.shared.isOnline {
                     offlineBanner
                 }
+                aiDisclosureStrip
                 messageList
                 Divider()
                 inputBar
@@ -80,6 +85,17 @@ struct CompanionView: View {
                 await loadHistory()
                 await loadModeFromProfile()
                 await loadActivePath()
+                if !hasSeenAIDisclosure {
+                    showAIDisclosure = true
+                }
+            }
+            .sheet(isPresented: $showAIDisclosure) {
+                AIDisclosureView {
+                    hasSeenAIDisclosure = true
+                    showAIDisclosure = false
+                }
+                .presentationDetents([.large])
+                .interactiveDismissDisabled()
             }
             .onAppear {
                 startLockListener()
@@ -126,6 +142,29 @@ struct CompanionView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(Color.orange)
+    }
+
+    // MARK: - AI Disclosure Strip (NYC DOE: students must always know they are talking to AI)
+
+    private var aiDisclosureStrip: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "sparkles")
+                .font(.caption2)
+            Text("AI-powered · Conversations visible to your teachers and parents")
+                .font(.caption2)
+            Spacer()
+            Button {
+                showAIDisclosure = true
+            } label: {
+                Text("Learn more")
+                    .font(.caption2.bold())
+                    .underline()
+            }
+        }
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .background(Color.appSecondaryGroupedBackground)
     }
 
     // MARK: - Offline Banner

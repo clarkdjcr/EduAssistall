@@ -12,6 +12,20 @@ struct RecommendationDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                // NYC DOE: AI-generated content must be labeled and require educator sign-off.
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.caption2)
+                    Text("AI generated · Human review required before student sees this")
+                        .font(.caption2)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.purple.opacity(0.85))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+
                 // Type badge + title
                 VStack(alignment: .leading, spacing: 12) {
                     Label(typeLabel, systemImage: recommendation.type.icon)

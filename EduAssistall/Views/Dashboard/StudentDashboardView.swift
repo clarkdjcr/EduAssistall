@@ -10,6 +10,7 @@ struct StudentDashboardView: View {
     @State private var thisWeekPercent: Int = 0
     @State private var milestones: [LearningMilestone] = []       // FR-300
     @State private var recentMessages: [ChatMessage] = []         // FR-300
+    @State private var approvedRecs: [Recommendation] = []
     @State private var isLoading = true
     @State private var showProfile = false
     @State private var pendingLinks: [StudentAdultLink] = []
@@ -131,6 +132,31 @@ struct StudentDashboardView: View {
 
                             ForEach(milestones) { milestone in
                                 MilestoneCard(milestone: milestone)
+                                    .padding(.horizontal, 20)
+                            }
+                        }
+                    }
+
+                    // Educator-approved AI recommendations
+                    if !approvedRecs.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 6) {
+                                Text("Recommended for You")
+                                    .font(.headline)
+                                Spacer()
+                                // NYC DOE: students must always know AI was involved.
+                                HStack(spacing: 4) {
+                                    Image(systemName: "sparkles")
+                                        .font(.caption2)
+                                    Text("AI suggested")
+                                        .font(.caption2)
+                                }
+                                .foregroundStyle(.purple.opacity(0.8))
+                            }
+                            .padding(.horizontal, 20)
+
+                            ForEach(approvedRecs.prefix(3)) { rec in
+                                ApprovedRecommendationCard(recommendation: rec)
                                     .padding(.horizontal, 20)
                             }
                         }
@@ -318,6 +344,7 @@ struct StudentDashboardView: View {
         learningProfile = try? await profileFetch
         milestones = (try? await milestonesFetch) ?? []
         recentMessages = (try? await messagesFetch) ?? []
+        approvedRecs = (try? await FirestoreService.shared.fetchRecommendations(studentId: profile.id)) ?? []
 
         let paths = (try? await pathsFetch) ?? []
         activePath = paths.first(where: { $0.isActive }) ?? paths.first
@@ -657,6 +684,50 @@ private struct EmptyStateCard: View {
         .padding(24)
         .background(Color.appSecondaryGroupedBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+// MARK: - Approved Recommendation Card
+
+private struct ApprovedRecommendationCard: View {
+    let recommendation: Recommendation
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: recommendation.type.icon)
+                .font(.title3)
+                .foregroundStyle(.purple)
+                .frame(width: 40, height: 40)
+                .background(Color.purple.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(recommendation.title)
+                    .font(.subheadline.bold())
+                    .lineLimit(2)
+                Text(recommendation.rationale)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                // NYC DOE: make AI origin and educator approval explicit to the student.
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles")
+                        .font(.caption2)
+                    Text("AI suggested · Approved by your teacher")
+                        .font(.caption2)
+                }
+                .foregroundStyle(.purple.opacity(0.7))
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(Color.appSecondaryGroupedBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.purple.opacity(0.15), lineWidth: 1)
+        )
     }
 }
 

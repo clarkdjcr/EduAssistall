@@ -13,6 +13,9 @@ struct AppRootView: View {
         case .unauthenticated:
             AuthCoordinatorView()
 
+        case .pendingParentalConsent(let profile):
+            PendingParentalConsentView(profile: profile)
+
         case .onboarding(let profile):
             OnboardingCoordinatorView(profile: profile)
 

@@ -13,6 +13,15 @@ struct RegisterView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
 
+    // COPPA: age gate for student accounts
+    private static let currentYear = Calendar.current.component(.year, from: Date())
+    @State private var birthYear: Int = currentYear - 14   // default to 14-year-old
+    @State private var parentEmail = ""
+
+    private var isUnder13: Bool {
+        selectedRole == .student && (Self.currentYear - birthYear) < 13
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -72,6 +81,40 @@ struct RegisterView: View {
                             .background(Color.appSecondaryBackground)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
 
+                        if selectedRole == .student {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Year of Birth")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Picker("Year of Birth", selection: $birthYear) {
+                                    ForEach((Self.currentYear - 18)...(Self.currentYear - 4), id: \.self) { year in
+                                        Text(String(year)).tag(year)
+                                    }
+                                }
+                                .pickerStyle(.wheel)
+                                .frame(height: 100)
+                                .clipped()
+                                .background(Color.appSecondaryBackground)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+
+                            if isUnder13 {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Label("Parental consent required for students under 13", systemImage: "info.circle")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                    TextField("Parent or Guardian Email", text: $parentEmail)
+                                        .emailInput()
+                                        .padding()
+                                        .background(Color.appSecondaryBackground)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    Text("We'll send your parent a one-time approval email. Your account will be active once they approve.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+
                         if let error = errorMessage {
                             Text(error)
                                 .font(.footnote)
@@ -127,11 +170,12 @@ struct RegisterView: View {
     }
 
     private var formIsValid: Bool {
-        !displayName.isEmpty &&
-        !email.isEmpty &&
-        password.count >= 6 &&
-        password == confirmPassword &&
-        consentGiven
+        guard !displayName.isEmpty && !email.isEmpty &&
+              password.count >= 6 && password == confirmPassword && consentGiven else { return false }
+        if isUnder13 {
+            return parentEmail.contains("@") && !parentEmail.isEmpty
+        }
+        return true
     }
 
     private func register() async {
@@ -140,6 +184,8 @@ struct RegisterView: View {
                 errorMessage = "Passwords do not match."
             } else if password.count < 6 {
                 errorMessage = "Password must be at least 6 characters."
+            } else if isUnder13 && !parentEmail.contains("@") {
+                errorMessage = "Please enter a valid parent or guardian email."
             }
             return
         }
@@ -151,7 +197,9 @@ struct RegisterView: View {
                 password: password,
                 displayName: displayName,
                 role: selectedRole,
-                privacyConsentGiven: consentGiven
+                privacyConsentGiven: consentGiven,
+                birthYear: selectedRole == .student ? birthYear : nil,
+                parentEmail: isUnder13 ? parentEmail : nil
             )
         } catch {
             errorMessage = error.localizedDescription

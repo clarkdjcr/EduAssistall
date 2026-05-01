@@ -636,20 +636,6 @@ final class FirestoreService {
                                 metadata: ["action": "config_updated"])
     }
 
-    // MARK: - AI Training Consent (FR-404)
-
-    func updateTrainingConsent(userId: String, consent: Bool) async throws {
-        try await db.collection("users").document(userId).updateData([
-            "aiTrainingConsent": consent,
-            "aiTrainingConsentAt": FieldValue.serverTimestamp(),
-        ])
-        AuditService.shared.log(
-            .trainingConsentSet,
-            userId: userId,
-            metadata: ["consent": consent ? "granted" : "denied"]
-        )
-    }
-
     // MARK: - Companion Lock (FR-106)
 
     func setCompanionLock(studentId: String, locked: Bool, by educator: UserProfile, reason: String) async throws {
