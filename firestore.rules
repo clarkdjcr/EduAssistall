@@ -319,6 +319,20 @@ service cloud.firestore {
     match /performanceMetrics/{docId}     { allow read, write: if false; }
     match /healthPing/{docId}             { allow read, write: if false; }
 
+    // -------------------------------------------------------------------------
+    // aiAuditLog/{eventId}  (FR-G6)
+    // Append-only compliance record for every AI generation event.
+    // Admins may read for compliance reviews and e-discovery.
+    // No client — including admins — may update or delete. Only Cloud Functions
+    // write via Admin SDK, which bypasses these rules; the `write: if false`
+    // prevents any direct client write. Update and delete are permanently closed.
+    // -------------------------------------------------------------------------
+    match /aiAuditLog/{eventId} {
+      allow read:          if request.auth != null && isAdmin();
+      allow create:        if false;
+      allow update, delete: if false;
+    }
+
     // NOTE: no catch-all. Firestore denies by default — any collection not
     // listed above is implicitly inaccessible to all clients.
 

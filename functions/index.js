@@ -1,5 +1,5 @@
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestore");
@@ -7,6 +7,7 @@ const { getMessaging } = require("firebase-admin/messaging");
 const { getAuth } = require("firebase-admin/auth");
 const Anthropic = require("@anthropic-ai/sdk").default;
 const sgMail = require("@sendgrid/mail");
+const crypto = require("crypto");
 
 initializeApp();
 
@@ -15,6 +16,179 @@ let _anthropic = null;
 function getAnthropicClient() {
   if (!_anthropic) _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   return _anthropic;
+}
+
+// ---------------------------------------------------------------------------
+// MARK: - Microsoft Graph Client (SharePoint grounding)
+// Token cached for the lifetime of the instance (expires_in - 60s buffer).
+// ---------------------------------------------------------------------------
+
+let _graphToken = null;
+let _graphTokenExpiry = 0;
+
+async function getGraphToken() {
+  if (_graphToken && Date.now() < _graphTokenExpiry) return _graphToken;
+  const res = await fetch(
+    `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`,
+    {
+      method: "POST",
+      body: new URLSearchParams({
+        grant_type:    "client_credentials",
+        client_id:     process.env.AZURE_CLIENT_ID,
+        client_secret: process.env.AZURE_CLIENT_SECRET,
+        scope:         "https://graph.microsoft.com/.default",
+      }),
+    }
+  );
+  const data = await res.json();
+  if (!data.access_token) throw new Error(`Graph token error: ${data.error}`);
+  _graphToken = data.access_token;
+  _graphTokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+  return _graphToken;
+}
+
+/**
+ * Fetches up to 5 StudentContent items from SharePoint filtered by grade (required)
+ * and subject (optional). Degrades to an empty array if SharePoint is not configured
+ * or the call fails — grounding is additive, never blocking.
+ *
+ * Returns an array of SharePoint list item objects with `id` and `fields`.
+ */
+async function fetchSharePointGrounding(grade, subject) {
+  if (!process.env.AZURE_TENANT_ID || !process.env.SHAREPOINT_STUDENT_CONTENT_LIST_ID) {
+    return [];
+  }
+  const token  = await getGraphToken();
+  const siteId = process.env.SHAREPOINT_SITE_ID;
+  const listId = process.env.SHAREPOINT_STUDENT_CONTENT_LIST_ID;
+
+  let filter = `fields/GradeLevel eq '${grade}'`;
+  if (subject) filter += ` and fields/Subject eq '${encodeURIComponent(subject)}'`;
+
+  const url =
+    `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items` +
+    `?$expand=fields($select=Title,GradeLevel,Subject,Standard)&$filter=${encodeURIComponent(filter)}&$top=5`;
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    console.warn(`SharePoint grounding fetch ${res.status}: ${await res.text()}`);
+    return [];
+  }
+  return (await res.json()).value ?? [];
+}
+
+/**
+ * Fetches up to `limit` items from any SharePoint list filtered by grade.
+ * Used for Curriculum grounding in teacher-facing AI functions.
+ */
+async function fetchCurriculumItems(grade, subject, limit = 5) {
+  const listId = process.env.SHAREPOINT_CURRICULUM_LIST_ID;
+  if (!process.env.AZURE_TENANT_ID || !listId) return [];
+  const token  = await getGraphToken();
+  const siteId = process.env.SHAREPOINT_SITE_ID;
+
+  let filter = `fields/GradeLevel eq '${grade}'`;
+  if (subject) filter += ` and fields/Subject eq '${encodeURIComponent(subject)}'`;
+
+  const url =
+    `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items` +
+    `?$expand=fields($select=Title,GradeLevel,Subject,Standard)&$filter=${encodeURIComponent(filter)}&$top=${limit}`;
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    console.warn(`Curriculum fetch ${res.status}`);
+    return [];
+  }
+  return (await res.json()).value ?? [];
+}
+
+/**
+ * Uploads a text document to the OfficialDocuments SharePoint library and sets
+ * metadata. Returns the SharePoint list item ID, or null on failure.
+ * ApprovalStatus is set to "PendingApproval" — a Power Automate flow handles
+ * the final promotion to "Approved" per FR-C4.
+ */
+async function writeToOfficialDocuments({ filename, content, metadata }) {
+  const listId = process.env.SHAREPOINT_OFFICIAL_DOCS_LIST_ID;
+  if (!process.env.AZURE_TENANT_ID || !listId) return null;
+
+  try {
+    const token  = await getGraphToken();
+    const siteId = process.env.SHAREPOINT_SITE_ID;
+
+    const driveRes = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/drive`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!driveRes.ok) throw new Error(`Drive fetch ${driveRes.status}`);
+    const { id: driveId } = await driveRes.json();
+
+    // Upload file.
+    const uploadRes = await fetch(
+      `https://graph.microsoft.com/v1.0/drives/${driveId}/root:/${filename}:/content`,
+      {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "text/plain" },
+        body: Buffer.from(content, "utf-8"),
+      }
+    );
+    if (!uploadRes.ok) throw new Error(`Upload ${uploadRes.status}`);
+    const uploaded = await uploadRes.json();
+
+    // Get listItemId from the driveItem.
+    const itemRes = await fetch(
+      `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${uploaded.id}?$select=id,sharepointIds`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!itemRes.ok) throw new Error(`sharepointIds fetch ${itemRes.status}`);
+    const { sharepointIds } = await itemRes.json();
+    const listItemId = sharepointIds?.listItemId;
+    if (!listItemId) throw new Error("No listItemId");
+
+    // Set metadata columns.
+    await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items/${listItemId}/fields`,
+      {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          Title:          metadata.title  || filename,
+          GradeLevel:     metadata.grade  || "",
+          Subject:        metadata.subject || "",
+          School:         metadata.school  || "All",
+          DocumentType:   metadata.documentType || "Other",
+          ApprovalStatus: "PendingApproval",
+        }),
+      }
+    );
+
+    return listItemId;
+  } catch (err) {
+    console.error("writeToOfficialDocuments failed:", err.message);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// MARK: - AI Audit Log (FR-G6)
+// Append-only record for every AI generation event. Never delayed — fire-and-forget.
+// ---------------------------------------------------------------------------
+
+function writeAiAuditLog(db, { uid, profile, groundingItems, usage, cacheHit }) {
+  const hashedUserId = crypto.createHash("sha256").update(uid).digest("hex");
+  db.collection("aiAuditLog").add({
+    featureId:              "askCompanion",
+    userId:                 hashedUserId,
+    schoolId:               profile.schoolId ?? null,
+    timestamp:              FieldValue.serverTimestamp(),
+    groundingSourceIds:     groundingItems.map((i) => i.id),
+    inputTokenCount:        usage?.input_tokens  ?? 0,
+    outputTokenCount:       usage?.output_tokens ?? 0,
+    cacheHit:               cacheHit ?? false,
+    safetyPipelineApplied:  true,
+    approvalWorkflowId:     null,
+    modelVersion:           "claude-sonnet-4-6",
+  }).catch((e) => console.error("writeAiAuditLog failed:", e.message));
 }
 
 // ---------------------------------------------------------------------------
@@ -496,7 +670,11 @@ async function alertCounselors(db, messaging, { districtId, studentId, category 
 
 exports.askCompanion = onCall(
   {
-    secrets: ["ANTHROPIC_API_KEY"],
+    secrets: [
+      "ANTHROPIC_API_KEY",
+      "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
+      "SHAREPOINT_SITE_ID", "SHAREPOINT_STUDENT_CONTENT_LIST_ID",
+    ],
     region: "us-central1",
     // NFR-003/006: scale to support concurrent sessions. Regional quota caps maxInstances at 200;
     // at concurrency=80 that's 16K simultaneous requests — sufficient for launch. Request a quota
@@ -649,6 +827,17 @@ exports.askCompanion = onCall(
     // Load district config now that we know the districtId from the profile.
     // Reading on every call means any admin change propagates within one request cycle (<60s). (FR-102/105)
     const gradeBand = getGradeBand(profile.gradeLevel || profile.grade);
+
+    // Start SharePoint grounding fetch now — runs in parallel with district config read.
+    // Degrades to [] on any failure so it never blocks the response path.
+    const groundingPromise = fetchSharePointGrounding(
+      profile.gradeLevel || profile.grade,
+      activePath?.subject
+    ).catch((err) => {
+      console.warn("SharePoint grounding degraded:", err.message);
+      return [];
+    });
+
     let districtBlockedTopics = [];
     if (profile.districtId) {
       const districtSnap = await db.collection("districtConfig").doc(profile.districtId).get();
@@ -715,6 +904,21 @@ exports.askCompanion = onCall(
         ` The student is currently working toward the following learning goals: ${goalList}. ` +
         `Naturally reference and encourage progress on these goals where relevant — ` +
         `but only when it genuinely fits the conversation. Do not force it.`;
+    }
+
+    // SharePoint grounding — await here; fetch ran in parallel with district config above.
+    const groundingItems = await groundingPromise;
+    if (groundingItems.length > 0) {
+      const refs = groundingItems.map((item) => {
+        const f = item.fields || {};
+        const parts = [f.Title || "Untitled"];
+        if (f.Subject)  parts.push(f.Subject);
+        if (f.Standard) parts.push(f.Standard);
+        return parts.join(" — ");
+      }).join("; ");
+      systemPrompt +=
+        ` DISTRICT CURRICULUM CONTEXT: The following materials are in this student's district` +
+        ` library for their grade. Align your explanations to these where applicable: ${refs}.`;
     }
 
     // FR-003: Validate and apply the student's requested interaction mode.
@@ -907,6 +1111,15 @@ exports.askCompanion = onCall(
       throw new HttpsError("unavailable", "The AI is temporarily unavailable. Please try again in a moment.");
     }
 
+    // FR-G6: Audit log — fire-and-forget, never delays response.
+    writeAiAuditLog(db, {
+      uid: request.auth.uid,
+      profile,
+      groundingItems,
+      usage: response.usage,
+      cacheHit: false,
+    });
+
     let replyText = response.content[0].text;
 
     // FR-008: Post-processing word count enforcement.
@@ -1034,7 +1247,14 @@ exports.recordMilestone = onCall(
 
 // MARK: - Generate AI Recommendations
 exports.generateRecommendations = onCall(
-  { secrets: ["ANTHROPIC_API_KEY"], region: "us-central1" },
+  {
+    secrets: [
+      "ANTHROPIC_API_KEY",
+      "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
+      "SHAREPOINT_SITE_ID", "SHAREPOINT_CURRICULUM_LIST_ID",
+    ],
+    region: "us-central1",
+  },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Must be signed in.");
@@ -1056,7 +1276,7 @@ exports.generateRecommendations = onCall(
       }
     }
 
-    // Fetch student context
+    // Fetch student context and curriculum grounding in parallel.
     const [profileSnap, pathsSnap, progressSnap] = await Promise.all([
       db.collection("learningProfiles").doc(studentId).get(),
       db.collection("learningPaths").where("studentId", "==", studentId).get(),
@@ -1067,11 +1287,23 @@ exports.generateRecommendations = onCall(
     const paths = pathsSnap.docs.map((d) => d.data());
     const progressList = progressSnap.docs.map((d) => d.data());
 
-    const completedIds = new Set(
-      progressList.filter((p) => p.status === "completed").map((p) => p.contentItemId)
-    );
+    // Fetch curriculum grounding now that we have grade from the profile.
+    const curriculumItems = await fetchCurriculumItems(
+      profile.gradeLevel || profile.grade,
+      null  // no subject filter — surface all subjects for recommendations
+    ).catch(() => []);
+
     const totalItems = paths.flatMap((p) => p.items || []).length;
     const completedCount = progressList.filter((p) => p.status === "completed").length;
+
+    const curriculumContext = curriculumItems.length > 0
+      ? `\nDistrict Curriculum Available for Grade ${profile.gradeLevel || "unknown"}:\n` +
+        curriculumItems.map((i) => {
+          const f = i.fields || {};
+          return `- ${f.Title || "Untitled"} (${f.Subject || "General"}${f.Standard ? `, Standard: ${f.Standard}` : ""})`;
+        }).join("\n") +
+        "\nAlign recommendations to these materials where possible.\n"
+      : "";
 
     const prompt = `You are an educational AI advisor. Based on this student's profile, generate exactly 3 specific learning recommendations.
 
@@ -1081,7 +1313,7 @@ Student Profile:
 - Interests: ${(profile.interests || []).join(", ") || "none listed"}
 - Completed ${completedCount} of ${totalItems} assigned lessons
 - Active learning paths: ${paths.map((p) => p.title).join(", ") || "none"}
-
+${curriculumContext}
 Return a JSON array of exactly 3 objects, each with:
 - "type": one of "learningPath", "contentItem", or "quiz"
 - "title": specific, actionable title (max 60 chars)
@@ -1628,6 +1860,63 @@ exports.onRecommendationCreated = onDocumentCreated(
       notification: { title, body },
       data: { type: "recommendation", recId: event.params.recId, studentId: rec.studentId },
     });
+  }
+);
+
+// Fires when a recommendation is approved — writes it to SharePoint OfficialDocuments (FR-C4).
+// ApprovalStatus is set to "PendingApproval" in SharePoint; a Power Automate flow handles
+// the final promotion to "Approved" before the document is treated as official.
+exports.onRecommendationApproved = onDocumentUpdated(
+  {
+    document: "recommendations/{recId}",
+    region: "us-central1",
+    secrets: [
+      "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
+      "SHAREPOINT_SITE_ID", "SHAREPOINT_OFFICIAL_DOCS_LIST_ID",
+    ],
+  },
+  async (event) => {
+    const before = event.data.before.data();
+    const after  = event.data.after.data();
+
+    // Only act when status transitions to "approved".
+    if (!before || !after) return;
+    if (before.status === "approved" || after.status !== "approved") return;
+
+    const db = getFirestore();
+    const profileSnap = await db.collection("learningProfiles").doc(after.studentId).get();
+    const profile = profileSnap.data() || {};
+
+    const filename = `Recommendation_${event.params.recId}_${Date.now()}.txt`;
+    const content =
+      `APPROVED LEARNING RECOMMENDATION\n` +
+      `================================\n\n` +
+      `Student Grade: ${profile.gradeLevel || "Unknown"}\n` +
+      `Subject:       ${after.subject || "General"}\n` +
+      `Type:          ${after.type}\n` +
+      `Title:         ${after.title}\n\n` +
+      `Rationale:\n${after.rationale || "No rationale provided."}\n\n` +
+      `Approved by: ${after.reviewedBy || "Unknown"}\n` +
+      `Generated:   ${new Date().toISOString()}\n` +
+      `Firestore ID: ${event.params.recId}\n`;
+
+    const listItemId = await writeToOfficialDocuments({
+      filename,
+      content,
+      metadata: {
+        title:        after.title,
+        grade:        profile.gradeLevel || "",
+        subject:      after.subject || "",
+        school:       profile.schoolId  || "All",
+        documentType: "Other",
+      },
+    });
+
+    if (listItemId) {
+      // Record the SharePoint item ID on the Firestore doc for traceability.
+      await event.data.after.ref.update({ sharepointItemId: listItemId }).catch(() => {});
+      console.log(`onRecommendationApproved: written to OfficialDocuments (item ${listItemId})`);
+    }
   }
 );
 
