@@ -101,9 +101,9 @@ private struct TeacherTabView: View {
                     Label("Monitor", systemImage: "eye.fill")
                 }
 
-            TeacherReviewsTabView(profile: profile)
+            TeacherDocumentsTabView(profile: profile)
                 .tabItem {
-                    Label("Reviews", systemImage: "checkmark.shield.fill")
+                    Label("Create", systemImage: "sparkles")
                 }
 
             MessagesListView(profile: profile)
@@ -119,14 +119,56 @@ private struct TeacherTabView: View {
     }
 }
 
-// Wrapper so tab has its own NavigationStack for the review list
-private struct TeacherReviewsTabView: View {
+// MARK: - Teacher Documents Tab (FR-T5, FR-T6)
+
+private struct TeacherDocumentsTabView: View {
     let profile: UserProfile
-    @State private var studentIds: [String] = []
+
+    @State private var studentIds: [String]         = []
+    @State private var showLessonPlan               = false
+    @State private var showParentLetter             = false
 
     var body: some View {
         NavigationStack {
-            PendingRecommendationsView(reviewerProfile: profile, studentIds: studentIds)
+            List {
+                Section("AI Generate") {
+                    Button {
+                        showLessonPlan = true
+                    } label: {
+                        Label("Lesson Plan", systemImage: "doc.text.fill")
+                            .foregroundStyle(.primary)
+                    }
+
+                    Button {
+                        showParentLetter = true
+                    } label: {
+                        Label("Parent Letter", systemImage: "envelope.fill")
+                            .foregroundStyle(.primary)
+                    }
+                }
+
+                Section("Pending Reviews") {
+                    NavigationLink {
+                        PendingRecommendationsView(reviewerProfile: profile, studentIds: studentIds)
+                    } label: {
+                        Label("AI Recommendations", systemImage: "checkmark.shield.fill")
+                    }
+                }
+            }
+            #if os(iOS)
+            .listStyle(.insetGrouped)
+            #else
+            .listStyle(.inset)
+            #endif
+            .background(Color.appGroupedBackground)
+            .navigationTitle("Create")
+            .inlineNavigationTitle()
+            .sheet(isPresented: $showLessonPlan) {
+                GenerateLessonPlanView(teacherProfile: profile)
+            }
+            .sheet(isPresented: $showParentLetter) {
+                GenerateParentLetterView(teacherProfile: profile)
+            }
         }
         .task {
             let links = (try? await FirestoreService.shared.fetchLinkedStudents(adultId: profile.id)) ?? []

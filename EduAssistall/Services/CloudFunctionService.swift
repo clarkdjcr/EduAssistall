@@ -99,6 +99,68 @@ final class CloudFunctionService {
 
     private init() {}
 
+    // MARK: - Teacher AI Document Generation
+
+    struct LessonPlanResult {
+        let lessonPlan: String
+        let sharepointItemId: String?
+    }
+
+    struct ParentLetterResult {
+        let letter: String
+        let sharepointItemId: String?
+        let studentName: String
+    }
+
+    func generateLessonPlan(
+        grade: String,
+        subject: String,
+        topic: String,
+        durationMinutes: Int = 45,
+        standard: String = ""
+    ) async throws -> LessonPlanResult {
+        var data: [String: Any] = [
+            "grade": grade,
+            "subject": subject,
+            "topic": topic,
+            "durationMinutes": durationMinutes,
+        ]
+        if !standard.isEmpty { data["standard"] = standard }
+        let result = try await functions.httpsCallable("generateLessonPlan").call(data)
+        guard let dict = result.data as? [String: Any],
+              let plan = dict["lessonPlan"] as? String else {
+            throw URLError(.badServerResponse)
+        }
+        return LessonPlanResult(
+            lessonPlan: plan,
+            sharepointItemId: dict["sharepointItemId"] as? String
+        )
+    }
+
+    func generateParentLetter(
+        studentId: String,
+        letterType: String,
+        subject: String = "",
+        teacherNotes: String = ""
+    ) async throws -> ParentLetterResult {
+        var data: [String: Any] = [
+            "studentId": studentId,
+            "letterType": letterType,
+        ]
+        if !subject.isEmpty      { data["subject"] = subject }
+        if !teacherNotes.isEmpty { data["teacherNotes"] = teacherNotes }
+        let result = try await functions.httpsCallable("generateParentLetter").call(data)
+        guard let dict = result.data as? [String: Any],
+              let letter = dict["letter"] as? String else {
+            throw URLError(.badServerResponse)
+        }
+        return ParentLetterResult(
+            letter: letter,
+            sharepointItemId: dict["sharepointItemId"] as? String,
+            studentName: dict["studentName"] as? String ?? "Student"
+        )
+    }
+
     func generateRecommendations(studentId: String) async throws {
         let data: [String: Any] = ["studentId": studentId]
         _ = try await functions.httpsCallable("generateRecommendations").call(data)
