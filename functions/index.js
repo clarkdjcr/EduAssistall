@@ -78,6 +78,34 @@ async function fetchSharePointGrounding(grade, subject) {
 }
 
 /**
+ * Downloads the text content of a SharePoint document library file.
+ * Uses the pre-authenticated @microsoft.graph.downloadUrl to avoid a second
+ * auth hop. Returns the text string, or null on failure.
+ */
+async function downloadSharePointFileContent(siteId, listId, listItemId) {
+  try {
+    const token = await getGraphToken();
+    const metaRes = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items/${listItemId}/driveItem` +
+      `?$select=id,name,file,@microsoft.graph.downloadUrl`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!metaRes.ok) return null;
+    const meta = await metaRes.json();
+    const downloadUrl = meta["@microsoft.graph.downloadUrl"];
+    if (!downloadUrl) return null;
+
+    const fileRes = await fetch(downloadUrl);
+    if (!fileRes.ok) return null;
+    const text = await fileRes.text();
+    return text.slice(0, 4000); // cap at 4 KB to keep prompt size bounded
+  } catch (err) {
+    console.warn(`downloadSharePointFileContent failed for item ${listItemId}:`, err.message);
+    return null;
+  }
+}
+
+/**
  * Fetches up to `limit` items from any SharePoint list filtered by grade.
  * Used for Curriculum grounding in teacher-facing AI functions.
  */
@@ -1360,6 +1388,147 @@ Return ONLY the JSON array, no other text.`;
     await batch.commit();
 
     return { count: recommendations.length };
+  }
+);
+
+// MARK: - Generate Lesson Plan (FR-T5)
+// Teacher-facing. Grounds generation in district Curriculum library content,
+// writes the draft to OfficialDocuments (ApprovalStatus: PendingApproval),
+// and writes an aiAuditLog entry. The Power Automate approval flow promotes
+// the document to Approved before it becomes an official record (FR-C4).
+exports.generateLessonPlan = onCall(
+  {
+    secrets: [
+      "ANTHROPIC_API_KEY",
+      "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
+      "SHAREPOINT_SITE_ID", "SHAREPOINT_CURRICULUM_LIST_ID", "SHAREPOINT_OFFICIAL_DOCS_LIST_ID",
+    ],
+    region: "us-central1",
+    timeoutSeconds: 120,
+  },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const callerRole = callerSnap.data()?.role;
+    if (callerRole !== "teacher" && callerRole !== "admin") {
+      throw new HttpsError("permission-denied", "Only teachers and admins may generate lesson plans.");
+    }
+
+    const { grade, subject, topic, durationMinutes = 45, standard = "" } = request.data;
+    if (!grade || !subject || !topic) {
+      throw new HttpsError("invalid-argument", "grade, subject, and topic are required.");
+    }
+
+    const siteId = process.env.SHAREPOINT_SITE_ID;
+    const curriculumListId = process.env.SHAREPOINT_CURRICULUM_LIST_ID;
+
+    // Fetch curriculum items and download content of up to 2 matches in parallel.
+    const curriculumItems = await fetchCurriculumItems(grade, subject).catch(() => []);
+    const contentSnippets = await Promise.all(
+      curriculumItems.slice(0, 2).map((item) =>
+        downloadSharePointFileContent(siteId, curriculumListId, item.id)
+      )
+    );
+
+    // Build grounding block — include item metadata and file text where available.
+    let groundingBlock = "";
+    if (curriculumItems.length > 0) {
+      groundingBlock = "\n\nDISTRICT CURRICULUM REFERENCE MATERIALS:\n";
+      curriculumItems.slice(0, 2).forEach((item, i) => {
+        const f = item.fields || {};
+        groundingBlock += `\n--- ${f.Title || "Document"} (${f.Subject || subject}, ${f.Standard || "No standard"}) ---\n`;
+        if (contentSnippets[i]) {
+          groundingBlock += contentSnippets[i] + "\n";
+        }
+      });
+      groundingBlock +=
+        "\nBase the lesson plan structure and vocabulary on the above district materials. " +
+        "Quote or reference specific content where it strengthens the plan.\n";
+    }
+
+    const systemPrompt =
+      "You are an experienced K-12 curriculum designer. Generate clear, practical lesson plans " +
+      "that any classroom teacher can execute without modification. Use precise educational language. " +
+      "Every section must be concrete and specific — no placeholders or generic filler.";
+
+    const userPrompt =
+      `Create a complete ${durationMinutes}-minute lesson plan with the following parameters:\n` +
+      `Grade: ${grade}\n` +
+      `Subject: ${subject}\n` +
+      `Topic: ${topic}\n` +
+      (standard ? `Standard: ${standard}\n` : "") +
+      groundingBlock +
+      `\nFormat the lesson plan exactly as follows (use these headings verbatim):\n\n` +
+      `LESSON PLAN: ${topic}\n` +
+      `Grade: ${grade} | Subject: ${subject} | Duration: ${durationMinutes} min\n` +
+      (standard ? `Standard: ${standard}\n` : "") +
+      `\nLEARNING OBJECTIVES\n[3 measurable objectives using action verbs]\n\n` +
+      `MATERIALS NEEDED\n[Bulleted list]\n\n` +
+      `LESSON STRUCTURE\n` +
+      `Opening / Hook (5 min): [Specific activity to engage students]\n` +
+      `Direct Instruction (${Math.round(durationMinutes * 0.33)} min): [What teacher does and says]\n` +
+      `Guided Practice (${Math.round(durationMinutes * 0.27)} min): [Whole-class or small-group activity]\n` +
+      `Independent Practice (${Math.round(durationMinutes * 0.22)} min): [Individual student task]\n` +
+      `Closure (5 min): [Exit ticket or summary activity]\n\n` +
+      `DIFFERENTIATION\n` +
+      `Below grade level: [Specific scaffold]\n` +
+      `At grade level: [Standard approach]\n` +
+      `Above grade level: [Extension activity]\n\n` +
+      `ASSESSMENT\n[How mastery of each objective will be measured]\n\n` +
+      `STANDARDS ALIGNMENT\n[Explicit connection to standard and curriculum materials used]`;
+
+    const anthropic = getAnthropicClient();
+    let response;
+    try {
+      response = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+      });
+    } catch (err) {
+      console.error("generateLessonPlan Claude error:", err.message);
+      throw new HttpsError("unavailable", "AI is temporarily unavailable. Please try again.");
+    }
+
+    const lessonPlanText = response.content[0].text;
+
+    // Write draft to OfficialDocuments (ApprovalStatus: PendingApproval per FR-C4).
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filename = `LessonPlan_${grade}_${subject.replace(/\s+/g, "")}_${timestamp}.txt`;
+    const sharepointItemId = await writeToOfficialDocuments({
+      filename,
+      content: lessonPlanText,
+      metadata: {
+        title:        `${subject} – ${topic} (Grade ${grade})`,
+        grade,
+        subject,
+        school:       callerSnap.data()?.schoolId || "All",
+        documentType: "LessonPlan",
+      },
+    });
+
+    // FR-G6: audit log (fire-and-forget).
+    writeAiAuditLog(db, {
+      uid:            request.auth.uid,
+      profile:        { schoolId: callerSnap.data()?.schoolId },
+      groundingItems: curriculumItems.slice(0, 2),
+      usage:          response.usage,
+      cacheHit:       false,
+    });
+
+    return {
+      lessonPlan:       lessonPlanText,
+      sharepointItemId: sharepointItemId ?? null,
+      curriculumSources: curriculumItems.slice(0, 2).map((i) => ({
+        id:      i.id,
+        title:   i.fields?.Title || "Untitled",
+        subject: i.fields?.Subject,
+        standard: i.fields?.Standard,
+      })),
+    };
   }
 );
 
