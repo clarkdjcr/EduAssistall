@@ -1532,6 +1532,178 @@ exports.generateLessonPlan = onCall(
   }
 );
 
+// MARK: - Generate Parent Letter (FR-T6)
+// Teacher-facing. Drafts a parent communication from structured student data,
+// writes it to OfficialDocuments (ApprovalStatus: PendingApproval) for teacher
+// review and approval before sending. Never calls the student safety pipeline —
+// this is a teacher → parent communication, not a student AI interaction.
+exports.generateParentLetter = onCall(
+  {
+    secrets: [
+      "ANTHROPIC_API_KEY",
+      "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
+      "SHAREPOINT_SITE_ID", "SHAREPOINT_OFFICIAL_DOCS_LIST_ID",
+    ],
+    region: "us-central1",
+    timeoutSeconds: 120,
+  },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const callerRole = callerSnap.data()?.role;
+    if (callerRole !== "teacher" && callerRole !== "admin") {
+      throw new HttpsError("permission-denied", "Only teachers and admins may generate parent letters.");
+    }
+
+    const {
+      studentId,
+      letterType = "progress",   // "progress" | "concern" | "intervention" | "invitation" | "general"
+      subject,
+      teacherNotes = "",
+    } = request.data;
+
+    if (!studentId) throw new HttpsError("invalid-argument", "studentId is required.");
+
+    const VALID_TYPES = ["progress", "concern", "intervention", "invitation", "general"];
+    if (!VALID_TYPES.includes(letterType)) {
+      throw new HttpsError("invalid-argument", `letterType must be one of: ${VALID_TYPES.join(", ")}`);
+    }
+
+    // Fetch student context in parallel.
+    const [studentSnap, profileSnap, pathsSnap, milestonesSnap] = await Promise.all([
+      db.collection("users").doc(studentId).get(),
+      db.collection("learningProfiles").doc(studentId).get(),
+      db.collection("learningPaths")
+        .where("studentId", "==", studentId)
+        .where("isActive", "==", true)
+        .limit(1)
+        .get(),
+      db.collection("learningMilestones")
+        .doc(studentId)
+        .collection("milestones")
+        .orderBy("achievedAt", "desc")
+        .limit(3)
+        .get(),
+    ]);
+
+    const student  = studentSnap.data()  || {};
+    const profile  = profileSnap.data()  || {};
+    const activePath = pathsSnap.docs[0]?.data();
+    const milestones = milestonesSnap.docs.map((d) => d.data());
+
+    const studentName  = student.displayName  || "the student";
+    const grade        = profile.gradeLevel   || profile.grade || "unknown";
+    const teacherName  = callerSnap.data()?.displayName || "Your child's teacher";
+    const today        = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+    // Build context block — only factual, non-sensitive data. Safety flags and
+    // counselor alerts are never included in parent-facing letters.
+    const contextLines = [
+      `Student: ${studentName}`,
+      `Grade: ${grade}`,
+      subject ? `Subject: ${subject}` : null,
+      activePath ? `Current learning focus: ${activePath.title}` : null,
+      milestones.length > 0
+        ? `Recent achievements: ${milestones.map((m) => m.title).join(", ")}`
+        : null,
+      teacherNotes ? `Teacher context (use to inform tone and content, do not quote directly): ${teacherNotes}` : null,
+    ].filter(Boolean).join("\n");
+
+    const letterTypeInstructions = {
+      progress:
+        "Write a warm, positive progress update. Highlight specific achievements and growth. " +
+        "Mention one area to continue developing. Close with encouragement and an offer to connect.",
+      concern:
+        "Write a caring, diplomatic letter raising an academic or engagement concern. " +
+        "Lead with something positive, then address the concern factually and without blame. " +
+        "Suggest a specific next step (conference, support plan, homework routine). " +
+        "Tone must be collaborative — teacher and parent as partners.",
+      intervention:
+        "Write a professional letter explaining that the student is receiving additional academic support. " +
+        "Describe what the support looks like (without jargon), why it helps, and what parents can do at home. " +
+        "Frame intervention as a positive, proactive step.",
+      invitation:
+        "Write a warm invitation to a parent-teacher conference or school event. " +
+        "State the purpose clearly, give the date/time/location as placeholders ([DATE], [TIME], [LOCATION]), " +
+        "and explain what will be discussed or what to expect.",
+      general:
+        "Write a clear, friendly general communication. Use the teacher notes to determine the purpose " +
+        "and appropriate tone. Keep it concise and actionable.",
+    };
+
+    const systemPrompt =
+      "You are an experienced K-12 teacher writing a professional parent communication. " +
+      "Use plain, warm, jargon-free language that any parent can understand. " +
+      "Be specific — generic letters feel impersonal. Never include speculative or diagnostic statements. " +
+      "This is a DRAFT for the teacher to review before sending — do not add disclaimers about it being AI-generated.";
+
+    const userPrompt =
+      `Write a parent letter with the following parameters:\n\n` +
+      `${contextLines}\n\n` +
+      `Letter type: ${letterType}\n` +
+      `${letterTypeInstructions[letterType]}\n\n` +
+      `Format exactly as follows:\n\n` +
+      `${today}\n\n` +
+      `Dear Parent or Guardian of ${studentName},\n\n` +
+      `[Opening paragraph]\n\n` +
+      `[Body — 2 to 3 focused paragraphs]\n\n` +
+      `[Closing paragraph with next step or offer to connect]\n\n` +
+      `Warm regards,\n` +
+      `${teacherName}\n` +
+      `[School name placeholder]\n\n` +
+      `Keep the total letter under 300 words. Do not use bullet points.`;
+
+    const anthropic = getAnthropicClient();
+    let response;
+    try {
+      response = await anthropic.messages.create({
+        model:      "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system:     systemPrompt,
+        messages:   [{ role: "user", content: userPrompt }],
+      });
+    } catch (err) {
+      console.error("generateParentLetter Claude error:", err.message);
+      throw new HttpsError("unavailable", "AI is temporarily unavailable. Please try again.");
+    }
+
+    const letterText = response.content[0].text;
+
+    // Write draft to OfficialDocuments (PendingApproval — teacher must review before sending).
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filename  = `ParentLetter_${studentId}_${letterType}_${timestamp}.txt`;
+    const sharepointItemId = await writeToOfficialDocuments({
+      filename,
+      content:  letterText,
+      metadata: {
+        title:        `Parent Letter – ${studentName} (${letterType})`,
+        grade,
+        subject:      subject || "",
+        school:       profile.schoolId || callerSnap.data()?.schoolId || "All",
+        documentType: "ParentLetter",
+      },
+    });
+
+    // FR-G6: audit log (fire-and-forget).
+    writeAiAuditLog(db, {
+      uid:            request.auth.uid,
+      profile:        { schoolId: callerSnap.data()?.schoolId },
+      groundingItems: [],   // parent letters use Firestore data, not SharePoint curriculum
+      usage:          response.usage,
+      cacheHit:       false,
+    });
+
+    return {
+      letter:           letterText,
+      sharepointItemId: sharepointItemId ?? null,
+      studentName,
+      letterType,
+    };
+  }
+);
+
 // MARK: - Curate Content (Khan Academy + edX + NASA STEM)
 exports.curateContent = onCall(
   { region: "us-central1" },
