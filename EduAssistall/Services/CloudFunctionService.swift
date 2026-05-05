@@ -161,6 +161,59 @@ final class CloudFunctionService {
         )
     }
 
+    // MARK: - AI Usage Statistics (FR-G5)
+
+    struct AIUsageStats {
+        struct Period {
+            let calls: Int
+            let inputTokens: Int
+            let outputTokens: Int
+            let groundingHits: Int
+            let estimatedCostUSD: Double
+        }
+        struct LatencyStats {
+            let p50ms: Int?
+            let p95ms: Int?
+            let p99ms: Int?
+            let breachingTarget: Bool
+        }
+        let today: Period
+        let month: Period
+        let byFeature: [String: Int]
+        let latency: LatencyStats
+        let generatedAt: String
+    }
+
+    func getAIUsageStats() async throws -> AIUsageStats {
+        let result = try await functions.httpsCallable("getAIUsageStats").call([:])
+        guard let dict = result.data as? [String: Any] else { throw URLError(.badServerResponse) }
+
+        func parsePeriod(_ key: String) -> AIUsageStats.Period {
+            let p = dict[key] as? [String: Any] ?? [:]
+            return AIUsageStats.Period(
+                calls:            p["calls"]            as? Int    ?? 0,
+                inputTokens:      p["inputTokens"]      as? Int    ?? 0,
+                outputTokens:     p["outputTokens"]     as? Int    ?? 0,
+                groundingHits:    p["groundingHits"]    as? Int    ?? 0,
+                estimatedCostUSD: p["estimatedCostUSD"] as? Double ?? 0
+            )
+        }
+
+        let lat = dict["latency"] as? [String: Any] ?? [:]
+        return AIUsageStats(
+            today:       parsePeriod("today"),
+            month:       parsePeriod("month"),
+            byFeature:   dict["byFeature"] as? [String: Int] ?? [:],
+            latency: AIUsageStats.LatencyStats(
+                p50ms:          lat["p50ms"] as? Int,
+                p95ms:          lat["p95ms"] as? Int,
+                p99ms:          lat["p99ms"] as? Int,
+                breachingTarget: lat["breachingTarget"] as? Bool ?? false
+            ),
+            generatedAt: dict["generatedAt"] as? String ?? ""
+        )
+    }
+
     func generateRecommendations(studentId: String) async throws {
         let data: [String: Any] = ["studentId": studentId]
         _ = try await functions.httpsCallable("generateRecommendations").call(data)

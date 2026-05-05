@@ -47,20 +47,49 @@ async function getGraphToken() {
   return _graphToken;
 }
 
+// ---------------------------------------------------------------------------
+// MARK: - In-process grounding cache (FR-G4)
+// Per-instance Map with 30-minute TTL. Webhook-triggered invalidation is
+// coordinated via Firestore groundingCacheVersion/{listId} so all instances
+// see invalidation within seconds of a SharePoint document change.
+// ---------------------------------------------------------------------------
+
+const _groundingCache  = new Map(); // key: "grade:subject" → { items, fetchedAt }
+const CACHE_TTL_MS     = 30 * 60 * 1000;
+
+async function isGroundingCacheValid(listId, fetchedAt) {
+  try {
+    const snap = await getFirestore().collection("groundingCacheVersion").doc(listId).get();
+    const invalidatedAt = snap.data()?.invalidatedAt?.toMillis?.() ?? 0;
+    return invalidatedAt <= fetchedAt;
+  } catch {
+    return true; // on Firestore error, treat cache as valid to avoid cascading failures
+  }
+}
+
 /**
  * Fetches up to 5 StudentContent items from SharePoint filtered by grade (required)
- * and subject (optional). Degrades to an empty array if SharePoint is not configured
- * or the call fails — grounding is additive, never blocking.
- *
- * Returns an array of SharePoint list item objects with `id` and `fields`.
+ * and subject (optional). Results are cached in-process for up to 30 minutes;
+ * SharePoint webhook notifications invalidate the cache via Firestore.
+ * Degrades to [] on any failure — grounding is additive, never blocking.
  */
 async function fetchSharePointGrounding(grade, subject) {
   if (!process.env.AZURE_TENANT_ID || !process.env.SHAREPOINT_STUDENT_CONTENT_LIST_ID) {
     return [];
   }
+  const listId   = process.env.SHAREPOINT_STUDENT_CONTENT_LIST_ID;
+  const cacheKey = `${grade}:${subject || ""}`;
+  const cached   = _groundingCache.get(cacheKey);
+
+  if (cached && (Date.now() - cached.fetchedAt) < CACHE_TTL_MS) {
+    if (await isGroundingCacheValid(listId, cached.fetchedAt)) {
+      return cached.items; // cache hit — valid
+    }
+    // Webhook invalidated — fall through to re-fetch
+  }
+
   const token  = await getGraphToken();
   const siteId = process.env.SHAREPOINT_SITE_ID;
-  const listId = process.env.SHAREPOINT_STUDENT_CONTENT_LIST_ID;
 
   let filter = `fields/GradeLevel eq '${grade}'`;
   if (subject) filter += ` and fields/Subject eq '${encodeURIComponent(subject)}'`;
@@ -71,10 +100,35 @@ async function fetchSharePointGrounding(grade, subject) {
 
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) {
-    console.warn(`SharePoint grounding fetch ${res.status}: ${await res.text()}`);
-    return [];
+    console.warn(`SharePoint grounding fetch ${res.status}`);
+    return cached?.items ?? []; // return stale data rather than nothing on transient error
   }
-  return (await res.json()).value ?? [];
+  const items = (await res.json()).value ?? [];
+  _groundingCache.set(cacheKey, { items, fetchedAt: Date.now() });
+  return items;
+}
+
+/**
+ * Fetches policy document titles from the Policies library for system-prompt context.
+ * Returns a comma-separated string of policy titles, or null if not configured.
+ */
+async function fetchPoliciesContext() {
+  const listId = process.env.SHAREPOINT_POLICIES_LIST_ID;
+  if (!process.env.AZURE_TENANT_ID || !listId) return null;
+  try {
+    const token  = await getGraphToken();
+    const siteId = process.env.SHAREPOINT_SITE_ID;
+    const url    = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items` +
+                   `?$expand=fields($select=Title)&$top=5`;
+    const res    = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return null;
+    const items  = (await res.json()).value ?? [];
+    return items.length > 0
+      ? items.map((i) => i.fields?.Title || "Policy").join(", ")
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -701,7 +755,7 @@ exports.askCompanion = onCall(
     secrets: [
       "ANTHROPIC_API_KEY",
       "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
-      "SHAREPOINT_SITE_ID", "SHAREPOINT_STUDENT_CONTENT_LIST_ID",
+      "SHAREPOINT_SITE_ID", "SHAREPOINT_STUDENT_CONTENT_LIST_ID", "SHAREPOINT_POLICIES_LIST_ID",
     ],
     region: "us-central1",
     // NFR-003/006: scale to support concurrent sessions. Regional quota caps maxInstances at 200;
@@ -856,9 +910,8 @@ exports.askCompanion = onCall(
     // Reading on every call means any admin change propagates within one request cycle (<60s). (FR-102/105)
     const gradeBand = getGradeBand(profile.gradeLevel || profile.grade);
 
-    // Start SharePoint grounding fetch now — runs in parallel with district config read.
+    // Start SharePoint fetches now — run in parallel with district config read.
     // Subject priority: active path → first active goal → client-supplied currentSubject.
-    // Degrades to [] on any failure so it never blocks the response path.
     const groundingSubject =
       activePath?.subject ||
       activeGoals[0]?.subject ||
@@ -872,6 +925,9 @@ exports.askCompanion = onCall(
       console.warn("SharePoint grounding degraded:", err.message);
       return [];
     });
+
+    // Policies fetch runs concurrently — degrades to null if not configured.
+    const policiesPromise = fetchPoliciesContext().catch(() => null);
 
     let districtBlockedTopics = [];
     if (profile.districtId) {
@@ -976,6 +1032,14 @@ exports.askCompanion = onCall(
           ` DISTRICT CURRICULUM CONTEXT: The following materials are in this student's` +
           ` library for their grade. Align your explanations to these where applicable: ${refs}.`;
       }
+    }
+
+    // Policies context — brief note so Claude can reference district policies when relevant.
+    const policiesContext = await policiesPromise;
+    if (policiesContext) {
+      systemPrompt +=
+        ` DISTRICT POLICIES: This student's district has the following policies on file: ${policiesContext}. ` +
+        `If a student asks what they are or are not allowed to do, reference these policies appropriately.`;
     }
 
     // FR-003: Validate and apply the student's requested interaction mode.
@@ -3499,5 +3563,230 @@ exports.dailyFirestoreBackup = onSchedule(
       });
       console.error("NFR-007 dailyFirestoreBackup failed:", err.message);
     }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// MARK: - SharePoint Webhook Receiver (FR-G4)
+// Receives change notifications from SharePoint when curriculum or student
+// content documents are created, updated, or deleted. Writes a Firestore
+// invalidation record so all Cloud Function instances clear their in-process
+// grounding cache within the next request cycle.
+// ---------------------------------------------------------------------------
+
+exports.sharepointWebhookReceiver = onRequest(
+  { region: "us-central1", cors: false },
+  async (req, res) => {
+    // SharePoint sends ?validationtoken=<token> when a subscription is first created.
+    // Must echo it back as plain text within 5 seconds to confirm the endpoint.
+    if (req.query.validationtoken) {
+      res.set("Content-Type", "text/plain");
+      res.status(200).send(req.query.validationtoken);
+      return;
+    }
+
+    const notifications = req.body?.value ?? [];
+    if (notifications.length === 0) { res.status(200).send(); return; }
+
+    const db    = getFirestore();
+    const batch = db.batch();
+    const seen  = new Set();
+
+    for (const notif of notifications) {
+      const match  = (notif.resource || "").match(/Lists\/([^/]+)/i);
+      const listId = match?.[1] ?? notif.subscriptionId;
+      if (!listId || seen.has(listId)) continue;
+      seen.add(listId);
+      batch.set(db.collection("groundingCacheVersion").doc(listId), {
+        listId,
+        invalidatedAt:  FieldValue.serverTimestamp(),
+        subscriptionId: notif.subscriptionId ?? null,
+      });
+    }
+
+    await batch.commit().catch((e) => console.error("webhook batch failed:", e.message));
+    res.status(202).send();
+  }
+);
+
+// ---------------------------------------------------------------------------
+// MARK: - Register SharePoint Webhooks (FR-G4)
+// Admin-callable. Pass webhookUrl = the sharepointWebhookReceiver URL.
+// Subscribes the StudentContent and Curriculum lists. Stores subscription IDs
+// in Firestore for automatic renewal.
+// ---------------------------------------------------------------------------
+
+exports.registerSharePointWebhooks = onCall(
+  {
+    secrets: [
+      "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
+      "SHAREPOINT_SITE_ID", "SHAREPOINT_STUDENT_CONTENT_LIST_ID", "SHAREPOINT_CURRICULUM_LIST_ID",
+    ],
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    if (callerSnap.data()?.role !== "admin") {
+      throw new HttpsError("permission-denied", "Admin only.");
+    }
+    const { webhookUrl } = request.data;
+    if (!webhookUrl) throw new HttpsError("invalid-argument", "webhookUrl is required.");
+
+    const token   = await getGraphToken();
+    const siteId  = process.env.SHAREPOINT_SITE_ID;
+    const listIds = [
+      process.env.SHAREPOINT_STUDENT_CONTENT_LIST_ID,
+      process.env.SHAREPOINT_CURRICULUM_LIST_ID,
+    ].filter(Boolean);
+
+    const expiry  = new Date(Date.now() + 4160 * 60 * 1000).toISOString();
+    const results = [];
+
+    for (const listId of listIds) {
+      const res = await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/subscriptions`,
+        {
+          method:  "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body:    JSON.stringify({
+            changeType:          "updated",
+            notificationUrl:     webhookUrl,
+            resource:            `/sites/${siteId}/lists/${listId}`,
+            expirationDateTime:  expiry,
+            clientState:         "EduAssist-grounding-v1",
+          }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        await db.collection("sharepointSubscriptions").doc(data.id).set({
+          subscriptionId:     data.id,
+          listId,
+          notificationUrl:    webhookUrl,
+          expirationDateTime: data.expirationDateTime,
+          createdAt:          FieldValue.serverTimestamp(),
+        });
+        results.push({ listId, subscriptionId: data.id, status: "registered" });
+      } else {
+        console.error("registerSharePointWebhooks failed:", data.error?.message);
+        results.push({ listId, status: "failed", error: data.error?.message });
+      }
+    }
+    return { results };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// MARK: - Renew SharePoint Webhooks (FR-G4)
+// SharePoint subscriptions expire after ≤4167 minutes (~2.9 days).
+// Runs daily and renews any subscription expiring within 48 hours.
+// ---------------------------------------------------------------------------
+
+exports.renewSharePointWebhooks = onSchedule(
+  {
+    schedule:  "every 24 hours",
+    timeZone:  "UTC",
+    region:    "us-central1",
+    secrets:   ["AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET", "SHAREPOINT_SITE_ID"],
+  },
+  async () => {
+    const db      = getFirestore();
+    const token   = await getGraphToken().catch((e) => { console.error("renewWebhooks auth failed:", e.message); return null; });
+    if (!token) return;
+
+    const siteId  = process.env.SHAREPOINT_SITE_ID;
+    const cutoff  = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const subsSnap = await db.collection("sharepointSubscriptions")
+      .where("expirationDateTime", "<=", cutoff)
+      .get();
+
+    for (const doc of subsSnap.docs) {
+      const sub      = doc.data();
+      const newExpiry = new Date(Date.now() + 4160 * 60 * 1000).toISOString();
+      const res = await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${sub.listId}/subscriptions/${sub.subscriptionId}`,
+        {
+          method:  "PATCH",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body:    JSON.stringify({ expirationDateTime: newExpiry }),
+        }
+      );
+      if (res.ok) {
+        await doc.ref.update({ expirationDateTime: newExpiry });
+        console.log(`Renewed webhook subscription ${sub.subscriptionId}`);
+      } else {
+        console.error(`Failed to renew subscription ${sub.subscriptionId}: ${res.status}`);
+      }
+    }
+  }
+);
+
+// ---------------------------------------------------------------------------
+// MARK: - AI Usage Statistics (FR-G5)
+// Teacher/admin callable. Aggregates aiAuditLog for the last 30 days and
+// returns per-day, per-month, and per-feature breakdowns with cost estimates.
+// ---------------------------------------------------------------------------
+
+exports.getAIUsageStats = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const role = callerSnap.data()?.role;
+    if (role !== "admin" && role !== "teacher") {
+      throw new HttpsError("permission-denied", "Teachers and admins only.");
+    }
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const [auditSnap, latencySnap] = await Promise.all([
+      db.collection("aiAuditLog")
+        .where("timestamp", ">=", Timestamp.fromDate(thirtyDaysAgo))
+        .orderBy("timestamp", "desc")
+        .limit(2000)
+        .get(),
+      db.collection("latencyStats").doc("current").get(),
+    ]);
+
+    const docs = auditSnap.docs.map((d) => d.data());
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const agg = (arr) => {
+      const inputTokens  = arr.reduce((s, d) => s + (d.inputTokenCount  || 0), 0);
+      const outputTokens = arr.reduce((s, d) => s + (d.outputTokenCount || 0), 0);
+      return {
+        calls:            arr.length,
+        inputTokens,
+        outputTokens,
+        groundingHits:    arr.filter((d) => (d.groundingSourceIds?.length ?? 0) > 0).length,
+        estimatedCostUSD: inputTokens * (3 / 1_000_000) + outputTokens * (15 / 1_000_000),
+      };
+    };
+
+    const byFeature = {};
+    for (const doc of docs) {
+      const f = doc.featureId || "unknown";
+      byFeature[f] = (byFeature[f] || 0) + 1;
+    }
+
+    const latency = latencySnap.data() || {};
+
+    return {
+      today:    agg(docs.filter((d) => d.timestamp?.toDate?.() >= todayStart)),
+      month:    agg(docs),
+      byFeature,
+      latency:  {
+        p50ms:          latency.p50Ms  ?? null,
+        p95ms:          latency.p95Ms  ?? null,
+        p99ms:          latency.p99Ms  ?? null,
+        breachingTarget: latency.breachingTarget ?? false,
+      },
+      generatedAt: new Date().toISOString(),
+    };
   }
 );

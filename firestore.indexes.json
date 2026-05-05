@@ -1,0 +1,19 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "aiAuditLog",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sharepointSubscriptions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "expirationDateTime", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

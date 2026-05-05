@@ -374,6 +374,16 @@ private struct ProfileSettingsView: View {
                         }
                     }
 
+                    // FR-G5: AI usage dashboard — admins and teachers only
+                    if let profile = authVM.currentProfile,
+                       profile.role == .teacher || profile.role == .admin {
+                        NavigationLink {
+                            AIUsageDashboardView()
+                        } label: {
+                            Label("AI Usage", systemImage: "chart.bar.xaxis")
+                        }
+                    }
+
                     // FR-402: Data retention config — admins and teachers only
                     if let profile = authVM.currentProfile,
                        profile.role == .teacher || profile.role == .admin {
