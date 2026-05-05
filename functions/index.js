@@ -3651,11 +3651,9 @@ exports.registerSharePointWebhooks = onCall(
           method:  "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           body:    JSON.stringify({
-            changeType:          "updated",
-            notificationUrl:     webhookUrl,
-            resource:            `/sites/${siteId}/lists/${listId}`,
-            expirationDateTime:  expiry,
-            clientState:         "EduAssist-grounding-v1",
+            notificationUrl:    webhookUrl,
+            expirationDateTime: expiry,
+            clientState:        "EduAssist-grounding-v1",
           }),
         }
       );
