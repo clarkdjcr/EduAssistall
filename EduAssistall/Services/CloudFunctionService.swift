@@ -240,7 +240,8 @@ final class CloudFunctionService {
         message: String,
         studentId: String,
         mode: InteractionMode = .guidedDiscovery,
-        compressedHistory: String? = nil
+        compressedHistory: String? = nil,
+        currentSubject: String? = nil
     ) async throws -> String {
         var data: [String: Any] = [
             "message": message,
@@ -248,9 +249,8 @@ final class CloudFunctionService {
             "conversationId": studentId,
             "interactionMode": mode.rawValue,
         ]
-        if let compressed = compressedHistory {
-            data["compressedHistory"] = compressed
-        }
+        if let compressed = compressedHistory { data["compressedHistory"] = compressed }
+        if let subject = currentSubject, !subject.isEmpty { data["currentSubject"] = subject }
         do {
             let result = try await functions.httpsCallable("askCompanion").call(data)
             guard let dict = result.data as? [String: Any],

@@ -420,7 +420,8 @@ struct CompanionView: View {
                 message: text,
                 studentId: profile.id,
                 mode: currentMode,
-                compressedHistory: compressed
+                compressedHistory: compressed,
+                currentSubject: inferSubject(from: activePath?.title)
             )
             draftReply = nil
             messages.append(ChatMessage(role: .assistant, text: reply))
@@ -449,6 +450,24 @@ struct CompanionView: View {
 
     private func loadActivePath() async {
         activePath = try? await FirestoreService.shared.fetchLearningPaths(studentId: profile.id).first
+    }
+
+    // Infers a subject string from the active learning path title so the Cloud
+    // Function can use it to sharpen SharePoint grounding. Returns nil when the
+    // title doesn't match a known subject (server falls back to active goal subject).
+    private func inferSubject(from title: String?) -> String? {
+        guard let title = title?.lowercased() else { return nil }
+        let subjectMap: [(keywords: [String], subject: String)] = [
+            (["math", "algebra", "geometry", "calculus", "arithmetic", "fraction", "number"], "Math"),
+            (["ela", "reading", "writing", "english", "literature", "grammar", "phonics"],     "ELA"),
+            (["science", "biology", "chemistry", "physics", "earth", "ecology", "cell"],       "Science"),
+            (["social studies", "history", "geography", "civics", "government"],               "Social Studies"),
+            (["art", "drawing", "painting", "design"],                                         "Art"),
+            (["music", "band", "choir", "instrument"],                                         "Music"),
+            (["pe", "physical education", "fitness", "sport"],                                 "PE"),
+            (["technology", "coding", "programming", "computer"],                              "Technology"),
+        ]
+        return subjectMap.first { pair in pair.keywords.contains { title.contains($0) } }?.subject
     }
 }
 

@@ -857,10 +857,17 @@ exports.askCompanion = onCall(
     const gradeBand = getGradeBand(profile.gradeLevel || profile.grade);
 
     // Start SharePoint grounding fetch now — runs in parallel with district config read.
+    // Subject priority: active path → first active goal → client-supplied currentSubject.
     // Degrades to [] on any failure so it never blocks the response path.
+    const groundingSubject =
+      activePath?.subject ||
+      activeGoals[0]?.subject ||
+      request.data.currentSubject ||
+      null;
+
     const groundingPromise = fetchSharePointGrounding(
       profile.gradeLevel || profile.grade,
-      activePath?.subject
+      groundingSubject
     ).catch((err) => {
       console.warn("SharePoint grounding degraded:", err.message);
       return [];
@@ -934,19 +941,41 @@ exports.askCompanion = onCall(
         `but only when it genuinely fits the conversation. Do not force it.`;
     }
 
-    // SharePoint grounding — await here; fetch ran in parallel with district config above.
+    // SharePoint grounding — await items, then download content of the best match.
+    // Content download is sequential after the grounding fetch but overlaps with
+    // the synchronous system prompt building above, so net latency impact is small.
     const groundingItems = await groundingPromise;
     if (groundingItems.length > 0) {
-      const refs = groundingItems.map((item) => {
-        const f = item.fields || {};
-        const parts = [f.Title || "Untitled"];
-        if (f.Subject)  parts.push(f.Subject);
-        if (f.Standard) parts.push(f.Standard);
-        return parts.join(" — ");
-      }).join("; ");
-      systemPrompt +=
-        ` DISTRICT CURRICULUM CONTEXT: The following materials are in this student's district` +
-        ` library for their grade. Align your explanations to these where applicable: ${refs}.`;
+      const bestMatch = groundingItems[0];
+      const f = bestMatch.fields || {};
+
+      // Download actual file content (capped at 2 KB for student chat prompts).
+      const fileContent = await downloadSharePointFileContent(
+        process.env.SHAREPOINT_SITE_ID,
+        process.env.SHAREPOINT_STUDENT_CONTENT_LIST_ID,
+        bestMatch.id
+      ).catch(() => null);
+
+      if (fileContent) {
+        // Rich grounding — inject actual curriculum text so Claude's answer matches
+        // the exact vocabulary, examples, and structure the district uses.
+        systemPrompt +=
+          `\n\nDISTRICT CURRICULUM MATERIAL — "${f.Title || "Untitled"}"` +
+          (f.Standard ? ` (Standard: ${f.Standard})` : "") + `:\n` +
+          fileContent.slice(0, 2000) +
+          `\n\nAlign your explanation with the above curriculum material. ` +
+          `Use the same vocabulary, examples, and instructional approach where relevant. ` +
+          `Do not contradict it.`;
+      } else {
+        // Fallback to metadata-only grounding if the download fails.
+        const refs = groundingItems.map((item) => {
+          const fi = item.fields || {};
+          return [fi.Title || "Untitled", fi.Subject, fi.Standard].filter(Boolean).join(" — ");
+        }).join("; ");
+        systemPrompt +=
+          ` DISTRICT CURRICULUM CONTEXT: The following materials are in this student's` +
+          ` library for their grade. Align your explanations to these where applicable: ${refs}.`;
+      }
     }
 
     // FR-003: Validate and apply the student's requested interaction mode.
