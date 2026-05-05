@@ -118,7 +118,7 @@ struct GenerateParentLetterView: View {
                 if let result {
                     DocumentResultView(
                         title: "Parent Letter — \(result.studentName)",
-                        body: result.letter,
+                        content: result.letter,
                         sharepointItemId: result.sharepointItemId,
                         documentType: "parent letter"
                     )
@@ -131,10 +131,10 @@ struct GenerateParentLetterView: View {
     private func loadStudents() async {
         isLoading = true
         let links = (try? await FirestoreService.shared.fetchLinkedStudents(adultId: teacherProfile.id))?.filter(\.confirmed) ?? []
-        var students: [(String, String)] = []
+        var students: [(id: String, name: String)] = []
         for link in links {
             let name = (try? await FirestoreService.shared.fetchUserProfile(uid: link.studentId))?.displayName ?? "Student"
-            students.append((link.studentId, name))
+            students.append((id: link.studentId, name: name))
         }
         linkedStudents = students
         selectedStudentId = students.first?.id ?? ""

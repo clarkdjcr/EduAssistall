@@ -2,7 +2,7 @@ import SwiftUI
 
 struct DocumentResultView: View {
     let title: String
-    let body: String
+    let content: String
     let sharepointItemId: String?
     let documentType: String
 
@@ -30,7 +30,7 @@ struct DocumentResultView: View {
                         .background(Color.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
                     }
 
-                    Text(body)
+                    Text(content)
                         .font(.body)
                         .textSelection(.enabled)
                         .padding()
@@ -48,7 +48,7 @@ struct DocumentResultView: View {
                 }
                 ToolbarItemGroup(placement: .primaryAction) {
                     Button {
-                        copyToClipboard(body)
+                        copyToClipboard(content)
                         showCopied = true
                         Task {
                             try? await Task.sleep(for: .seconds(2))
@@ -61,7 +61,11 @@ struct DocumentResultView: View {
                         )
                     }
 
-                    ShareLink(item: body, subject: Text(title), message: Text("Draft \(documentType) from EduAssist"))
+                    ShareLink(
+                        item: content,
+                        subject: Text(title),
+                        message: Text("Draft \(documentType) from EduAssist")
+                    )
                 }
             }
         }
