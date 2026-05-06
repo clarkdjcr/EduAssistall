@@ -55,7 +55,7 @@
 
 | ID | Requirement |
 |---|---|
-| FR-T1 | Manage session state, drafts, and UI state in Firestore (fast, real-time). Drafts not promoted to SharePoint within 30 days are surfaced to the user as "abandoned drafts" and purged after a 7-day grace period. |
+| FR-T1 | Manage session state, drafts, and UI state in Firestore (fast, real-time). Drafts not promoted to SharePoint within 30 days are surfaced to the user as "abandoned drafts" and purged after a 7-day grace period. **Implementation note:** the current implementation writes generated documents directly to SharePoint OfficialDocuments with `ApprovalStatus: PendingApproval` (not to a Firestore draft collection first). The 30+7-day purge is enforced by the `purgeStaleDrafts` scheduled function, which deletes PendingApproval items older than 37 days via the Graph API and logs to `draftPurgeLogs`. |
 | FR-T2 | Provide deterministic templates for: lesson structures, parent communication formats, and progress report shells. |
 | FR-T3 | Save "approved" outputs to SharePoint (via FR-C4 approval flow); keep drafts in Firestore. |
 | FR-T4 | Enforce role-based access (teacher vs admin vs student) via Azure AD / Entra ID. |
@@ -80,6 +80,19 @@
 | FR-S2 | Log student sessions and interactions in Firestore (non-record analytics). |
 | FR-S3 | Enforce age and role restrictions for AI features per the table below. No AI feature in FR-S4–S6 may be exposed to a user under the stated minimum age without verified parental consent on file. |
 
+### FR-003 — Companion Interaction Modes
+
+The AI Companion supports four educator-configurable interaction modes that change how the AI engages with the student. Educators set a `defaultInteractionMode` and an `allowedInteractionModes` list per student via `ClassroomConfig`; students may switch to any mode within the allowed list during a session. If a requested mode is not in the allowed list, the system silently falls back to `defaultInteractionMode`.
+
+| Mode | Behavior |
+|---|---|
+| `guided_discovery` | Never gives direct answers; leads with Socratic questions (default). |
+| `co_creation` | Acts as collaborative partner; uses "we/let's" framing; builds on student ideas. |
+| `reflective_coaching` | Focuses on the student's thinking process; includes metacognitive prompts in every reply. |
+| `silent_support` | Minimal and unobtrusive; responds only when asked; caps all answers at 1–3 sentences. |
+
+Mode enforcement is applied in `askCompanion` via system prompt injection after all safety pipeline stages. `setInteractionMode` in `FirestoreService` enforces the allowed-list constraint on the client before writing to Firestore.
+
 **FR-S3 Age Gate Table**
 
 | AI Feature | Minimum Age | Parental Consent Required |
@@ -102,12 +115,12 @@ All three AI student features (FR-S4, FR-S5, FR-S6) must route through the safet
 
 ### Safety Pipeline (FR-S7) — applies to all student AI features
 
-FR-S7 defines the mandatory synchronous pipeline that wraps every student-facing AI call. Each stage must complete before the next begins. Total pipeline latency target: < 200 ms excluding the AI model call.
+FR-S7 defines the mandatory synchronous pipeline that wraps every student-facing AI call. Each stage must complete before the next begins. Total pipeline latency target: < 200 ms excluding the AI model call. **Note on sequential execution:** the 200 ms target is aspirational under load; the sequential constraint is a safety requirement and may not be parallelised. If p95 latency of the combined pipeline consistently exceeds 200 ms, the first remediation is classifier optimisation, not parallelisation.
 
 | Stage | ID | Behavior on Trigger |
 |---|---|---|
 | **Input classifier** | FR-S7a | Regex/rule-based. Categories: violence, weapons, drugs, sexual → reject with safe refusal message. Bullying, emotional distress, alcohol → pass through but flag for FR-S7c evaluation. Latency target < 100 ms. Write classification event to `safetyClassifications/{autoId}` regardless of verdict. |
-| **PII detection & redaction** | FR-S7b | Detect and redact phone numbers, email addresses, SSNs, payment card numbers, physical addresses, full names, URLs, and ZIP codes to `[REDACTED:<type>]` before the student input is sent to the AI model or used in a SharePoint grounding query. Redacted form is what reaches the model; original is never logged. |
+| **PII detection & redaction** | FR-S7b | Detect and redact phone numbers, email addresses, SSNs, payment card numbers, physical addresses, full names, URLs, and ZIP codes to `[REDACTED:<type>]` before the student input is sent to the AI model or used in a SharePoint grounding query. Redacted form is what reaches the model; original is never logged. **Known limitation:** full names and physical addresses are difficult to detect reliably with regex alone; the current implementation has a higher false-negative rate for these two categories than for structured patterns (phone, email, SSN). A weekly retroactive PII scan (`weeklyPIIScan`) provides a second pass. Named Entity Recognition (NER) should be evaluated as an enhancement if false negatives are flagged in compliance reviews. |
 | **Distress detection** | FR-S7c | Evaluate inputs flagged by FR-S7a as emotional distress. On positive match: return an empathetic, non-AI canned response; send counselor alert via configured notification channel; write a tamper-evident record to `criticalSafetyEvents/{eventId}` (append-only, never deleted). Do not call the AI model. |
 | **Output classifier** | FR-S7d | After AI model returns a response, classify it before delivery to student. Block and substitute a safe fallback if the output contains: harmful instructions, violence instructions, self-harm encouragement, sexual content, or drug facilitation language. Write classification event to `safetyClassifications/{autoId}`. |
 | **Frustration detection** | FR-S7e | Fire-and-forget after output delivery. Detect repeated rephrasing of the same question, negative sentiment, or escalating short responses. Write a flag to `sessionFlags/{studentId}/flags/{autoId}` for educator review. Does not block or delay the student response. |
@@ -132,7 +145,7 @@ All `safetyClassifications` events must include: `verdict`, `reason`, `latencyMs
 
 | ID | Requirement |
 |---|---|
-| FR-G6 | Every AI generation event — across all roles (student, teacher, admin) — must produce an append-only audit record in `aiAuditLog/{eventId}`. Records may never be updated or deleted. Each record must include: `featureId`, `userId` (hashed), `schoolId`, `timestamp`, `groundingSourceIds` (array of SharePoint document IDs used), `inputTokenCount`, `outputTokenCount`, `cacheHit` (boolean), `safetyPipelineApplied` (boolean, always true for student features), `approvalWorkflowId` (for teacher outputs promoted to SharePoint), and `modelVersion`. This log is the authoritative record for district compliance reviews and e-discovery requests. |
+| FR-G6 | Every AI generation event — across all roles (student, teacher, admin) — must produce an append-only audit record in `aiAuditLog/{eventId}`. Records may never be updated or deleted. Each record must include: `featureId`, `userId` (hashed), `schoolId`, `timestamp`, `groundingSourceIds` (array of SharePoint document IDs used), `inputTokenCount`, `outputTokenCount`, `cacheHit` (boolean), `safetyPipelineApplied` (boolean, always true for student features), `approvalWorkflowId` (for teacher outputs promoted to SharePoint), and `modelVersion`. This log is the authoritative record for district compliance reviews and e-discovery requests. **Hashing note:** `userId` is hashed with SHA-256 (no salt) over the Firebase UID. Firebase UIDs are high-entropy random values and are not publicly guessable, so unsalted SHA-256 is sufficient to prevent casual re-identification. However, if a full Firebase UID list were ever compromised, the hashes would be reversible by lookup. Districts requiring stronger de-identification for e-discovery purposes should evaluate a per-district HMAC key stored in Secret Manager. |
 
 ---
 
@@ -141,3 +154,5 @@ All `safetyClassifications` events must include: `verdict`, `reason`, `latencyMs
 - **FR-C4 and FR-G6 together** enforce the human-in-the-loop + auditability requirement for official document creation. Neither is sufficient alone.
 - **FR-S7 and FR-G6 together** enforce student safety and provide the audit trail to demonstrate compliance. The `safetyClassifications` collection is the operational record; `aiAuditLog` is the compliance record.
 - **Firestore as session store (FR-T1):** Retained deliberately for real-time draft sync latency. Azure Cosmos DB is the Microsoft-native alternative if the district requires single-cloud architecture — evaluate at district onboarding.
+- **Placeholder views (FR-F1, FR-T2):** Forms/incident management (FR-F1) and deterministic teacher templates (FR-T2) are represented by `PlaceholderView` in the current iOS build. These are deferred to a future sprint and do not block the AI features; their FR entries define the target behaviour for when they are implemented.
+- **Firebase initialisation order:** `AuthViewModel.init()` must not touch Firebase. `FirebaseApp.configure()` runs in `EduAssistallApp.init()`, but `@State private var authViewModel` is evaluated before the `init()` body. Firebase listening begins via `authViewModel.startListening()` called in `.task` on the root view. Do not move any Firebase call into `AuthViewModel.init()` — it will crash on launch.

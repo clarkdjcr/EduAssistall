@@ -179,21 +179,29 @@ final class FirestoreService {
     // MARK: - StudentProgress
 
     func saveProgress(_ progress: StudentProgress, contentTitle: String = "", subject: String = "") async throws {
-        let data = try Firestore.Encoder().encode(progress)
-        try await db.collection("studentProgress").document(progress.id).setData(data)
+        let progressData = try Firestore.Encoder().encode(progress)
 
-        // FR-002: auto-record a milestone when content is marked complete.
-        if progress.status == .completed, !contentTitle.isEmpty {
-            let milestone = LearningMilestone(
-                id: UUID().uuidString,
-                studentId: progress.studentId,
-                type: .contentCompleted,
-                title: contentTitle,
-                subject: subject,
-                achievedAt: progress.completedAt ?? Date()
-            )
-            try? await saveMilestone(milestone)
+        // FR-002: if content is marked complete, write progress + milestone atomically.
+        guard progress.status == .completed, !contentTitle.isEmpty else {
+            try await db.collection("studentProgress").document(progress.id).setData(progressData)
+            return
         }
+
+        let milestone = LearningMilestone(
+            id: UUID().uuidString,
+            studentId: progress.studentId,
+            type: .contentCompleted,
+            title: contentTitle,
+            subject: subject,
+            achievedAt: progress.completedAt ?? Date()
+        )
+        let milestoneData = try Firestore.Encoder().encode(milestone)
+
+        let batch = db.batch()
+        batch.setData(progressData, forDocument: db.collection("studentProgress").document(progress.id))
+        batch.setData(milestoneData, forDocument: db.collection("learningMilestones")
+            .document(milestone.studentId).collection("milestones").document(milestone.id))
+        try await batch.commit()
     }
 
     func fetchProgress(studentId: String, contentItemId: String) async throws -> StudentProgress? {

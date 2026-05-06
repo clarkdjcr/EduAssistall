@@ -3142,6 +3142,87 @@ exports.purgeExpiredLinks = onSchedule(
   }
 );
 
+// MARK: - Stale Draft Purge (FR-T1)
+// FR-T1: Drafts not promoted within 30 days are surfaced as abandoned; purged after
+// a further 7-day grace period (37 days total from creation). Runs nightly at 03:30 UTC,
+// offset from purgeExpiredData to avoid simultaneous Firestore pressure.
+// Queries SharePoint OfficialDocuments for PendingApproval items older than 37 days,
+// deletes them via Graph API, and writes a summary to Firestore for audit visibility.
+exports.purgeStaleDrafts = onSchedule(
+  {
+    schedule: "30 3 * * *",
+    timeZone: "UTC",
+    region: "us-central1",
+    secrets: [
+      "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
+      "SHAREPOINT_SITE_ID", "SHAREPOINT_OFFICIAL_DOCS_LIST_ID",
+    ],
+  },
+  async () => {
+    const siteId   = process.env.SHAREPOINT_SITE_ID;
+    const listId   = process.env.SHAREPOINT_OFFICIAL_DOCS_LIST_ID;
+    if (!siteId || !listId) {
+      console.log("purgeStaleDrafts: SharePoint env vars missing — skipping");
+      return;
+    }
+
+    const db = getFirestore();
+    const token = await getGraphToken();
+    const cutoff = new Date(Date.now() - 37 * 86_400_000).toISOString();
+
+    // Fetch all PendingApproval items (paged, max 200 per call).
+    let nextLink = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items` +
+      `?$select=id,createdDateTime&$expand=fields($select=Title,ApprovalStatus)&$top=200`;
+
+    const stalIds = [];
+
+    while (nextLink) {
+      const res = await fetch(nextLink, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        console.error("purgeStaleDrafts: Graph list fetch failed", await res.text());
+        break;
+      }
+      const body = await res.json();
+      for (const item of body.value ?? []) {
+        if (
+          item.fields?.ApprovalStatus === "PendingApproval" &&
+          item.createdDateTime <= cutoff
+        ) {
+          stalIds.push(item.id);
+        }
+      }
+      nextLink = body["@odata.nextLink"] ?? null;
+    }
+
+    if (stalIds.length === 0) {
+      console.log("purgeStaleDrafts: no stale drafts found");
+      return;
+    }
+
+    // Delete each stale item via Graph.
+    let deleted = 0;
+    for (const itemId of stalIds) {
+      const del = await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items/${itemId}`,
+        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (del.ok || del.status === 404) deleted++;
+      else console.warn(`purgeStaleDrafts: failed to delete item ${itemId} — ${del.status}`);
+    }
+
+    await db.collection("draftPurgeLogs").add({
+      purgedAt: FieldValue.serverTimestamp(),
+      candidateCount: stalIds.length,
+      deletedCount: deleted,
+      cutoffDate: cutoff,
+    });
+
+    console.log(`purgeStaleDrafts: deleted ${deleted}/${stalIds.length} stale PendingApproval drafts`);
+  }
+);
+
 // MARK: - Weekly PII Scan (FR-405)
 
 // Runs every Sunday at 02:00 UTC. Scans conversation messages stored in the past 7 days
