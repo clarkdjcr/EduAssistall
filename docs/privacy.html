@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — EduAssist</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #1d6fe8;
+      --teal: #0e9f8e;
+      --dark: #0f1b2d;
+      --light: #f4f7fc;
+      --muted: #6b7a99;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #fff;
+      color: var(--dark);
+      line-height: 1.7;
+    }
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 5%;
+      background: var(--dark);
+    }
+    .nav-logo { color: #fff; font-size: 1.2rem; font-weight: 700; text-decoration: none; }
+    .nav-logo span { color: var(--teal); }
+    nav a.back { color: #a8b8d0; font-size: .9rem; text-decoration: none; }
+    nav a.back:hover { color: #fff; }
+
+    .hero {
+      background: var(--light);
+      padding: 52px 5% 40px;
+      border-bottom: 1px solid #e2e8f2;
+    }
+    .hero p { color: var(--muted); font-size: .9rem; margin-top: 6px; }
+    h1 { font-size: 2rem; font-weight: 800; }
+
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 52px 5% 80px;
+    }
+    h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin: 40px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--light);
+    }
+    h2:first-of-type { margin-top: 0; }
+    p { margin-bottom: 14px; color: #2a3a52; }
+    ul { margin: 10px 0 14px 20px; color: #2a3a52; }
+    li { margin-bottom: 6px; }
+    a { color: var(--blue); }
+
+    .highlight {
+      background: var(--light);
+      border-left: 4px solid var(--teal);
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 20px 0;
+      font-size: .95rem;
+    }
+
+    footer {
+      background: var(--dark);
+      color: #6b7a99;
+      text-align: center;
+      padding: 28px 5%;
+      font-size: .85rem;
+    }
+    footer a { color: #8899b8; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">Edu<span>Assist</span></a>
+  <a class="back" href="index.html">← Back to home</a>
+</nav>
+
+<div class="hero">
+  <h1>Privacy Policy</h1>
+  <p>Effective date: May 9, 2026 &nbsp;·&nbsp; Applies to the EduAssist iOS/iPadOS application and associated cloud services.</p>
+</div>
+
+<main>
+
+  <div class="highlight">
+    <strong>Plain-language summary:</strong> EduAssist collects only what is needed to personalise learning and keep students safe. We do not sell student data, serve ads, or share information with third parties for commercial purposes. All student conversation data is automatically screened to remove personal information before it is processed by AI.
+  </div>
+
+  <h2>1. Who We Are</h2>
+  <p>EduAssist is a K–12 educational application operated by EduAssist ("we," "us," or "our"). Schools and districts license EduAssist and are responsible for obtaining appropriate consent from students and families under applicable law, including FERPA and COPPA. Questions about this policy may be directed to <a href="mailto:clarkdjcr@gmail.com">clarkdjcr@gmail.com</a>.</p>
+
+  <h2>2. Information We Collect</h2>
+  <p>We collect the minimum information necessary to provide the service:</p>
+  <ul>
+    <li><strong>Account information:</strong> email address, display name, and role (student, teacher, or parent), provided at registration.</li>
+    <li><strong>Learning profile:</strong> grade level, learning style (from a VARK assessment), subject interests, and RTI tier — set during onboarding or by an educator.</li>
+    <li><strong>Conversation messages:</strong> AI companion chat messages, after automatic PII redaction (see Section 4).</li>
+    <li><strong>Progress data:</strong> content items completed, quiz attempts, milestones, and learning path status.</li>
+    <li><strong>Session metadata:</strong> session start/end times and interaction counts, used for educator monitoring and frustration detection.</li>
+    <li><strong>Device token:</strong> Firebase Cloud Messaging token for push notifications, refreshed automatically.</li>
+  </ul>
+  <p>We do not collect payment information, biometric data, student photographs, health or medical records, or precise geolocation.</p>
+
+  <h2>3. How We Use Information</h2>
+  <ul>
+    <li>To personalise AI responses to the student's grade level, learning style, and active curriculum.</li>
+    <li>To track progress across assigned learning paths and award milestones.</li>
+    <li>To alert educators when safety concerns (distress signals, frustration patterns) arise in conversations.</li>
+    <li>To generate progress reports accessible to assigned teachers and parents.</li>
+    <li>To send push notifications for educator alerts and AI content recommendations.</li>
+    <li>For aggregate, de-identified analysis to improve the service — individual student data is never used for this purpose in identifiable form.</li>
+  </ul>
+
+  <h2>4. Automatic PII Redaction</h2>
+  <p>Before any student message is sent to the AI model or stored, it passes through an automatic redaction stage. The following categories of personal information are replaced with <code>[REDACTED:&lt;type&gt;]</code> placeholders:</p>
+  <ul>
+    <li>Phone numbers, email addresses, and URLs</li>
+    <li>Social Security numbers and payment card numbers</li>
+    <li>Physical addresses and ZIP codes</li>
+    <li>Full names and other direct identifiers detected by pattern matching</li>
+  </ul>
+  <p>The original, unredacted text is never stored or sent to the AI. A weekly automated scan provides a secondary check for PII that may have evaded real-time detection.</p>
+
+  <h2>5. AI Safety Pipeline</h2>
+  <p>Every student message passes through a five-stage safety pipeline before any AI response is generated:</p>
+  <ul>
+    <li><strong>Input classification:</strong> content involving violence, weapons, drugs, or sexual material is rejected before the AI is called.</li>
+    <li><strong>PII redaction:</strong> as described in Section 4.</li>
+    <li><strong>Distress detection:</strong> messages indicating self-harm ideation or emotional crisis bypass the AI entirely; a counsellor alert is sent and the student receives a human-authored response with crisis resources.</li>
+    <li><strong>Output classification:</strong> AI-generated responses are screened for harmful content before delivery to the student.</li>
+    <li><strong>Frustration detection:</strong> repeated rephrasing or negative sentiment triggers a background educator alert without affecting the student's experience.</li>
+  </ul>
+  <p>All classification events are logged with verdict, latency, and classifier version for audit purposes.</p>
+
+  <h2>6. Data Sharing</h2>
+  <p>Student data is shared only with:</p>
+  <ul>
+    <li>The student's assigned teachers and school administrators (for monitoring, alerts, and progress review).</li>
+    <li>The student's linked parent or guardian (progress summaries, milestone notifications, and — upon request — conversation history).</li>
+    <li>School counsellors, when a distress or critical safety event is detected.</li>
+    <li>Authorised district IT staff for support and audit purposes.</li>
+    <li><strong>Anthropic</strong> (via the Claude API) — student messages are transmitted to Anthropic's API to generate AI responses. Transmitted text has already been PII-redacted per Section 4. Anthropic's data use is governed by <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener">Anthropic's Privacy Policy</a>.</li>
+    <li><strong>Google Firebase</strong> — authentication, database (Firestore), and push notifications are provided by Google Firebase, governed by Google's data processing terms agreed to by the district at onboarding.</li>
+  </ul>
+  <p>We do not sell, rent, or share student data with third parties for advertising, marketing, or any commercial purpose unrelated to providing the EduAssist service.</p>
+
+  <h2>7. Data Retention</h2>
+  <ul>
+    <li><strong>Conversation messages:</strong> retained for 90 days from the date of the message (configurable by the district, up to 365 days), then automatically deleted.</li>
+    <li><strong>Learning profile and progress data:</strong> retained for the duration of the student's active enrollment, then deleted within 90 days of account closure or district offboarding.</li>
+    <li><strong>Safety and audit logs:</strong> critical safety event records are retained indefinitely (append-only, tamper-evident). Operational safety classification logs are retained for 90 days.</li>
+    <li><strong>AI audit logs:</strong> retained for 365 days to support district compliance reviews and e-discovery requests.</li>
+  </ul>
+  <p>Nightly automated jobs enforce these retention periods. Districts may configure shorter windows through the Data &amp; Privacy settings.</p>
+
+  <h2>8. COPPA (Children Under 13)</h2>
+  <p>EduAssist operates under the school-consent exception to COPPA. Schools and districts, acting in loco parentis, provide consent for students under 13 to use the service. We collect only information reasonably necessary to provide the educational service, and we do not condition a student's participation on disclosing more information than necessary.</p>
+  <p>Parent or guardian rights under COPPA — including the right to review, correct, or delete a child's information — are exercised through the district's designated privacy officer or through the in-app Data &amp; Privacy section.</p>
+  <p>Conversation history storage and AI personalisation features are restricted to users age 13 and older unless the district has obtained separate verifiable parental consent.</p>
+
+  <h2>9. FERPA</h2>
+  <p>EduAssist acts as a "school official" under FERPA when used by schools that have contracted for the service and designated EduAssist as a school official with a legitimate educational interest. Student education records are used solely to provide the contracted service and are not re-disclosed without appropriate consent or legal authority.</p>
+
+  <h2>10. Student and Parent Rights</h2>
+  <p>Parents and eligible students (age 18+, or 13–17 where state law applies) have the right to:</p>
+  <ul>
+    <li>Inspect and review education records held by EduAssist.</li>
+    <li>Request correction of inaccurate data.</li>
+    <li>Request deletion of data (subject to legal retention requirements).</li>
+    <li>Export conversation and progress data in a portable format.</li>
+  </ul>
+  <p>These rights are exercised through the school's designated privacy officer or via <strong>Settings → Privacy &amp; Data</strong> in the EduAssist app. Requests may also be submitted by email to <a href="mailto:clarkdjcr@gmail.com">clarkdjcr@gmail.com</a>. We will respond within 30 days.</p>
+
+  <h2>11. Security</h2>
+  <p>EduAssist uses industry-standard security measures including encrypted data transmission (TLS), Firebase Authentication for identity management, Firestore security rules enforcing role-based access, append-only audit logging, and daily automated Firestore backups. The AI API key is stored in Google Cloud Secret Manager and is never embedded in the iOS application.</p>
+
+  <h2>12. Changes to This Policy</h2>
+  <p>We will notify districts and schools of material changes to this policy at least 30 days before they take effect. The effective date at the top of this page reflects the most recent revision. Continued use of EduAssist after the effective date constitutes acceptance of the revised policy.</p>
+
+  <h2>13. Contact</h2>
+  <p>Questions, data requests, and privacy complaints should be directed to:</p>
+  <p><strong>EduAssist Privacy</strong><br>
+  <a href="mailto:clarkdjcr@gmail.com">clarkdjcr@gmail.com</a></p>
+
+</main>
+
+<footer>
+  <p><a href="index.html">EduAssist Home</a> &nbsp;·&nbsp; &copy; 2026 EduAssist. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

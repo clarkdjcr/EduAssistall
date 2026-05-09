@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduAssist — AI-Powered K–12 Learning Companion</title>
+  <meta name="description" content="EduAssist brings a safe, curriculum-grounded AI companion to every K–12 student — with full teacher oversight and district-level compliance built in." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:   #1d6fe8;
+      --teal:   #0e9f8e;
+      --dark:   #0f1b2d;
+      --mid:    #1e2d42;
+      --light:  #f4f7fc;
+      --muted:  #6b7a99;
+      --white:  #ffffff;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--white);
+      color: var(--dark);
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 5%;
+      background: var(--dark);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-logo { color: var(--white); font-size: 1.25rem; font-weight: 700; text-decoration: none; }
+    .nav-logo span { color: var(--teal); }
+    .nav-links { display: flex; gap: 28px; list-style: none; }
+    .nav-links a { color: #a8b8d0; text-decoration: none; font-size: .9rem; transition: color .2s; }
+    .nav-links a:hover { color: var(--white); }
+    .nav-cta {
+      background: var(--blue);
+      color: var(--white) !important;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, var(--dark) 0%, var(--mid) 100%);
+      color: var(--white);
+      text-align: center;
+      padding: 90px 5% 80px;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(14,159,142,.15);
+      border: 1px solid rgba(14,159,142,.4);
+      color: var(--teal);
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+    .hero h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; line-height: 1.15; margin-bottom: 20px; }
+    .hero h1 em { font-style: normal; color: var(--teal); }
+    .hero p { font-size: 1.15rem; color: #a8b8d0; max-width: 640px; margin: 0 auto 36px; }
+    .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+      padding: 14px 30px;
+      border-radius: var(--radius);
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: opacity .2s;
+    }
+    .btn-primary:hover { opacity: .88; }
+    .btn-outline {
+      border: 1.5px solid rgba(255,255,255,.3);
+      color: var(--white);
+      padding: 14px 30px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      transition: border-color .2s;
+    }
+    .btn-outline:hover { border-color: rgba(255,255,255,.7); }
+
+    /* ── AUDIENCE STRIP ── */
+    .audience {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      background: var(--light);
+      padding: 28px 5%;
+      flex-wrap: wrap;
+    }
+    .audience-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      font-weight: 600;
+      font-size: .95rem;
+      border-right: 1px solid #dde3ef;
+    }
+    .audience-chip:last-child { border-right: none; }
+    .audience-chip .icon { font-size: 1.4rem; }
+
+    /* ── SECTIONS ── */
+    section { padding: 72px 5%; }
+    .section-label {
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 12px;
+    }
+    h2 { font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 800; margin-bottom: 16px; }
+    .section-sub { color: var(--muted); font-size: 1.05rem; max-width: 580px; margin-bottom: 48px; }
+
+    /* ── FEATURE GRID ── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--light);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 14px;
+      display: block;
+    }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p { color: var(--muted); font-size: .92rem; }
+
+    /* ── ROLE TABS (static two-column) ── */
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 24px;
+    }
+    .role-card {
+      border: 1.5px solid #e2e8f2;
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+    .role-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 14px; }
+    .role-card ul { list-style: none; }
+    .role-card ul li { font-size: .9rem; color: var(--muted); padding: 5px 0; padding-left: 20px; position: relative; }
+    .role-card ul li::before { content: "✓"; position: absolute; left: 0; color: var(--teal); font-weight: 700; }
+
+    /* ── SAFETY ── */
+    .safety-section { background: var(--dark); color: var(--white); }
+    .safety-section .section-sub { color: #a8b8d0; }
+    .pipeline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .pipeline-step {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      flex: 1;
+      min-width: 180px;
+    }
+    .step-num {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 6px;
+    }
+    .pipeline-step h4 { font-size: .95rem; font-weight: 700; margin-bottom: 4px; }
+    .pipeline-step p { font-size: .83rem; color: #8899b8; }
+    .compliance-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 40px;
+    }
+    .badge {
+      background: rgba(14,159,142,.15);
+      border: 1px solid rgba(14,159,142,.35);
+      color: var(--teal);
+      font-size: .83rem;
+      font-weight: 600;
+      padding: 7px 16px;
+      border-radius: 20px;
+    }
+
+    /* ── DISTRICT CTA ── */
+    .cta-section {
+      text-align: center;
+      background: linear-gradient(135deg, #1053c4 0%, var(--teal) 100%);
+      color: var(--white);
+    }
+    .cta-section h2 { color: var(--white); }
+    .cta-section p { color: rgba(255,255,255,.8); max-width: 520px; margin: 0 auto 32px; }
+    .btn-white {
+      background: var(--white);
+      color: var(--blue);
+      padding: 14px 32px;
+      border-radius: var(--radius);
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      display: inline-block;
+      transition: opacity .2s;
+    }
+    .btn-white:hover { opacity: .9; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--dark);
+      color: #6b7a99;
+      text-align: center;
+      padding: 32px 5%;
+      font-size: .85rem;
+    }
+    footer a { color: #8899b8; text-decoration: none; }
+    footer a:hover { color: var(--white); }
+    footer .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 14px; flex-wrap: wrap; }
+
+    @media (max-width: 700px) {
+      .nav-links { display: none; }
+      .role-grid { grid-template-columns: 1fr; }
+      .audience-chip { border-right: none; border-bottom: 1px solid #dde3ef; width: 100%; }
+      .audience-chip:last-child { border-bottom: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">Edu<span>Assist</span></a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#roles">Who It's For</a></li>
+    <li><a href="#safety">Safety</a></li>
+    <li><a href="#districts" class="nav-cta">For Districts</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">K–12 AI Companion &nbsp;·&nbsp; iOS &amp; iPadOS</div>
+  <h1>Learning support that<br><em>knows your curriculum</em></h1>
+  <p>EduAssist gives every student a safe, always-on AI companion grounded in district content — with full teacher oversight, parent visibility, and built-in compliance.</p>
+  <div class="hero-actions">
+    <a href="#districts" class="btn-primary">Request District Access</a>
+    <a href="#safety" class="btn-outline">How We Keep Students Safe</a>
+  </div>
+</section>
+
+<!-- AUDIENCE STRIP -->
+<div class="audience">
+  <div class="audience-chip"><span class="icon">🎒</span> Students get personalised AI support</div>
+  <div class="audience-chip"><span class="icon">🏫</span> Teachers keep full control</div>
+  <div class="audience-chip"><span class="icon">👨‍👩‍👧</span> Parents stay informed</div>
+  <div class="audience-chip"><span class="icon">🏛️</span> Districts stay compliant</div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-label">What EduAssist Does</div>
+  <h2>Everything a student needs.<br>Nothing a district doesn't want.</h2>
+  <p class="section-sub">Built on Claude AI by Anthropic, grounded in your district's SharePoint curriculum, and wrapped in a five-stage safety pipeline before any response reaches a student.</p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <span class="feature-icon">🤖</span>
+      <h3>AI Student Companion</h3>
+      <p>Step-by-step explanations, Socratic guidance, and practice questions — always grounded in the district's actual curriculum materials.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📚</span>
+      <h3>Curriculum Grounding</h3>
+      <p>Every AI response draws from SharePoint-hosted curriculum documents matched to the student's grade, subject, and active learning path.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📝</span>
+      <h3>Teacher Productivity</h3>
+      <p>Generate first-draft lesson plans and parent letters from curriculum in seconds. Human review is required before anything reaches an official library.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📊</span>
+      <h3>Progress &amp; Milestones</h3>
+      <p>Automatic milestone tracking across learning paths, with real-time dashboards for teachers and progress summaries for parents.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🔔</span>
+      <h3>Real-Time Alerts</h3>
+      <p>Frustration flags, counsellor alerts for distress, and companion lock/unlock — all surfaced to educators within seconds, not hours.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🗺️</span>
+      <h3>Career &amp; Test Prep</h3>
+      <p>Integrated career explorer and standards-aligned test prep (SAT, ACT) sit alongside the core companion — no extra apps needed.</p>
+    </div>
+  </div>
+</section>
+
+<!-- WHO IT'S FOR -->
+<section id="roles" style="background: var(--light);">
+  <div class="section-label">Roles</div>
+  <h2>Designed for every stakeholder</h2>
+  <p class="section-sub">One app. Three tailored experiences — student, teacher, and parent — each with the right level of access and control.</p>
+
+  <div class="role-grid">
+    <div class="role-card">
+      <h3>🎒 Students</h3>
+      <ul>
+        <li>AI companion chat grounded in class materials</li>
+        <li>Learning paths assigned by teacher</li>
+        <li>Four interaction modes (guided, co-creative, reflective, silent)</li>
+        <li>Goal setting and learning journal</li>
+        <li>Career explorer and test prep</li>
+        <li>Badges and milestone tracking</li>
+      </ul>
+    </div>
+    <div class="role-card">
+      <h3>🏫 Teachers</h3>
+      <ul>
+        <li>Roster management and real-time monitoring</li>
+        <li>AI lesson plan and parent letter generation</li>
+        <li>Companion lock/unlock per student</li>
+        <li>Session flags and distress alerts</li>
+        <li>Approve or reject AI content recommendations</li>
+        <li>AI usage and cost dashboard</li>
+      </ul>
+    </div>
+    <div class="role-card">
+      <h3>👨‍👩‍👧 Parents</h3>
+      <ul>
+        <li>View child's progress and milestones</li>
+        <li>Approve AI content recommendations</li>
+        <li>Message teacher directly in-app</li>
+        <li>COPPA-compliant link request flow</li>
+        <li>Access full progress reports</li>
+        <li>Data export and deletion rights</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SAFETY -->
+<section id="safety" class="safety-section">
+  <div class="section-label">Safety &amp; Compliance</div>
+  <h2>Five stages between a student and any AI response</h2>
+  <p class="section-sub">Every student message passes through a mandatory sequential safety pipeline before the AI is called — and the AI's reply is checked again before it reaches the student.</p>
+
+  <div class="pipeline">
+    <div class="pipeline-step">
+      <div class="step-num">Stage 1</div>
+      <h4>Input Classification</h4>
+      <p>Violence, weapons, drugs, and sexual content are blocked before the AI ever sees the message.</p>
+    </div>
+    <div class="pipeline-step">
+      <div class="step-num">Stage 2</div>
+      <h4>PII Redaction</h4>
+      <p>Names, addresses, phone numbers, emails, and other identifiers are stripped and never sent to the AI model.</p>
+    </div>
+    <div class="pipeline-step">
+      <div class="step-num">Stage 3</div>
+      <h4>Distress Detection</h4>
+      <p>Emotional distress signals skip the AI entirely. A counsellor alert fires and the student receives a warm, human-crafted response.</p>
+    </div>
+    <div class="pipeline-step">
+      <div class="step-num">Stage 4</div>
+      <h4>Output Classification</h4>
+      <p>The AI's reply is screened for harmful content before delivery. Flagged responses are replaced with a safe fallback.</p>
+    </div>
+    <div class="pipeline-step">
+      <div class="step-num">Stage 5</div>
+      <h4>Frustration Detection</h4>
+      <p>Repeated rephrasing and negative sentiment fire educator alerts in the background — without ever slowing down the student.</p>
+    </div>
+  </div>
+
+  <div class="compliance-badges">
+    <span class="badge">FERPA Aligned</span>
+    <span class="badge">COPPA Compliant</span>
+    <span class="badge">Append-Only Audit Log</span>
+    <span class="badge">No Ads. No Data Selling.</span>
+    <span class="badge">Human Approval Required for Official Documents</span>
+    <span class="badge">AI Transparency Notices Included</span>
+  </div>
+</section>
+
+<!-- DISTRICT CTA -->
+<section id="districts" class="cta-section">
+  <div class="section-label" style="color:rgba(255,255,255,.6);">For Districts</div>
+  <h2>Ready to bring EduAssist to your schools?</h2>
+  <p>We work directly with district technology and curriculum teams to configure SharePoint libraries, set up compliance requirements, and onboard teachers — before students ever open the app.</p>
+  <a href="mailto:clarkdjcr@gmail.com?subject=EduAssist District Inquiry" class="btn-white">Contact Us</a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-links">
+    <a href="privacy.html">Privacy Policy</a>
+    <a href="mailto:clarkdjcr@gmail.com">Contact</a>
+  </div>
+  <p>&copy; 2026 EduAssist. Built for K–12 districts. Powered by <a href="https://www.anthropic.com" target="_blank" rel="noopener">Claude AI by Anthropic</a>.</p>
+</footer>
+
+</body>
+</html>
