@@ -8,15 +8,22 @@ struct ParentDashboardView: View {
     @State private var pendingRecs: [Recommendation] = []
     @State private var recentActivity: [(studentId: String, email: String, progress: StudentProgress)] = []
     @State private var isLoading = true
+    @State private var loadError: Error?
 
     private var confirmedStudents: [StudentAdultLink] { linkedStudents.filter(\.confirmed) }
-    private var studentIds: [String] { confirmedStudents.map(\.studentId) }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     greetingHeader
+                    if let loadError {
+                        Label("Couldn't load data — \(loadError.localizedDescription)",
+                              systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 20)
+                    }
                     if !confirmedStudents.isEmpty { summaryCards }
                     if !pendingRecs.isEmpty { pendingSection }
                     childrenSection
@@ -54,14 +61,14 @@ struct ParentDashboardView: View {
             let totalCompleted = progressSummaries.values.map(\.completed).reduce(0, +)
             let totalItems = progressSummaries.values.map(\.total).reduce(0, +)
 
-            ParentStatCard(value: "\(confirmedStudents.count)",
-                           label: "Children", icon: "person.2.fill", color: .blue)
-            ParentStatCard(value: "\(totalCompleted)/\(totalItems)",
-                           label: "Lessons Done", icon: "checkmark.circle.fill", color: .green)
-            ParentStatCard(value: "\(pendingRecs.count)",
-                           label: "To Review", icon: "checkmark.shield.fill",
-                           color: pendingRecs.isEmpty ? .secondary : .orange,
-                           highlight: !pendingRecs.isEmpty)
+            DashboardStatCard(value: "\(confirmedStudents.count)",
+                              label: "Children", icon: "person.2.fill", color: .blue)
+            DashboardStatCard(value: "\(totalCompleted)/\(totalItems)",
+                              label: "Lessons Done", icon: "checkmark.circle.fill", color: .green)
+            DashboardStatCard(value: "\(pendingRecs.count)",
+                              label: "To Review", icon: "checkmark.shield.fill",
+                              color: pendingRecs.isEmpty ? .secondary : .orange,
+                              highlight: !pendingRecs.isEmpty)
         }
         .padding(.horizontal, 20)
     }
@@ -76,7 +83,8 @@ struct ParentDashboardView: View {
                     .foregroundStyle(.orange)
                 Spacer()
                 NavigationLink("See All") {
-                    PendingRecommendationsView(reviewerProfile: profile, studentIds: studentIds)
+                    PendingRecommendationsView(reviewerProfile: profile,
+                                               studentIds: confirmedStudents.map(\.studentId))
                 }
                 .font(.subheadline)
                 .foregroundStyle(.blue)
@@ -190,7 +198,8 @@ struct ParentDashboardView: View {
                 .disabled(confirmedStudents.isEmpty)
 
                 NavigationLink {
-                    PendingRecommendationsView(reviewerProfile: profile, studentIds: studentIds)
+                    PendingRecommendationsView(reviewerProfile: profile,
+                                               studentIds: confirmedStudents.map(\.studentId))
                 } label: {
                     ParentActionTile(icon: "checkmark.shield.fill", label: "Review Content",
                                      color: .green, badge: pendingRecs.isEmpty ? nil : "\(pendingRecs.count)")
@@ -220,38 +229,47 @@ struct ParentDashboardView: View {
 
     private func load() async {
         isLoading = true
-        let linked = (try? await FirestoreService.shared.fetchLinkedStudents(adultId: profile.id)) ?? []
-        linkedStudents = linked
+        loadError = nil
+        do {
+            let linked = try await FirestoreService.shared.fetchLinkedStudents(adultId: profile.id)
+            linkedStudents = linked
+            // Use local `confirmed` — avoids reading the computed property before SwiftUI
+            // has propagated the linkedStudents assignment.
+            let confirmed = linked.filter(\.confirmed)
+            let ids = confirmed.map(\.studentId)
+            pendingRecs = (try? await FirestoreService.shared.fetchPendingRecommendations(studentIds: ids)) ?? []
 
-        let ids = confirmedStudents.map(\.studentId)
-        pendingRecs = (try? await FirestoreService.shared.fetchPendingRecommendations(studentIds: ids)) ?? []
+            var summaries: [String: (Int, Int)] = [:]
+            var activity: [(studentId: String, email: String, progress: StudentProgress)] = []
 
-        var summaries: [String: (Int, Int)] = [:]
-        var activity: [(studentId: String, email: String, progress: StudentProgress)] = []
-
-        await withTaskGroup(of: (String, String, Int, Int, [StudentProgress]).self) { group in
-            for link in confirmedStudents {
-                group.addTask {
-                    async let fetchPaths = FirestoreService.shared.fetchAllLearningPaths(studentId: link.studentId)
-                    async let fetchProgress = FirestoreService.shared.fetchAllProgress(studentId: link.studentId)
-                    let paths = (try? await fetchPaths) ?? []
-                    let prog = (try? await fetchProgress) ?? []
-                    let map = Dictionary(uniqueKeysWithValues: prog.map { ($0.contentItemId, $0) })
-                    let all = paths.flatMap(\.items)
-                    let done = all.filter { map[$0.contentItemId]?.status == .completed }.count
-                    let recent = prog.filter { $0.status == .completed }.sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
-                    return (link.studentId, link.studentEmail, done, all.count, recent)
+            await withTaskGroup(of: (String, String, Int, Int, [StudentProgress]).self) { group in
+                for link in confirmed {
+                    group.addTask {
+                        async let fetchPaths = FirestoreService.shared.fetchAllLearningPaths(studentId: link.studentId)
+                        async let fetchProgress = FirestoreService.shared.fetchAllProgress(studentId: link.studentId)
+                        let paths = (try? await fetchPaths) ?? []
+                        let prog = (try? await fetchProgress) ?? []
+                        let map = Dictionary(uniqueKeysWithValues: prog.map { ($0.contentItemId, $0) })
+                        let all = paths.flatMap(\.items)
+                        let done = all.filter { map[$0.contentItemId]?.status == .completed }.count
+                        let recent = prog.filter { $0.status == .completed }
+                            .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+                        return (link.studentId, link.studentEmail, done, all.count, recent)
+                    }
+                }
+                for await (sid, email, done, total, recent) in group {
+                    summaries[sid] = (done, total)
+                    activity += recent.prefix(3).map { (sid, email, $0) }
                 }
             }
-            for await (sid, email, done, total, recent) in group {
-                summaries[sid] = (done, total)
-                activity += recent.prefix(3).map { (sid, email, $0) }
-            }
-        }
 
-        progressSummaries = summaries
-        recentActivity = activity.sorted { a, b in
-            (a.progress.completedAt ?? .distantPast) > (b.progress.completedAt ?? .distantPast)
+            progressSummaries = summaries
+            recentActivity = activity.sorted { a, b in
+                (a.progress.completedAt ?? .distantPast) > (b.progress.completedAt ?? .distantPast)
+            }
+        } catch {
+            loadError = error
+            linkedStudents = []
         }
         isLoading = false
     }
@@ -298,6 +316,8 @@ private struct InlinePendingRecCard: View {
                         .foregroundStyle(.red)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
+                .accessibilityLabel("Reject \(rec.title)")
+                .accessibilityHint("Removes this recommendation")
 
                 Button {
                     Task {
@@ -315,6 +335,8 @@ private struct InlinePendingRecCard: View {
                         .foregroundStyle(.green)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
+                .accessibilityLabel("Approve \(rec.title)")
+                .accessibilityHint("Marks this recommendation as approved for your child")
             }
             .disabled(isActing)
         }
@@ -359,29 +381,6 @@ private struct ParentProgressDestination: View {
     }
 }
 
-// MARK: - Stat Card
-
-private struct ParentStatCard: View {
-    let value: String
-    let label: String
-    let icon: String
-    let color: Color
-    var highlight = false
-
-    var body: some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon).font(.title3).foregroundStyle(color)
-            Text(value).font(.title2.bold()).foregroundStyle(highlight ? color : .primary)
-            Text(label).font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(highlight ? color.opacity(0.08) : Color.appSecondaryGroupedBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(highlight ? color.opacity(0.3) : Color.clear, lineWidth: 1.5))
-    }
-}
-
 // MARK: - Action Tile
 
 private struct ParentActionTile: View {
@@ -412,6 +411,9 @@ private struct ParentActionTile: View {
                     .offset(x: -8, y: 8)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue(badge.map { "\($0) pending" } ?? "")
     }
 }
 
@@ -434,7 +436,7 @@ private struct ParentEmptyState: View {
     }
 }
 
-// MARK: - Linked Student Card (kept from prior version)
+// MARK: - Linked Student Card
 
 private struct LinkedStudentCard: View {
     let link: StudentAdultLink
@@ -443,6 +445,12 @@ private struct LinkedStudentCard: View {
     private var fraction: Double {
         guard let s = summary, s.total > 0 else { return 0 }
         return Double(s.completed) / Double(s.total)
+    }
+
+    private var accessibilityDescription: String {
+        guard let s = summary else { return link.studentEmail }
+        if s.total > 0 { return "\(link.studentEmail), \(s.completed) of \(s.total) lessons done" }
+        return "\(link.studentEmail), no paths assigned yet"
     }
 
     var body: some View {
@@ -467,6 +475,7 @@ private struct LinkedStudentCard: View {
                         }
                     }
                     .frame(height: 4)
+                    .accessibilityHidden(true)
                     Text("\(s.completed) of \(s.total) lessons done").font(.caption).foregroundStyle(.secondary)
                 } else {
                     Text("No paths assigned yet").font(.caption).foregroundStyle(.secondary)
@@ -483,5 +492,8 @@ private struct LinkedStudentCard: View {
         .padding()
         .background(Color.appSecondaryGroupedBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityDescription)
+        .accessibilityHint("Tap to view detailed progress")
     }
 }

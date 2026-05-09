@@ -6,6 +6,7 @@ struct TeacherDashboardView: View {
     @State private var linkedStudents: [StudentAdultLink] = []
     @State private var pendingByStudent: [String: Int] = [:]
     @State private var isLoading = true
+    @State private var loadError: Error?
     @State private var showAllStudents = false
     @State private var showImport = false
     @State private var showManageRoster = false
@@ -21,6 +22,13 @@ struct TeacherDashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     greetingHeader
+                    if let loadError {
+                        Label("Couldn't load data — \(loadError.localizedDescription)",
+                              systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 20)
+                    }
                     statsRow
                     studentRoster
                     quickActions
@@ -64,24 +72,24 @@ struct TeacherDashboardView: View {
 
     private var statsRow: some View {
         HStack(spacing: 12) {
-            TeacherStatCard(value: "\(confirmedStudents.count)",
-                            label: "Students",
-                            icon: "person.3.fill",
-                            color: .blue)
+            DashboardStatCard(value: "\(confirmedStudents.count)",
+                              label: "Students",
+                              icon: "person.3.fill",
+                              color: .blue)
             NavigationLink {
                 PendingRecommendationsView(reviewerProfile: profile, studentIds: confirmedIds)
             } label: {
-                TeacherStatCard(value: "\(totalPending)",
-                                label: "Pending Reviews",
-                                icon: "checkmark.shield.fill",
-                                color: totalPending > 0 ? .orange : .green,
-                                highlight: totalPending > 0)
+                DashboardStatCard(value: "\(totalPending)",
+                                  label: "Pending Reviews",
+                                  icon: "checkmark.shield.fill",
+                                  color: totalPending > 0 ? .orange : .green,
+                                  highlight: totalPending > 0)
             }
             .buttonStyle(.plain)
-            TeacherStatCard(value: "\(confirmedStudents.count)",
-                            label: "Active Paths",
-                            icon: "book.fill",
-                            color: .purple)
+            DashboardStatCard(value: "\(confirmedStudents.count)",
+                              label: "Active Paths",
+                              icon: "book.fill",
+                              color: .purple)
         }
         .padding(.horizontal, 20)
     }
@@ -159,8 +167,7 @@ struct TeacherDashboardView: View {
                 .buttonStyle(.plain)
 
                 NavigationLink {
-                    ReportDetailView(studentId: confirmedStudents.first?.studentId ?? "",
-                                     studentName: confirmedStudents.first?.studentEmail ?? "Student")
+                    TeacherReportsDestination(confirmedStudents: confirmedStudents)
                 } label: {
                     QuickActionCard(icon: "chart.bar.fill", label: "Reports", color: .teal)
                 }
@@ -185,14 +192,36 @@ struct TeacherDashboardView: View {
 
     private func loadStudents() async {
         isLoading = true
-        linkedStudents = (try? await FirestoreService.shared.fetchLinkedStudents(adultId: profile.id)) ?? []
-        let ids = confirmedStudents.map(\.studentId)
-        let pending = (try? await FirestoreService.shared.fetchPendingRecommendations(studentIds: ids)) ?? []
-        // Group pending counts by studentId
-        var map: [String: Int] = [:]
-        for rec in pending { map[rec.studentId, default: 0] += 1 }
-        pendingByStudent = map
+        loadError = nil
+        do {
+            linkedStudents = try await FirestoreService.shared.fetchLinkedStudents(adultId: profile.id)
+            let ids = confirmedStudents.map(\.studentId)
+            let pending = (try? await FirestoreService.shared.fetchPendingRecommendations(studentIds: ids)) ?? []
+            var map: [String: Int] = [:]
+            for rec in pending { map[rec.studentId, default: 0] += 1 }
+            pendingByStudent = map
+        } catch {
+            loadError = error
+        }
         isLoading = false
+    }
+}
+
+// MARK: - Reports Destination
+
+private struct TeacherReportsDestination: View {
+    let confirmedStudents: [StudentAdultLink]
+    var body: some View {
+        if confirmedStudents.count == 1, let s = confirmedStudents.first {
+            ReportDetailView(studentId: s.studentId, studentName: s.studentEmail)
+        } else {
+            List(confirmedStudents) { link in
+                NavigationLink(link.studentEmail) {
+                    ReportDetailView(studentId: link.studentId, studentName: link.studentEmail)
+                }
+            }
+            .navigationTitle("Reports")
+        }
     }
 }
 
@@ -274,39 +303,6 @@ private struct TeacherStudentRow: View {
     }
 }
 
-// MARK: - Stat Card
-
-private struct TeacherStatCard: View {
-    let value: String
-    let label: String
-    let icon: String
-    let color: Color
-    var highlight = false
-
-    var body: some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(color)
-            Text(value)
-                .font(.title2.bold())
-                .foregroundStyle(highlight ? color : .primary)
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(highlight ? color.opacity(0.08) : Color.appSecondaryGroupedBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(highlight ? color.opacity(0.3) : Color.clear, lineWidth: 1.5)
-        )
-    }
-}
-
 // MARK: - Quick Action Card
 
 private struct QuickActionCard: View {
@@ -344,6 +340,9 @@ private struct QuickActionCard: View {
                     .offset(x: -8, y: 8)
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue(badge.map { "\($0) pending" } ?? "")
     }
 }
 

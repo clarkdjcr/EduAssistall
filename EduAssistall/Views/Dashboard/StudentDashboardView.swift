@@ -8,10 +8,10 @@ struct StudentDashboardView: View {
     @State private var completedCount: Int = 0
     @State private var currentStreak: Int = 0
     @State private var thisWeekPercent: Int = 0
-    @State private var milestones: [LearningMilestone] = []       // FR-300
-    @State private var recentMessages: [ChatMessage] = []         // FR-300
+    @State private var milestones: [LearningMilestone] = []
+    @State private var recentMessages: [ChatMessage] = []
     @State private var approvedRecs: [Recommendation] = []
-    @State private var isLoading = true
+    @State private var loadError: Error?
     @State private var showProfile = false
     @State private var pendingLinks: [StudentAdultLink] = []
 
@@ -29,6 +29,14 @@ struct StudentDashboardView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
+
+                    if let loadError {
+                        Label("Couldn't load data — \(loadError.localizedDescription)",
+                              systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 20)
+                    }
 
                     // COPPA: pending link-request banner — shown at top so student can't miss it
                     if !pendingLinks.isEmpty {
@@ -162,64 +170,22 @@ struct StudentDashboardView: View {
                         }
                     }
 
-                    // FR-300: Goals CTA (goal-setting flow in FR-301)
-                    NavigationLink {
-                        GoalSettingView(profile: profile)
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("My Goals")
-                                    .font(.headline)
-                                    .foregroundStyle(Color.white)
-                                Text("Set and track your learning goals")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.white.opacity(0.8))
-                            }
-                            Spacer()
-                            Image(systemName: "target")
-                                .font(.title2)
-                                .foregroundStyle(Color.white.opacity(0.9))
-                        }
-                        .padding()
-                        .background(
-                            LinearGradient(
-                                colors: [Color.indigo, Color.purple.opacity(0.8)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    // FR-300: Goals CTA
+                    NavigationLink { GoalSettingView(profile: profile) } label: {
+                        GradientNavCard(title: "My Goals",
+                                        subtitle: "Set and track your learning goals",
+                                        icon: "target",
+                                        colors: [.indigo, .purple.opacity(0.8)])
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 20)
 
                     // FR-302: Learning Journal CTA
-                    NavigationLink {
-                        LearningJournalView(profile: profile)
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Learning Journal")
-                                    .font(.headline)
-                                    .foregroundStyle(Color.white)
-                                Text("Auto-generated summaries of your sessions")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.white.opacity(0.8))
-                            }
-                            Spacer()
-                            Image(systemName: "book.closed.fill")
-                                .font(.title2)
-                                .foregroundStyle(Color.white.opacity(0.9))
-                        }
-                        .padding()
-                        .background(
-                            LinearGradient(
-                                colors: [Color.orange, Color.red.opacity(0.8)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    NavigationLink { LearningJournalView(profile: profile) } label: {
+                        GradientNavCard(title: "Learning Journal",
+                                        subtitle: "Auto-generated summaries of your sessions",
+                                        icon: "book.closed.fill",
+                                        colors: [.orange, .red.opacity(0.8)])
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 20)
@@ -241,63 +207,21 @@ struct StudentDashboardView: View {
                     }
 
                     // Test Prep card
-                    NavigationLink {
-                        TestPrepView(profile: profile)
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Test Prep")
-                                    .font(.headline)
-                                    .foregroundStyle(Color.white)
-                                Text("SAT, ACT, and standards practice")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.white.opacity(0.8))
-                            }
-                            Spacer()
-                            Image(systemName: "doc.text.magnifyingglass")
-                                .font(.title2)
-                                .foregroundStyle(Color.white.opacity(0.9))
-                        }
-                        .padding()
-                        .background(
-                            LinearGradient(
-                                colors: [Color.teal, Color.green.opacity(0.8)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    NavigationLink { TestPrepView(profile: profile) } label: {
+                        GradientNavCard(title: "Test Prep",
+                                        subtitle: "SAT, ACT, and standards practice",
+                                        icon: "doc.text.magnifyingglass",
+                                        colors: [.teal, .green.opacity(0.8)])
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 20)
 
                     // Explore Careers card
-                    NavigationLink {
-                        CareerExplorerView(profile: profile)
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Explore Careers")
-                                    .font(.headline)
-                                    .foregroundStyle(Color.white)
-                                Text("Discover paths that match your interests")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.white.opacity(0.8))
-                            }
-                            Spacer()
-                            Image(systemName: "briefcase.fill")
-                                .font(.title2)
-                                .foregroundStyle(Color.white.opacity(0.9))
-                        }
-                        .padding()
-                        .background(
-                            LinearGradient(
-                                colors: [Color.purple, Color.blue.opacity(0.8)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    NavigationLink { CareerExplorerView(profile: profile) } label: {
+                        GradientNavCard(title: "Explore Careers",
+                                        subtitle: "Discover paths that match your interests",
+                                        icon: "briefcase.fill",
+                                        colors: [.purple, .blue.opacity(0.8)])
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 20)
@@ -334,28 +258,37 @@ struct StudentDashboardView: View {
     }
 
     private func loadProfile() async {
-        isLoading = true
-        async let profileFetch = FirestoreService.shared.fetchLearningProfile(studentId: profile.id)
-        async let pathsFetch = FirestoreService.shared.fetchLearningPaths(studentId: profile.id)
-        async let progressFetch = FirestoreService.shared.fetchAllProgress(studentId: profile.id)
-        async let milestonesFetch = FirestoreService.shared.fetchRecentMilestones(studentId: profile.id, limit: 3)
-        async let messagesFetch = FirestoreService.shared.fetchRecentConversationMessages(studentId: profile.id, limit: 4)
+        loadError = nil
+        do {
+            async let profileFetch = FirestoreService.shared.fetchLearningProfile(studentId: profile.id)
+            async let pathsFetch = FirestoreService.shared.fetchLearningPaths(studentId: profile.id)
+            async let progressFetch = FirestoreService.shared.fetchAllProgress(studentId: profile.id)
+            async let milestonesFetch = FirestoreService.shared.fetchRecentMilestones(studentId: profile.id, limit: 3)
+            async let messagesFetch = FirestoreService.shared.fetchRecentConversationMessages(studentId: profile.id, limit: 4)
 
-        learningProfile = try? await profileFetch
-        milestones = (try? await milestonesFetch) ?? []
-        recentMessages = (try? await messagesFetch) ?? []
-        approvedRecs = (try? await FirestoreService.shared.fetchRecommendations(studentId: profile.id)) ?? []
+            learningProfile = try? await profileFetch
+            milestones = (try? await milestonesFetch) ?? []
+            recentMessages = (try? await messagesFetch) ?? []
+            approvedRecs = (try? await FirestoreService.shared.fetchRecommendations(studentId: profile.id)) ?? []
 
-        let paths = (try? await pathsFetch) ?? []
-        activePath = paths.first(where: { $0.isActive }) ?? paths.first
+            let paths = try await pathsFetch
+            activePath = paths.first(where: { $0.isActive }) ?? paths.first
 
-        let allProgress = (try? await progressFetch) ?? []
-        let completed = allProgress.filter { $0.status == .completed }
-        completedCount = completed.count
-        currentStreak = calculateStreak(from: completed)
-        thisWeekPercent = calculateThisWeekPercent(from: completed, total: allProgress.count)
+            let allProgress = try await progressFetch
+            let completed = allProgress.filter { $0.status == .completed }
+            completedCount = completed.count
+            currentStreak = calculateStreak(from: completed)
 
-        isLoading = false
+            // Denominator is total assigned path items, not all-time progress records.
+            // Falls back to progress count when no paths are assigned yet.
+            let totalAssigned = paths.flatMap(\.items).count
+            thisWeekPercent = calculateThisWeekPercent(
+                from: completed,
+                total: totalAssigned > 0 ? totalAssigned : allProgress.count
+            )
+        } catch {
+            loadError = error
+        }
 
         // Load pending link requests separately — don't block the main content load.
         pendingLinks = (try? await FirestoreService.shared.fetchPendingLinks(studentId: profile.id)) ?? []
@@ -444,6 +377,8 @@ private struct StatCard: View {
         .padding(.vertical, 14)
         .background(Color.appSecondaryGroupedBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label): \(value)")
     }
 }
 
@@ -494,6 +429,29 @@ private struct LearningStyleCard: View {
         .padding()
         .background(Color.appSecondaryGroupedBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+// MARK: - Gradient Nav Card
+
+private struct GradientNavCard: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let colors: [Color]
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.headline).foregroundStyle(.white)
+                Text(subtitle).font(.caption).foregroundStyle(.white.opacity(0.8))
+            }
+            Spacer()
+            Image(systemName: icon).font(.title2).foregroundStyle(.white.opacity(0.9))
+        }
+        .padding()
+        .background(LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 
@@ -574,8 +532,6 @@ struct StudentProfileSheet: View {
             .task {
                 if let id = authVM.currentProfile?.id {
                     let pending = (try? await FirestoreService.shared.fetchPendingLinks(studentId: id)) ?? []
-                    // Only count non-expired requests (expired ones are cleaned up nightly but may
-                    // linger briefly; filter client-side so the badge stays accurate).
                     pendingCount = pending.filter { $0.expiresAt > Date() }.count
                 }
             }
