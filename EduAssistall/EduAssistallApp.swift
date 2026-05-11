@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import FirebaseCore
+import FirebaseAuth
 // NFR-005: AppStorage keys for accessibility preferences
 // (AccessibilitySettingsView owns the UI; App reads and injects them into the environment)
 #if os(iOS)
