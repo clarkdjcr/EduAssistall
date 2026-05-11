@@ -46,10 +46,13 @@ service cloud.firestore {
       // Users can always read their own profile (including before it exists).
       allow read: if request.auth != null && request.auth.uid == uid;
       // Self-writes allowed unless changing the role field (requires admin).
+      // Exception: role may be changed freely before onboarding is complete so
+      // SSO users can select their correct role in RoleConfirmationView.
       // request.resource.data is only valid on writes, so keep this separate from reads.
       allow write: if request.auth != null && request.auth.uid == uid
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["role"])
-              || isAdmin());
+              || isAdmin()
+              || resource.data.onboardingComplete == false);
       // Linked adults and admins can read for dashboard display.
       allow read: if request.auth != null && (isLinked(uid) || isAdmin());
       // First-time profile creation: allow if uid matches.

@@ -26,6 +26,12 @@ final class FirestoreService {
         ])
     }
 
+    func updateRole(uid: String, role: UserRole) async throws {
+        try await db.collection("users").document(uid).updateData([
+            "role": role.rawValue
+        ])
+    }
+
     /// Refreshes the stored IANA timezone for an existing user. Called on every sign-in
     /// so the digest schedule stays correct after a move, travel, or DST rollover.
     func updateTimezone(uid: String) async throws {

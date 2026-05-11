@@ -73,7 +73,7 @@ final class AuthViewModel {
                         id: user.uid,
                         email: user.email ?? "",
                         displayName: user.displayName ?? "User",
-                        role: providerIDs.contains("microsoft.com") ? .teacher : .student,
+                        role: .student,  // neutral placeholder; user selects role in RoleConfirmationView
                         privacyConsentGiven: true
                     )
                     try await FirestoreService.shared.saveUserProfile(profile)

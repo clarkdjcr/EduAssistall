@@ -13,8 +13,8 @@ enum OnboardingStep {
 
 struct OnboardingCoordinatorView: View {
     @Environment(AuthViewModel.self) private var authVM
-    let profile: UserProfile
 
+    @State private var profile: UserProfile
     @State private var step: OnboardingStep = .roleConfirmation
     @State private var learningProfile: LearningProfile
     @State private var teacherSchool = ""
@@ -22,7 +22,7 @@ struct OnboardingCoordinatorView: View {
     @State private var linkedStudentEmail = ""
 
     init(profile: UserProfile) {
-        self.profile = profile
+        self._profile = State(initialValue: profile)
         self._learningProfile = State(initialValue: LearningProfile(studentId: profile.id))
     }
 
@@ -31,8 +31,8 @@ struct OnboardingCoordinatorView: View {
             Group {
                 switch step {
                 case .roleConfirmation:
-                    RoleConfirmationView(profile: profile) {
-                        advanceFromRoleConfirmation()
+                    RoleConfirmationView(profile: profile) { selectedRole in
+                        Task { await selectRole(selectedRole) }
                     }
 
                 case .learningStyleAssessment:
@@ -75,12 +75,18 @@ struct OnboardingCoordinatorView: View {
         }
     }
 
+    private func selectRole(_ role: UserRole) async {
+        profile.role = role
+        try? await FirestoreService.shared.updateRole(uid: profile.id, role: role)
+        advanceFromRoleConfirmation()
+    }
+
     private func advanceFromRoleConfirmation() {
         switch profile.role {
         case .student: step = .learningStyleAssessment
         case .teacher: step = .teacherSetup
-        case .parent: step = .parentSetup
-        case .admin: step = .complete
+        case .parent:  step = .parentSetup
+        case .admin:   step = .complete
         }
     }
 
