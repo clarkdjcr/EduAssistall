@@ -8,5 +8,15 @@
         <key>NSAllowsArbitraryLoads</key>
         <false/>
     </dict>
+
+    <!-- Export compliance: app uses only standard HTTPS/TLS — exempt from non-exempt encryption reporting. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+
+    <!-- Required for Firebase Cloud Messaging to deliver notifications when the app is in the background. -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+    </array>
 </dict>
 </plist>

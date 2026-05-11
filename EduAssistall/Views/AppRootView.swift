@@ -4,6 +4,19 @@ struct AppRootView: View {
     @Environment(AuthViewModel.self) private var authVM
 
     var body: some View {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--screenshots") {
+            ScreenshotModeView()
+        } else {
+            authContent
+        }
+        #else
+        authContent
+        #endif
+    }
+
+    @ViewBuilder
+    private var authContent: some View {
         switch authVM.authState {
         case .loading:
             ProgressView()
