@@ -63,9 +63,25 @@ final class AuthViewModel {
                 // Refresh timezone on every sign-in — fire-and-forget, never blocks navigation.
                 Task { try? await FirestoreService.shared.updateTimezone(uid: user.uid) }
             } else {
-                // User exists in Auth but has no Firestore profile (edge case — treat as unauthenticated)
-                try? Auth.auth().signOut()
-                authState = .unauthenticated
+                // No Firestore profile found. For OAuth providers (Microsoft, Google) the
+                // auth listener fires before the sign-in method writes the profile, so we
+                // create it here. Email/password users should always have a profile — if
+                // one is missing it means something went wrong, so sign them out.
+                let providerIDs = user.providerData.map { $0.providerID }
+                if providerIDs.contains("microsoft.com") || providerIDs.contains("google.com") {
+                    let profile = UserProfile(
+                        id: user.uid,
+                        email: user.email ?? "",
+                        displayName: user.displayName ?? "User",
+                        role: providerIDs.contains("microsoft.com") ? .teacher : .student,
+                        privacyConsentGiven: true
+                    )
+                    try await FirestoreService.shared.saveUserProfile(profile)
+                    authState = .onboarding(profile)
+                } else {
+                    try? Auth.auth().signOut()
+                    authState = .unauthenticated
+                }
             }
         } catch {
             authState = .unauthenticated
@@ -167,13 +183,10 @@ final class AuthViewModel {
             "tenant": "bfc0bf6c-e85e-46a1-b8ce-f43da0b421c5"
         ]
 
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let vc = windowScene.windows.first?.rootViewController else {
-            throw AuthError.missingClientID
-        }
-
+        // nil delegate → Firebase uses ASWebAuthenticationSession, which avoids
+        // the iOS 16.4+ SFSafariViewController storage-partitioning error.
         let credential: AuthCredential = try await withCheckedThrowingContinuation { continuation in
-            provider.getCredentialWith(vc) { credential, error in
+            provider.getCredentialWith(nil) { credential, error in
                 if let error { continuation.resume(throwing: error) }
                 else if let credential { continuation.resume(returning: credential) }
                 else { continuation.resume(throwing: AuthError.missingToken) }
@@ -181,16 +194,6 @@ final class AuthViewModel {
         }
 
         let authResult = try await Auth.auth().signIn(with: credential)
-        if (try? await FirestoreService.shared.fetchUserProfile(uid: authResult.user.uid)) == nil {
-            let profile = UserProfile(
-                id: authResult.user.uid,
-                email: authResult.user.email ?? "",
-                displayName: authResult.user.displayName ?? "User",
-                role: .teacher,
-                privacyConsentGiven: true
-            )
-            try await FirestoreService.shared.saveUserProfile(profile)
-        }
         AuditService.shared.log(.signIn, userId: authResult.user.uid, metadata: ["provider": "microsoft"])
     }
     #endif
@@ -232,3 +235,4 @@ final class AuthViewModel {
         }
     }
 }
+
