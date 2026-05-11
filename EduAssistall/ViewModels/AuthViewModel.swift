@@ -156,6 +156,45 @@ final class AuthViewModel {
     }
     #endif
 
+    // MARK: - Microsoft / Entra Sign-In
+
+    #if os(iOS)
+    func signInWithMicrosoft() async throws {
+        let provider = OAuthProvider(providerID: "microsoft.com")
+        provider.scopes = ["email", "profile", "openid"]
+        provider.customParameters = [
+            "prompt": "select_account",
+            "tenant": "bfc0bf6c-e85e-46a1-b8ce-f43da0b421c5"
+        ]
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let vc = windowScene.windows.first?.rootViewController else {
+            throw AuthError.missingClientID
+        }
+
+        let credential: AuthCredential = try await withCheckedThrowingContinuation { continuation in
+            provider.getCredentialWith(vc) { credential, error in
+                if let error { continuation.resume(throwing: error) }
+                else if let credential { continuation.resume(returning: credential) }
+                else { continuation.resume(throwing: AuthError.missingToken) }
+            }
+        }
+
+        let authResult = try await Auth.auth().signIn(with: credential)
+        if (try? await FirestoreService.shared.fetchUserProfile(uid: authResult.user.uid)) == nil {
+            let profile = UserProfile(
+                id: authResult.user.uid,
+                email: authResult.user.email ?? "",
+                displayName: authResult.user.displayName ?? "User",
+                role: .teacher,
+                privacyConsentGiven: true
+            )
+            try await FirestoreService.shared.saveUserProfile(profile)
+        }
+        AuditService.shared.log(.signIn, userId: authResult.user.uid, metadata: ["provider": "microsoft"])
+    }
+    #endif
+
     // MARK: - Sign In
 
     func signIn(email: String, password: String) async throws {

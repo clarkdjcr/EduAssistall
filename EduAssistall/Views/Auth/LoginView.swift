@@ -92,6 +92,30 @@ struct LoginView: View {
                     .padding(.horizontal, 24)
                     #endif
 
+                    // Microsoft / Entra Sign-In
+                    #if os(iOS)
+                    Button {
+                        Task { try? await authVM.signInWithMicrosoft() }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "person.badge.key.fill")
+                                .foregroundStyle(Color(red: 0, green: 0.647, blue: 0.937))
+                            Text("Sign in with Microsoft")
+                                .fontWeight(.medium)
+                                .foregroundStyle(.primary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(Color.appSecondaryBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.secondary.opacity(0.4), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .padding(.horizontal, 24)
+                    #endif
+
                     // Create account link
                     Button {
                         showRegister = true
