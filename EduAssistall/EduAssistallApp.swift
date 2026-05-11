@@ -85,6 +85,13 @@ struct EduAssistallApp: App {
                         DataResidencyService.shared.confirmAndLog(userId: profile.id)
                     }
                 }
+                // Handles the OAuth redirect URL for Microsoft/Google sign-in.
+                // SwiftUI scene-based apps route incoming URLs here, not via AppDelegate.
+                .onOpenURL { url in
+                    #if os(iOS)
+                    let _ = Auth.auth().canHandle(url)
+                    #endif
+                }
         }
     }
 }
