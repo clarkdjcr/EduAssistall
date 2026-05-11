@@ -30,6 +30,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate, UNUserNot
                                  willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         [.banner, .badge, .sound]
     }
+
+    // Required for Firebase OAuthProvider to receive the redirect URL after
+    // the browser completes the Microsoft/Google sign-in flow.
+    func application(_ app: UIApplication, open url: URL,
+                     options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        return Auth.auth().canHandle(url)
+    }
 }
 #endif
 
