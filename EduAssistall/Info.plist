@@ -18,5 +18,16 @@
     <array>
         <string>remote-notification</string>
     </array>
+
+    <!-- Required by Firebase OAuthProvider (Microsoft/Entra sign-in) to redirect back to the app after browser auth. -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>app-1-863094558300-ios-334dfc479ad6ba33522099</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>
