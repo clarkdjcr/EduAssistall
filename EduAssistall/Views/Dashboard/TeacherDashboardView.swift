@@ -3,6 +3,7 @@ import SwiftUI
 struct TeacherDashboardView: View {
     let profile: UserProfile
 
+    @Environment(AuthViewModel.self) private var authVM
     @State private var linkedStudents: [StudentAdultLink] = []
     @State private var pendingByStudent: [String: Int] = [:]
     @State private var isLoading = true
@@ -10,6 +11,7 @@ struct TeacherDashboardView: View {
     @State private var showAllStudents = false
     @State private var showImport = false
     @State private var showManageRoster = false
+    @State private var showAddStudent = false
 
     private var confirmedStudents: [StudentAdultLink] {
         linkedStudents.filter(\.confirmed)
@@ -38,6 +40,26 @@ struct TeacherDashboardView: View {
             .background(Color.appGroupedBackground)
             .navigationTitle("Teacher Dashboard")
             .inlineNavigationTitle()
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Button { showAddStudent = true } label: {
+                            Label("Add Student", systemImage: "person.badge.plus")
+                        }
+                        Button { showImport = true } label: {
+                            Label("Import Roster (CSV)", systemImage: "arrow.down.doc")
+                        }
+                        Divider()
+                        Button(role: .destructive) {
+                            authVM.signOut()
+                        } label: {
+                            Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
             .task { await loadStudents() }
             .refreshable { await loadStudents() }
             .sheet(isPresented: $showAllStudents) {
@@ -47,6 +69,9 @@ struct TeacherDashboardView: View {
             }
             .sheet(isPresented: $showImport, onDismiss: { Task { await loadStudents() } }) {
                 BulkImportView(teacherProfile: profile)
+            }
+            .sheet(isPresented: $showAddStudent, onDismiss: { Task { await loadStudents() } }) {
+                AddStudentView(teacherProfile: profile)
             }
             .navigationDestination(isPresented: $showManageRoster) {
                 RosterManagementView(teacherProfile: profile)
@@ -174,8 +199,8 @@ struct TeacherDashboardView: View {
                 .buttonStyle(.plain)
                 .disabled(confirmedStudents.isEmpty)
 
-                Button { showImport = true } label: {
-                    QuickActionCard(icon: "arrow.down.doc.fill", label: "Import Roster", color: .indigo)
+                Button { showAddStudent = true } label: {
+                    QuickActionCard(icon: "person.badge.plus", label: "Add Student", color: .indigo)
                 }
                 .buttonStyle(.plain)
 

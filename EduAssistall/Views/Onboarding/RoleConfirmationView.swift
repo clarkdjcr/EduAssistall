@@ -4,12 +4,12 @@ struct RoleConfirmationView: View {
     let profile: UserProfile
     let onContinue: (UserRole) -> Void
 
-    @State private var selectedRole: UserRole
+    @State private var selectedRole: UserRole?
 
     init(profile: UserProfile, onContinue: @escaping (UserRole) -> Void) {
         self.profile = profile
         self.onContinue = onContinue
-        self._selectedRole = State(initialValue: profile.role)
+        self._selectedRole = State(initialValue: nil)
     }
 
     var body: some View {
@@ -23,7 +23,7 @@ struct RoleConfirmationView: View {
                 Text("Welcome, \(profile.displayName)!")
                     .font(.title.bold())
 
-                Text("What's your role?")
+                Text("I am a…")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -41,16 +41,17 @@ struct RoleConfirmationView: View {
             Spacer()
 
             Button {
-                onContinue(selectedRole)
+                if let role = selectedRole { onContinue(role) }
             } label: {
                 Text("Continue")
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
+                    .background(selectedRole != nil ? Color.blue : Color.secondary.opacity(0.3))
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
             }
+            .disabled(selectedRole == nil)
             .padding(.horizontal, 24)
             .padding(.bottom, 48)
         }
