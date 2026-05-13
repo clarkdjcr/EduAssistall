@@ -11,9 +11,6 @@ struct ParentDashboardView: View {
     @State private var loadError: Error?
 
     private var confirmedStudents: [StudentAdultLink] { linkedStudents.filter(\.confirmed) }
-    private var pendingStudents: [StudentAdultLink] {
-        linkedStudents.filter { !$0.confirmed && $0.expiresAt > Date() }
-    }
 
     var body: some View {
         NavigationStack {
@@ -28,7 +25,6 @@ struct ParentDashboardView: View {
                             .padding(.horizontal, 20)
                     }
                     if !confirmedStudents.isEmpty { summaryCards }
-                    if !pendingStudents.isEmpty { pendingLinksBanner }
                     if !pendingRecs.isEmpty { pendingSection }
                     childrenSection
                     recentActivitySection
@@ -73,34 +69,6 @@ struct ParentDashboardView: View {
                               label: "To Review", icon: "checkmark.shield.fill",
                               color: pendingRecs.isEmpty ? .secondary : .orange,
                               highlight: !pendingRecs.isEmpty)
-        }
-        .padding(.horizontal, 20)
-    }
-
-    // MARK: - Pending Link Requests
-
-    private var pendingLinksBanner: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(pendingStudents) { link in
-                HStack(spacing: 12) {
-                    Image(systemName: "clock.badge")
-                        .font(.title3)
-                        .foregroundStyle(.orange)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Request pending: \(link.studentEmail)")
-                            .font(.subheadline.bold())
-                            .lineLimit(1)
-                        Text("Waiting for the student to accept. Expires \(link.expiresAt.formatted(date: .abbreviated, time: .omitted)).")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                }
-                .padding(14)
-                .background(Color.orange.opacity(0.08))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.25), lineWidth: 1))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
         }
         .padding(.horizontal, 20)
     }

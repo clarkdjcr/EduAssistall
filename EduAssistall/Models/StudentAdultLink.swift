@@ -21,7 +21,9 @@ struct StudentAdultLink: Codable, Identifiable, Hashable {
         self.adultId = adultId
         self.adultRole = adultRole
         self.studentEmail = studentEmail
-        self.confirmed = false
+        // Parent links are auto-confirmed — young children shouldn't need to approve
+        // a link initiated by their own parent. Teacher links still require student acceptance.
+        self.confirmed = (adultRole == .parent)
         self.createdAt = Date()
         self.expiresAt = Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
     }
