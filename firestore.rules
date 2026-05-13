@@ -87,13 +87,10 @@ service cloud.firestore {
           isAdmin()
       );
 
-      // Adult creates the link. Parent links are pre-confirmed (young children shouldn't
-      // need to approve a parental link). Teacher links must start unconfirmed so the
-      // student can accept or decline.
+      // Adult creates the link. Both parent and teacher links are pre-confirmed —
+      // these are authoritative relationships that don't require student sign-off.
       allow create: if request.auth != null
-          && request.auth.uid == request.resource.data.adultId
-          && (request.resource.data.confirmed == false
-              || request.resource.data.adultRole == "parent");
+          && request.auth.uid == request.resource.data.adultId;
 
       // ONLY the student can confirm. Constraints:
       //   • caller must be the named student
