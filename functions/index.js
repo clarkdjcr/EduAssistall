@@ -2978,8 +2978,8 @@ exports.approveParentalConsent = onRequest(
   }
 );
 
-const DIGEST_FROM_EMAIL = "noreply@eduassist.app";
-const DIGEST_FROM_NAME  = "EduAssist";
+const DIGEST_FROM_EMAIL = "clarkdjcr@hotmail.com";
+const DIGEST_FROM_NAME  = "EduAssist Admins";
 
 /**
  * Builds an HTML email body for a teacher digest.
