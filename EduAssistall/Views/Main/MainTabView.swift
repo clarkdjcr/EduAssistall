@@ -405,6 +405,16 @@ private struct ProfileSettingsView: View {
                     }
                 }
 
+                if let profile = authVM.currentProfile, profile.role == .parent {
+                    Section {
+                        NavigationLink {
+                            LinkChildSettingsView(adultId: profile.id)
+                        } label: {
+                            Label("Link Child", systemImage: "figure.2.and.child.holdinghands")
+                        }
+                    }
+                }
+
                 Section {
                     Button(role: .destructive) {
                         authVM.signOut()
@@ -415,5 +425,83 @@ private struct ProfileSettingsView: View {
             }
             .navigationTitle("Profile")
         }
+    }
+}
+
+// MARK: - Link Child Settings (parents only)
+
+private struct LinkChildSettingsView: View {
+    let adultId: String
+    @Environment(\.dismiss) private var dismiss
+    @State private var studentEmail = ""
+    @State private var isLinking = false
+    @State private var result: LinkResult?
+
+    enum LinkResult { case success(String); case failure(String) }
+
+    var body: some View {
+        Form {
+            Section {
+                TextField("Child's email address", text: $studentEmail)
+                    .emailInput()
+            } footer: {
+                Text("Your child will see the request in their account and must accept it.")
+            }
+
+            if let result {
+                Section {
+                    switch result {
+                    case .success(let name):
+                        Label("Request sent to \(name). They'll see it in their account.",
+                              systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    case .failure(let msg):
+                        Label(msg, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
+            }
+
+            Section {
+                Button {
+                    Task { await link() }
+                } label: {
+                    HStack {
+                        Spacer()
+                        if isLinking { ProgressView() } else { Text("Send Link Request").fontWeight(.semibold) }
+                        Spacer()
+                    }
+                }
+                .disabled(studentEmail.trimmingCharacters(in: .whitespaces).isEmpty || isLinking)
+            }
+        }
+        #if os(iOS)
+        .listStyle(.insetGrouped)
+        #else
+        .listStyle(.inset)
+        #endif
+        .background(Color.appGroupedBackground)
+        .navigationTitle("Link Child")
+        .inlineNavigationTitle()
+    }
+
+    private func link() async {
+        isLinking = true
+        result = nil
+        let email = studentEmail.trimmingCharacters(in: .whitespaces).lowercased()
+        do {
+            let r = try await CloudFunctionService.shared.lookupStudentByEmail(email)
+            let newLink = StudentAdultLink(studentId: r.studentId, adultId: adultId,
+                                          adultRole: .parent, studentEmail: email)
+            try await FirestoreService.shared.createStudentAdultLink(newLink)
+            result = .success(r.displayName)
+            try? await Task.sleep(for: .seconds(1.5))
+            dismiss()
+        } catch let error as NSError where error.domain == "com.firebase.functions" {
+            result = .failure(error.localizedDescription)
+        } catch {
+            result = .failure("Something went wrong. Please try again.")
+        }
+        isLinking = false
     }
 }

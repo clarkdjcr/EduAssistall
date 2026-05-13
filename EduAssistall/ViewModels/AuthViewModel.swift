@@ -47,12 +47,15 @@ final class AuthViewModel {
 
     private func handleAuthStateChange(user: FirebaseAuth.User?) async {
         guard let user else {
+            NSLog("[Auth] state → unauthenticated (no user)")
             authState = .unauthenticated
             return
         }
+        NSLog("[Auth] state change for uid=%@ providers=%@", user.uid, user.providerData.map { $0.providerID }.joined(separator: ","))
         do {
+            NSLog("[Auth] fetching Firestore profile…")
             if let profile = try await FirestoreService.shared.fetchUserProfile(uid: user.uid) {
-                // COPPA: block under-13 students until a parent has approved via email link.
+                NSLog("[Auth] profile found onboardingComplete=%d pendingConsent=%d", profile.onboardingComplete, profile.isPendingParentalConsent)
                 if profile.isPendingParentalConsent {
                     authState = .pendingParentalConsent(profile)
                 } else if profile.onboardingComplete {
@@ -60,34 +63,24 @@ final class AuthViewModel {
                 } else {
                     authState = .onboarding(profile)
                 }
-                // Refresh timezone on every sign-in — fire-and-forget, never blocks navigation.
                 Task { try? await FirestoreService.shared.updateTimezone(uid: user.uid) }
             } else {
-                // No Firestore profile found. For OAuth providers (Microsoft, Google) the
-                // auth listener fires before the sign-in method writes the profile, so we
-                // create it here. Email/password users should always have a profile — if
-                // one is missing it means something went wrong, so sign them out.
+                NSLog("[Auth] no profile found, creating one…")
                 let providerIDs = user.providerData.map { $0.providerID }
-                if providerIDs.contains("microsoft.com") || providerIDs.contains("google.com") {
-                    let profile = UserProfile(
-                        id: user.uid,
-                        email: user.email ?? "",
-                        displayName: user.displayName ?? "User",
-                        role: .student,  // neutral placeholder; user selects role in RoleConfirmationView
-                        privacyConsentGiven: true
-                    )
-                    try await FirestoreService.shared.saveUserProfile(profile)
-                    authState = .onboarding(profile)
-                } else {
-                    try? Auth.auth().signOut()
-                    authState = .unauthenticated
-                }
+                let consentGiven = providerIDs.contains("microsoft.com") || providerIDs.contains("google.com")
+                let profile = UserProfile(
+                    id: user.uid,
+                    email: user.email ?? "",
+                    displayName: user.displayName ?? user.email?.components(separatedBy: "@").first ?? "User",
+                    role: .student,
+                    privacyConsentGiven: consentGiven
+                )
+                try await FirestoreService.shared.saveUserProfile(profile)
+                NSLog("[Auth] profile saved → onboarding")
+                authState = .onboarding(profile)
             }
         } catch {
-            // Sign out so Firebase Auth and app state are consistent.
-            // Without this the listener never re-fires and the user is stuck
-            // on the login screen while Firebase still considers them signed in.
-            print("[AuthViewModel] handleAuthStateChange error: \(error)")
+            NSLog("[Auth] ERROR: %@", "\(error)")
             try? Auth.auth().signOut()
             authState = .unauthenticated
         }

@@ -69,7 +69,8 @@ struct LoginView: View {
                     }
                     .padding(.horizontal, 24)
 
-                    // Divider
+                    // Google Sign-In (requires GoogleSignIn-iOS SPM package)
+                    #if canImport(GoogleSignIn)
                     HStack {
                         Rectangle().fill(Color.secondary.opacity(0.3)).frame(height: 1)
                         Text("or").font(.caption).foregroundStyle(.secondary).padding(.horizontal, 8)
@@ -77,8 +78,6 @@ struct LoginView: View {
                     }
                     .padding(.horizontal, 24)
 
-                    // Google Sign-In (requires GoogleSignIn-iOS SPM package)
-                    #if canImport(GoogleSignIn)
                     GoogleSignInButton(viewModel: GoogleSignInButtonViewModel(scheme: .dark, style: .wide, state: .normal)) {
                         Task {
                             #if os(iOS)
@@ -89,30 +88,6 @@ struct LoginView: View {
                         }
                     }
                     .frame(height: 44)
-                    .padding(.horizontal, 24)
-                    #endif
-
-                    // Microsoft / Entra Sign-In
-                    #if os(iOS)
-                    Button {
-                        Task { try? await authVM.signInWithMicrosoft() }
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "person.badge.key.fill")
-                                .foregroundStyle(Color(red: 0, green: 0.647, blue: 0.937))
-                            Text("Sign in with Microsoft")
-                                .fontWeight(.medium)
-                                .foregroundStyle(.primary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(Color.appSecondaryBackground)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.secondary.opacity(0.4), lineWidth: 1)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
                     .padding(.horizontal, 24)
                     #endif
 
