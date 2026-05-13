@@ -29,6 +29,26 @@ struct UserProfile: Codable, Identifiable, Equatable {
     var parentalConsentStatus: String?
     var parentEmail: String?
 
+    // Custom decode so fields added after launch (timezone, onboardingComplete,
+    // privacyConsentGiven) don't crash older Firestore documents that lack them.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id                   = try c.decode(String.self,   forKey: .id)
+        email                = try c.decode(String.self,   forKey: .email)
+        displayName          = try c.decode(String.self,   forKey: .displayName)
+        role                 = try c.decode(UserRole.self, forKey: .role)
+        onboardingComplete   = try c.decodeIfPresent(Bool.self,   forKey: .onboardingComplete)   ?? false
+        createdAt            = try c.decodeIfPresent(Date.self,   forKey: .createdAt)            ?? Date()
+        fcmToken             = try c.decodeIfPresent(String.self, forKey: .fcmToken)
+        privacyConsentGiven  = try c.decodeIfPresent(Bool.self,   forKey: .privacyConsentGiven)  ?? false
+        privacyConsentAt     = try c.decodeIfPresent(Date.self,   forKey: .privacyConsentAt)
+        districtId           = try c.decodeIfPresent(String.self, forKey: .districtId)
+        timezone             = try c.decodeIfPresent(String.self, forKey: .timezone) ?? TimeZone.current.identifier
+        birthYear            = try c.decodeIfPresent(Int.self,    forKey: .birthYear)
+        parentalConsentStatus = try c.decodeIfPresent(String.self, forKey: .parentalConsentStatus)
+        parentEmail          = try c.decodeIfPresent(String.self, forKey: .parentEmail)
+    }
+
     /// True if this student account is blocked pending a parent's email approval.
     var isPendingParentalConsent: Bool {
         parentalConsentStatus == "pending"

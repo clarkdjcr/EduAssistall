@@ -84,6 +84,11 @@ final class AuthViewModel {
                 }
             }
         } catch {
+            // Sign out so Firebase Auth and app state are consistent.
+            // Without this the listener never re-fires and the user is stuck
+            // on the login screen while Firebase still considers them signed in.
+            print("[AuthViewModel] handleAuthStateChange error: \(error)")
+            try? Auth.auth().signOut()
             authState = .unauthenticated
         }
     }
