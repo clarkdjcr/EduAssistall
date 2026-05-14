@@ -5,6 +5,7 @@ struct TeacherDashboardView: View {
 
     @Environment(AuthViewModel.self) private var authVM
     @State private var linkedStudents: [StudentAdultLink] = []
+    @State private var studentNames: [String: String] = [:]
     @State private var pendingByStudent: [String: Int] = [:]
     @State private var isLoading = true
     @State private var loadError: Error?
@@ -64,6 +65,7 @@ struct TeacherDashboardView: View {
             .refreshable { await loadStudents() }
             .sheet(isPresented: $showAllStudents) {
                 AllStudentsSheet(students: confirmedStudents,
+                                 studentNames: studentNames,
                                  pendingByStudent: pendingByStudent,
                                  teacherProfile: profile)
             }
@@ -151,7 +153,11 @@ struct TeacherDashboardView: View {
                         StudentProgressDetailView(studentId: link.studentId,
                                                   studentEmail: link.studentEmail)
                     } label: {
-                        TeacherStudentRow(link: link, pendingCount: pendingByStudent[link.studentId] ?? 0)
+                        TeacherStudentRow(
+                            link: link,
+                            displayName: studentNames[link.studentId] ?? link.studentEmail,
+                            pendingCount: pendingByStudent[link.studentId] ?? 0
+                        )
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 20)
@@ -220,8 +226,26 @@ struct TeacherDashboardView: View {
         loadError = nil
         do {
             linkedStudents = try await FirestoreService.shared.fetchLinkedStudents(adultId: profile.id)
-            let ids = confirmedStudents.map(\.studentId)
-            let pending = (try? await FirestoreService.shared.fetchPendingRecommendations(studentIds: ids)) ?? []
+            let confirmed = linkedStudents.filter(\.confirmed)
+            let ids = confirmed.map(\.studentId)
+
+            // Load names and pending recs in parallel
+            async let pendingFetch = FirestoreService.shared.fetchPendingRecommendations(studentIds: ids)
+            var names: [String: String] = [:]
+            await withTaskGroup(of: (String, String?).self) { group in
+                for link in confirmed {
+                    group.addTask {
+                        let name = (try? await FirestoreService.shared.fetchUserProfile(uid: link.studentId))?.displayName
+                        return (link.studentId, name)
+                    }
+                }
+                for await (sid, name) in group {
+                    if let name { names[sid] = name }
+                }
+            }
+            studentNames = names
+
+            let pending = (try? await pendingFetch) ?? []
             var map: [String: Int] = [:]
             for rec in pending { map[rec.studentId, default: 0] += 1 }
             pendingByStudent = map
@@ -254,6 +278,7 @@ private struct TeacherReportsDestination: View {
 
 private struct AllStudentsSheet: View {
     let students: [StudentAdultLink]
+    let studentNames: [String: String]
     let pendingByStudent: [String: Int]
     let teacherProfile: UserProfile
     @Environment(\.dismiss) private var dismiss
@@ -265,8 +290,12 @@ private struct AllStudentsSheet: View {
                     StudentProgressDetailView(studentId: link.studentId,
                                               studentEmail: link.studentEmail)
                 } label: {
-                    TeacherStudentRow(link: link, pendingCount: pendingByStudent[link.studentId] ?? 0)
-                        .padding(.vertical, 4)
+                    TeacherStudentRow(
+                        link: link,
+                        displayName: studentNames[link.studentId] ?? link.studentEmail,
+                        pendingCount: pendingByStudent[link.studentId] ?? 0
+                    )
+                    .padding(.vertical, 4)
                 }
             }
             #if os(iOS)
@@ -288,6 +317,7 @@ private struct AllStudentsSheet: View {
 
 private struct TeacherStudentRow: View {
     let link: StudentAdultLink
+    let displayName: String
     let pendingCount: Int
 
     var body: some View {
@@ -296,17 +326,18 @@ private struct TeacherStudentRow: View {
                 .fill(Color.blue.opacity(0.12))
                 .frame(width: 42, height: 42)
                 .overlay(
-                    Text(String(link.studentEmail.prefix(1)).uppercased())
+                    Text(String(displayName.prefix(1)).uppercased())
                         .font(.subheadline.bold())
                         .foregroundStyle(.blue)
                 )
             VStack(alignment: .leading, spacing: 2) {
-                Text(link.studentEmail)
+                Text(displayName)
                     .font(.subheadline.bold())
                     .lineLimit(1)
-                Text(link.confirmed ? "Active" : "Pending confirmation")
+                Text(link.studentEmail)
                     .font(.caption)
-                    .foregroundStyle(link.confirmed ? .green : .orange)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
             Spacer()
             if pendingCount > 0 {

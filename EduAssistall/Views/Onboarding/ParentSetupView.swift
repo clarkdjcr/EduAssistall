@@ -96,7 +96,7 @@ struct ParentSetupView: View {
                 studentEmail: studentEmail
             )
             try await FirestoreService.shared.createStudentAdultLink(link)
-            successMessage = "Link request sent to \(result.displayName)! They'll see it in their account."
+            successMessage = "Linked to \(result.displayName)! They'll appear on your dashboard."
             try? await Task.sleep(for: .seconds(1.5))
             onComplete()
         } catch let error as NSError where error.domain == "com.firebase.functions" {

@@ -39,12 +39,13 @@ final class AuthViewModel {
 
     private func listenToAuthState() {
         stateListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-            Task {
+            Task { @MainActor in
                 await self?.handleAuthStateChange(user: user)
             }
         }
     }
 
+    @MainActor
     private func handleAuthStateChange(user: FirebaseAuth.User?) async {
         guard let user else {
             NSLog("[Auth] state → unauthenticated (no user)")
@@ -80,9 +81,21 @@ final class AuthViewModel {
                 authState = .onboarding(profile)
             }
         } catch {
-            NSLog("[Auth] ERROR: %@", "\(error)")
-            try? Auth.auth().signOut()
-            authState = .unauthenticated
+            NSLog("[Auth] ERROR loading profile: %@", "\(error)")
+            // Only sign out for auth/permission failures. A network blip or
+            // decode error should not strand users on the login screen.
+            let nsError = error as NSError
+            let isAuthError = nsError.domain == "FIRAuthErrorDomain"
+            let isPermissionError = nsError.domain == "FIRFirestoreErrorDomain" && nsError.code == 7
+            if isAuthError || isPermissionError {
+                try? Auth.auth().signOut()
+                authState = .unauthenticated
+            } else {
+                // Network / decode failure — keep the user in loading state
+                // so they aren't bounced back to the login screen. The listener
+                // will re-fire if the auth token refreshes.
+                NSLog("[Auth] non-fatal error, staying in current state")
+            }
         }
     }
 

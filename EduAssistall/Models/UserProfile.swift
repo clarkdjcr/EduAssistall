@@ -36,7 +36,14 @@ struct UserProfile: Codable, Identifiable, Equatable {
         id                   = try c.decode(String.self,   forKey: .id)
         email                = try c.decode(String.self,   forKey: .email)
         displayName          = try c.decode(String.self,   forKey: .displayName)
-        role                 = try c.decode(UserRole.self, forKey: .role)
+        // Decode role case-insensitively so manually-seeded data with
+        // "Teacher" or "Parent" (capital) still maps to the correct enum case.
+        if let rawRole = try? c.decode(String.self, forKey: .role),
+           let decoded = UserRole(rawValue: rawRole.lowercased()) {
+            role = decoded
+        } else {
+            role = .student
+        }
         onboardingComplete   = try c.decodeIfPresent(Bool.self,   forKey: .onboardingComplete)   ?? false
         createdAt            = try c.decodeIfPresent(Date.self,   forKey: .createdAt)            ?? Date()
         fcmToken             = try c.decodeIfPresent(String.self, forKey: .fcmToken)
