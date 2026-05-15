@@ -9,9 +9,9 @@
  *   gcloud auth application-default login   (one-time setup)
  *
  * Test accounts created:
- *   teacher@eduassist.test  /  EduTest2024!
- *   alex@eduassist.test     /  EduTest2024!
- *   parent@eduassist.test   /  EduTest2024!
+ *   teacher@5h1yp7.onmicrosoft.com  /  MSSPq1w2
+ *   student@5h1yp7.onmicrosoft.com  /  MSSPq1w2
+ *   parent@5h1yp7.onmicrosoft.com   /  MSSPq1w2
  */
 
 const admin = require("firebase-admin");
@@ -70,16 +70,21 @@ async function seed() {
 
   console.log("\n=== 3. Creating test users ===");
 
+  const TEACHER_EMAIL  = "teacher@5h1yp7.onmicrosoft.com";
+  const STUDENT_EMAIL  = "student@5h1yp7.onmicrosoft.com";
+  const PARENT_EMAIL   = "parent@5h1yp7.onmicrosoft.com";
+  const TEST_PASSWORD  = "MSSPq1w2";
+
   // ── Teacher ─────────────────────────────────────────────────────────────
   const teacher = await auth.createUser({
-    email: "teacher@eduassist.test",
-    password: "EduTest2024!",
+    email: TEACHER_EMAIL,
+    password: TEST_PASSWORD,
     displayName: "Ms. Johnson",
     emailVerified: true,
   });
   await db.collection("users").doc(teacher.uid).set({
     id: teacher.uid,
-    email: "teacher@eduassist.test",
+    email: TEACHER_EMAIL,
     displayName: "Ms. Johnson",
     role: "teacher",
     onboardingComplete: true,
@@ -98,18 +103,18 @@ async function seed() {
     answerModeEnabledByDefault: false,
     responseStyle: "standard",
   });
-  console.log(`  teacher  uid=${teacher.uid}  email=teacher@eduassist.test`);
+  console.log(`  teacher  uid=${teacher.uid}  email=${TEACHER_EMAIL}`);
 
   // ── Student ──────────────────────────────────────────────────────────────
   const student = await auth.createUser({
-    email: "alex@eduassist.test",
-    password: "EduTest2024!",
+    email: STUDENT_EMAIL,
+    password: TEST_PASSWORD,
     displayName: "Alex Smith",
     emailVerified: true,
   });
   await db.collection("users").doc(student.uid).set({
     id: student.uid,
-    email: "alex@eduassist.test",
+    email: STUDENT_EMAIL,
     displayName: "Alex Smith",
     role: "student",
     onboardingComplete: true,
@@ -131,18 +136,18 @@ async function seed() {
     responseStyle: "standard",
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
-  console.log(`  student  uid=${student.uid}  email=alex@eduassist.test`);
+  console.log(`  student  uid=${student.uid}  email=${STUDENT_EMAIL}`);
 
   // ── Parent ───────────────────────────────────────────────────────────────
   const parent = await auth.createUser({
-    email: "parent@eduassist.test",
-    password: "EduTest2024!",
+    email: PARENT_EMAIL,
+    password: TEST_PASSWORD,
     displayName: "Sarah Smith",
     emailVerified: true,
   });
   await db.collection("users").doc(parent.uid).set({
     id: parent.uid,
-    email: "parent@eduassist.test",
+    email: PARENT_EMAIL,
     displayName: "Sarah Smith",
     role: "parent",
     onboardingComplete: true,
@@ -151,7 +156,7 @@ async function seed() {
     timezone: "America/New_York",
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
-  console.log(`  parent   uid=${parent.uid}  email=parent@eduassist.test`);
+  console.log(`  parent   uid=${parent.uid}  email=${PARENT_EMAIL}`);
 
   console.log("\n=== 4. Creating student ↔ adult links ===");
 
@@ -162,7 +167,7 @@ async function seed() {
     adultId: teacher.uid,
     studentId: student.uid,
     adultRole: "teacher",
-    studentEmail: "alex@eduassist.test",
+    studentEmail: STUDENT_EMAIL,
     confirmed: true,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
@@ -175,7 +180,7 @@ async function seed() {
     adultId: parent.uid,
     studentId: student.uid,
     adultRole: "parent",
-    studentEmail: "alex@eduassist.test",
+    studentEmail: STUDENT_EMAIL,
     confirmed: true,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -184,9 +189,9 @@ async function seed() {
 
   console.log("\n=== Done ===");
   console.log("\nTest credentials:");
-  console.log("  Teacher : teacher@eduassist.test  /  EduTest2024!");
-  console.log("  Student : alex@eduassist.test     /  EduTest2024!");
-  console.log("  Parent  : parent@eduassist.test   /  EduTest2024!");
+  console.log(`  Teacher : ${TEACHER_EMAIL}  /  ${TEST_PASSWORD}`);
+  console.log(`  Student : ${STUDENT_EMAIL}  /  ${TEST_PASSWORD}`);
+  console.log(`  Parent  : ${PARENT_EMAIL}   /  ${TEST_PASSWORD}`);
   console.log("\nExpected state after signing in:");
   console.log("  Teacher dashboard → My Students should show Alex Smith");
   console.log("  Parent dashboard  → Overview should show Alex Smith");
