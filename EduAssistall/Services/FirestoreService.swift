@@ -64,7 +64,14 @@ final class FirestoreService {
         let snapshot = try await db.collection("studentAdultLinks")
             .whereField("adultId", isEqualTo: adultId)
             .getDocuments()
-        return try snapshot.documents.map { try $0.data(as: StudentAdultLink.self) }
+        return snapshot.documents.compactMap { doc in
+            do {
+                return try doc.data(as: StudentAdultLink.self)
+            } catch {
+                NSLog("[Firestore] skipping malformed studentAdultLink %@: %@", doc.documentID, "\(error)")
+                return nil
+            }
+        }
     }
 
     /// Returns unconfirmed link requests directed at this student.

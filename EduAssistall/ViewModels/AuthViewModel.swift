@@ -71,7 +71,7 @@ final class AuthViewModel {
                 let consentGiven = providerIDs.contains("microsoft.com") || providerIDs.contains("google.com")
                 let profile = UserProfile(
                     id: user.uid,
-                    email: user.email ?? "",
+                    email: (user.email ?? "").lowercased(),
                     displayName: user.displayName ?? user.email?.components(separatedBy: "@").first ?? "User",
                     role: .student,
                     privacyConsentGiven: consentGiven
@@ -117,10 +117,11 @@ final class AuthViewModel {
 
     func signUp(email: String, password: String, displayName: String, role: UserRole,
                 privacyConsentGiven: Bool = false, birthYear: Int? = nil, parentEmail: String? = nil) async throws {
-        let result = try await Auth.auth().createUser(withEmail: email, password: password)
+        let normalizedEmail = email.trimmingCharacters(in: .whitespaces).lowercased()
+        let result = try await Auth.auth().createUser(withEmail: normalizedEmail, password: password)
         let profile = UserProfile(
             id: result.user.uid,
-            email: email,
+            email: normalizedEmail,
             displayName: displayName,
             role: role,
             privacyConsentGiven: privacyConsentGiven,

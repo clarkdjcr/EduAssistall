@@ -2608,7 +2608,8 @@ exports.bulkInviteStudents = onCall(
     const errors = [];
 
     for (const student of students) {
-      const { studentName = "", studentEmail = "", grade = "", parentEmail = "", parentName = "" } = student;
+      const { studentName = "", grade = "", parentEmail = "", parentName = "" } = student;
+      const studentEmail = (student.studentEmail || "").trim().toLowerCase();
       if (!studentEmail || !studentEmail.includes("@")) {
         errors.push({ email: studentEmail, error: "Invalid email" });
         continue;
