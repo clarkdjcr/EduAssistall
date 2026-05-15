@@ -3930,9 +3930,10 @@ exports.verifySharePointSetup = onCall(
     const sharePointLists = { curriculum: false, officialDocs: false, studentContent: false, policies: false };
 
     if (token && secretsConfigured.SHAREPOINT_SITE_ID) {
+      const siteId = (process.env.SHAREPOINT_SITE_ID || "").replace(/^["'\s]+|["'\s]+$/g, "");
       try {
         const siteRes = await fetch(
-          `https://graph.microsoft.com/v1.0/sites/${process.env.SHAREPOINT_SITE_ID}?$select=id,name`,
+          `https://graph.microsoft.com/v1.0/sites/${siteId}?$select=id,name`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         sharePointSiteAccessible = siteRes.ok;
@@ -3955,7 +3956,7 @@ exports.verifySharePointSetup = onCall(
         if (!listId) return;
         try {
           const res = await fetch(
-            `https://graph.microsoft.com/v1.0/sites/${process.env.SHAREPOINT_SITE_ID}/lists/${listId}?$select=id,name`,
+            `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}?$select=id,name`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           if (res.ok) sharePointLists[key] = true;
