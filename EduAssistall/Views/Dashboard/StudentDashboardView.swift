@@ -532,7 +532,7 @@ struct StudentProfileSheet: View {
             .task {
                 if let id = authVM.currentProfile?.id {
                     let pending = (try? await FirestoreService.shared.fetchPendingLinks(studentId: id)) ?? []
-                    pendingCount = pending.filter { $0.expiresAt > Date() }.count
+                    pendingCount = pending.filter { $0.expiresAt.map { $0 > Date() } ?? true }.count
                 }
             }
         }

@@ -56,6 +56,12 @@ extension View {
         self
         #endif
     }
+
+    /// Apply a transform closure, useful for conditional modifiers that can't use an if/else.
+    @ViewBuilder
+    func modify<T: View>(@ViewBuilder transform: (Self) -> T) -> T {
+        transform(self)
+    }
 }
 
 /// Cross-platform clipboard write.

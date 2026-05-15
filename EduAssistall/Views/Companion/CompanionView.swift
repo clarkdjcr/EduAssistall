@@ -299,18 +299,23 @@ struct CompanionView: View {
         .padding(.vertical, 10)
         .background(Color.appGroupedBackground)
         #if canImport(ImagePlayground)
-        .imagePlaygroundSheet(
-            isPresented: $showImagePlayground,
-            concept: imageConceptText
-        ) { url in
-            generatedImageURL = url
-            // Append a message so the student can see the diagram inline.
-            messages.append(ChatMessage(
-                role: .assistant,
-                text: "Here's a visual for \"\(imageConceptText)\": \(url.absoluteString)"
-            ))
-        } onCancellation: {
-            showImagePlayground = false
+        .modify {
+            if #available(iOS 18.1, *) {
+                $0.imagePlaygroundSheet(
+                    isPresented: $showImagePlayground,
+                    concept: imageConceptText
+                ) { url in
+                    generatedImageURL = url
+                    messages.append(ChatMessage(
+                        role: .assistant,
+                        text: "Here's a visual for \"\(imageConceptText)\": \(url.absoluteString)"
+                    ))
+                } onCancellation: {
+                    showImagePlayground = false
+                }
+            } else {
+                $0
+            }
         }
         #endif
     }

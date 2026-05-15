@@ -59,7 +59,7 @@ struct PendingLinksView: View {
         let all = (try? await FirestoreService.shared.fetchPendingLinks(studentId: studentId)) ?? []
         // Filter out expired requests — the nightly purge removes them from Firestore but they
         // can persist until the next run. Don't show them as actionable.
-        links = all.filter { $0.expiresAt > Date() }
+        links = all.filter { $0.expiresAt.map { $0 > Date() } ?? true }
         // Resolve adult display names
         for link in links {
             let name = (try? await FirestoreService.shared.fetchUserProfile(uid: link.adultId))?.displayName
