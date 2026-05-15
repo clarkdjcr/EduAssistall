@@ -374,6 +374,16 @@ private struct ProfileSettingsView: View {
                         }
                     }
 
+                    // IT Admin integration dashboard (SharePoint + Firebase secrets)
+                    if let profile = authVM.currentProfile,
+                       profile.role == .teacher || profile.role == .admin {
+                        NavigationLink {
+                            ITAdminSetupView(profile: profile)
+                        } label: {
+                            Label("IT Integration", systemImage: "server.rack")
+                        }
+                    }
+
                     // FR-G5: AI usage dashboard — admins and teachers only
                     if let profile = authVM.currentProfile,
                        profile.role == .teacher || profile.role == .admin {

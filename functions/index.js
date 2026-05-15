@@ -3870,3 +3870,107 @@ exports.getAIUsageStats = onCall(
     };
   }
 );
+
+// ---------------------------------------------------------------------------
+// MARK: - IT Admin Setup Verification (IT Admin Dashboard)
+// Verifies Azure AD connectivity, SharePoint list accessibility, and which
+// Firebase secrets are configured. Accessible to admin and teacher roles.
+// ---------------------------------------------------------------------------
+
+exports.verifySharePointSetup = onCall(
+  {
+    secrets: [
+      "ANTHROPIC_API_KEY", "SENDGRID_API_KEY",
+      "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
+      "SHAREPOINT_SITE_ID", "SHAREPOINT_CURRICULUM_LIST_ID",
+      "SHAREPOINT_OFFICIAL_DOCS_LIST_ID", "SHAREPOINT_STUDENT_CONTENT_LIST_ID",
+      "SHAREPOINT_POLICIES_LIST_ID",
+    ],
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const role = callerSnap.data()?.role;
+    if (role !== "admin" && role !== "teacher") {
+      throw new HttpsError("permission-denied", "Admin or teacher only.");
+    }
+
+    const secretsConfigured = {
+      ANTHROPIC_API_KEY:               !!process.env.ANTHROPIC_API_KEY,
+      SENDGRID_API_KEY:                !!process.env.SENDGRID_API_KEY,
+      AZURE_TENANT_ID:                 !!process.env.AZURE_TENANT_ID,
+      AZURE_CLIENT_ID:                 !!process.env.AZURE_CLIENT_ID,
+      AZURE_CLIENT_SECRET:             !!process.env.AZURE_CLIENT_SECRET,
+      SHAREPOINT_SITE_ID:              !!process.env.SHAREPOINT_SITE_ID,
+      SHAREPOINT_CURRICULUM_LIST_ID:   !!process.env.SHAREPOINT_CURRICULUM_LIST_ID,
+      SHAREPOINT_OFFICIAL_DOCS_LIST_ID:!!process.env.SHAREPOINT_OFFICIAL_DOCS_LIST_ID,
+      SHAREPOINT_STUDENT_CONTENT_LIST_ID: !!process.env.SHAREPOINT_STUDENT_CONTENT_LIST_ID,
+      SHAREPOINT_POLICIES_LIST_ID:     !!process.env.SHAREPOINT_POLICIES_LIST_ID,
+    };
+
+    let azureConnected = false;
+    let azureError = null;
+    let token = null;
+    const azureReady = secretsConfigured.AZURE_TENANT_ID &&
+                       secretsConfigured.AZURE_CLIENT_ID &&
+                       secretsConfigured.AZURE_CLIENT_SECRET;
+    if (azureReady) {
+      try {
+        token = await getGraphToken();
+        azureConnected = true;
+      } catch (e) {
+        azureError = e.message;
+      }
+    }
+
+    let sharePointSiteAccessible = false;
+    let sharePointError = null;
+    const sharePointLists = { curriculum: false, officialDocs: false, studentContent: false, policies: false };
+
+    if (token && secretsConfigured.SHAREPOINT_SITE_ID) {
+      try {
+        const siteRes = await fetch(
+          `https://graph.microsoft.com/v1.0/sites/${process.env.SHAREPOINT_SITE_ID}?$select=id,name`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        sharePointSiteAccessible = siteRes.ok;
+        if (!siteRes.ok) {
+          const err = await siteRes.json().catch(() => ({}));
+          sharePointError = err.error?.message || `HTTP ${siteRes.status}`;
+        }
+      } catch (e) {
+        sharePointError = e.message;
+      }
+
+      const listChecks = [
+        ["curriculum",   "SHAREPOINT_CURRICULUM_LIST_ID"],
+        ["officialDocs", "SHAREPOINT_OFFICIAL_DOCS_LIST_ID"],
+        ["studentContent","SHAREPOINT_STUDENT_CONTENT_LIST_ID"],
+        ["policies",     "SHAREPOINT_POLICIES_LIST_ID"],
+      ];
+      await Promise.all(listChecks.map(async ([key, envVar]) => {
+        const listId = process.env[envVar];
+        if (!listId) return;
+        try {
+          const res = await fetch(
+            `https://graph.microsoft.com/v1.0/sites/${process.env.SHAREPOINT_SITE_ID}/lists/${listId}?$select=id,name`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (res.ok) sharePointLists[key] = true;
+        } catch { /* ignore per-list failures */ }
+      }));
+    }
+
+    return {
+      secretsConfigured,
+      azureConnected,
+      azureError,
+      sharePointSiteAccessible,
+      sharePointError,
+      sharePointLists,
+      checkedAt: new Date().toISOString(),
+    };
+  }
+);

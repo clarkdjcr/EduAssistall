@@ -325,6 +325,102 @@ final class CloudFunctionService {
         ])
     }
 
+    // MARK: - IT Admin Setup Verification
+
+    struct SetupVerificationResult {
+        struct SecretsStatus {
+            let anthropicKey: Bool
+            let sendgridKey: Bool
+            let azureTenantId: Bool
+            let azureClientId: Bool
+            let azureClientSecret: Bool
+            let sharepointSiteId: Bool
+            let curriculumListId: Bool
+            let officialDocsListId: Bool
+            let studentContentListId: Bool
+            let policiesListId: Bool
+
+            var coreAIReady: Bool { anthropicKey }
+            var emailReady: Bool { sendgridKey }
+            var azureCredsReady: Bool { azureTenantId && azureClientId && azureClientSecret }
+            var sharepointCoreReady: Bool { sharepointSiteId }
+        }
+        struct ListsStatus {
+            let curriculum: Bool
+            let officialDocs: Bool
+            let studentContent: Bool
+            let policies: Bool
+        }
+        let secrets: SecretsStatus
+        let azureConnected: Bool
+        let azureError: String?
+        let sharePointSiteAccessible: Bool
+        let sharePointError: String?
+        let lists: ListsStatus
+        let checkedAt: String
+
+        var overallHealthy: Bool {
+            secrets.coreAIReady && azureConnected && sharePointSiteAccessible
+        }
+    }
+
+    struct WebhookRegistrationResult {
+        let listId: String
+        let status: String
+        let subscriptionId: String?
+        let error: String?
+        var succeeded: Bool { status == "registered" }
+    }
+
+    func verifySharePointSetup() async throws -> SetupVerificationResult {
+        let result = try await functions.httpsCallable("verifySharePointSetup").call([:])
+        guard let dict = result.data as? [String: Any] else { throw URLError(.badServerResponse) }
+        let s = dict["secretsConfigured"] as? [String: Bool] ?? [:]
+        let l = dict["sharePointLists"] as? [String: Bool] ?? [:]
+        return SetupVerificationResult(
+            secrets: SetupVerificationResult.SecretsStatus(
+                anthropicKey:        s["ANTHROPIC_API_KEY"]                ?? false,
+                sendgridKey:         s["SENDGRID_API_KEY"]                 ?? false,
+                azureTenantId:       s["AZURE_TENANT_ID"]                  ?? false,
+                azureClientId:       s["AZURE_CLIENT_ID"]                  ?? false,
+                azureClientSecret:   s["AZURE_CLIENT_SECRET"]              ?? false,
+                sharepointSiteId:    s["SHAREPOINT_SITE_ID"]               ?? false,
+                curriculumListId:    s["SHAREPOINT_CURRICULUM_LIST_ID"]    ?? false,
+                officialDocsListId:  s["SHAREPOINT_OFFICIAL_DOCS_LIST_ID"] ?? false,
+                studentContentListId:s["SHAREPOINT_STUDENT_CONTENT_LIST_ID"] ?? false,
+                policiesListId:      s["SHAREPOINT_POLICIES_LIST_ID"]      ?? false
+            ),
+            azureConnected:          dict["azureConnected"]             as? Bool   ?? false,
+            azureError:              dict["azureError"]                 as? String,
+            sharePointSiteAccessible:dict["sharePointSiteAccessible"]   as? Bool   ?? false,
+            sharePointError:         dict["sharePointError"]            as? String,
+            lists: SetupVerificationResult.ListsStatus(
+                curriculum:   l["curriculum"]    ?? false,
+                officialDocs: l["officialDocs"]  ?? false,
+                studentContent: l["studentContent"] ?? false,
+                policies:     l["policies"]      ?? false
+            ),
+            checkedAt: dict["checkedAt"] as? String ?? ""
+        )
+    }
+
+    func registerSharePointWebhooks() async throws -> [WebhookRegistrationResult] {
+        let url = "https://us-central1-eduassist-b1f49.cloudfunctions.net/sharepointWebhookReceiver"
+        let result = try await functions.httpsCallable("registerSharePointWebhooks").call(["webhookUrl": url])
+        guard let dict = result.data as? [String: Any],
+              let rawResults = dict["results"] as? [[String: Any]] else {
+            throw URLError(.badServerResponse)
+        }
+        return rawResults.map { r in
+            WebhookRegistrationResult(
+                listId:         r["listId"]         as? String ?? "",
+                status:         r["status"]         as? String ?? "",
+                subscriptionId: r["subscriptionId"] as? String,
+                error:          r["error"]          as? String
+            )
+        }
+    }
+
     /// Translates any NSError from the Firebase Functions SDK into a typed CompanionError.
     private func companionError(from error: NSError) -> CompanionError {
         // Already a CompanionError (e.g. from the guard above) — pass through.

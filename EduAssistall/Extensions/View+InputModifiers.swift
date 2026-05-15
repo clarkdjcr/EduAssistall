@@ -48,6 +48,16 @@ extension View {
         #endif
     }
 
+    /// URL / domain input — disables autocorrect and autocapitalization cross-platform.
+    func urlInput() -> some View {
+        self
+            .autocorrectionDisabled()
+        #if os(iOS)
+            .keyboardType(.URL)
+            .textInputAutocapitalization(.never)
+        #endif
+    }
+
     /// Hide the back button — iOS/visionOS only (no-op on macOS).
     func hideBackButton() -> some View {
         #if os(iOS) || os(visionOS)
