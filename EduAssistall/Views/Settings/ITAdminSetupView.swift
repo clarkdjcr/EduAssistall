@@ -13,6 +13,9 @@ struct ITAdminSetupView: View {
     @State private var isRegisteringWebhooks = false
     @State private var webhookResults: [CloudFunctionService.WebhookRegistrationResult]?
     @State private var webhookError: String?
+    @State private var isCreatingLists = false
+    @State private var listCreationResults: [CloudFunctionService.ListCreationResult]?
+    @State private var listCreationError: String?
     @State private var savedBanner   = false
 
     private let projectId = "eduassist-b1f49"
@@ -322,6 +325,48 @@ struct ITAdminSetupView: View {
             }
             .disabled(isVerifying)
 
+            Button {
+                Task { await createLists() }
+            } label: {
+                HStack {
+                    Spacer()
+                    if isCreatingLists {
+                        ProgressView()
+                        Text("Creating Lists…").padding(.leading, 8)
+                    } else {
+                        Image(systemName: "plus.rectangle.on.folder.fill")
+                        Text("Create Required SharePoint Lists")
+                    }
+                    Spacer()
+                }
+                .fontWeight(.semibold)
+                .foregroundStyle(.green)
+            }
+            .disabled(isCreatingLists || verification?.sharePointSiteAccessible != true)
+
+            if let results = listCreationResults {
+                ForEach(results) { r in
+                    HStack(spacing: 8) {
+                        Image(systemName: r.succeeded ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .foregroundStyle(r.succeeded ? .green : .red)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(r.name + (r.status == "existed" ? " (already existed)" : " (created)"))
+                                .font(.caption.bold())
+                            if let lid = r.listId {
+                                Text(lid).font(.system(.caption2, design: .monospaced)).foregroundStyle(.secondary)
+                            }
+                            if let err = r.error { Text(err).font(.caption2).foregroundStyle(.red) }
+                        }
+                        Spacer()
+                        if let lid = r.listId { CopyButton2(value: lid) }
+                    }
+                }
+            }
+            if let err = listCreationError {
+                Label(err, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange).font(.caption)
+            }
+
             if profile.role == .admin {
                 Button {
                     Task { await registerWebhooks() }
@@ -496,6 +541,19 @@ struct ITAdminSetupView: View {
             verifyError = error.localizedDescription
         }
         isVerifying = false
+    }
+
+    private func createLists() async {
+        isCreatingLists = true
+        listCreationResults = nil
+        listCreationError = nil
+        do {
+            listCreationResults = try await CloudFunctionService.shared.createSharePointLists()
+            await verify()  // refresh so discovered lists section updates
+        } catch {
+            listCreationError = error.localizedDescription
+        }
+        isCreatingLists = false
     }
 
     private func registerWebhooks() async {

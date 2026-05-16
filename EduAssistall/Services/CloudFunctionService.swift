@@ -414,6 +414,31 @@ final class CloudFunctionService {
         )
     }
 
+    struct ListCreationResult: Identifiable {
+        var id: String { name }
+        let name: String
+        let listId: String?
+        let status: String   // "created" | "existed" | "failed"
+        let error: String?
+        var succeeded: Bool { status == "created" || status == "existed" }
+    }
+
+    func createSharePointLists() async throws -> [ListCreationResult] {
+        let result = try await functions.httpsCallable("createSharePointLists").call([:])
+        guard let dict = result.data as? [String: Any],
+              let raw = dict["results"] as? [[String: Any]] else {
+            throw URLError(.badServerResponse)
+        }
+        return raw.map { r in
+            ListCreationResult(
+                name:   r["name"]   as? String ?? "",
+                listId: r["id"]     as? String,
+                status: r["status"] as? String ?? "",
+                error:  r["error"]  as? String
+            )
+        }
+    }
+
     func registerSharePointWebhooks() async throws -> [WebhookRegistrationResult] {
         let url = "https://us-central1-eduassist-b1f49.cloudfunctions.net/sharepointWebhookReceiver"
         let result = try await functions.httpsCallable("registerSharePointWebhooks").call(["webhookUrl": url])

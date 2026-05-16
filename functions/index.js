@@ -3993,3 +3993,138 @@ exports.verifySharePointSetup = onCall(
     };
   }
 );
+
+// ---------------------------------------------------------------------------
+// MARK: - Create SharePoint Lists (IT Admin Dashboard)
+// Creates the four EduAssist document libraries and lists on the configured
+// SharePoint site. Safe to call repeatedly — skips lists that already exist.
+// ---------------------------------------------------------------------------
+
+exports.createSharePointLists = onCall(
+  {
+    secrets: [
+      "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
+      "SHAREPOINT_SITE_ID",
+    ],
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const role = callerSnap.data()?.role;
+    if (role !== "admin" && role !== "teacher") {
+      throw new HttpsError("permission-denied", "Admin or teacher only.");
+    }
+
+    const token  = await getGraphToken();
+    const siteId = (process.env.SHAREPOINT_SITE_ID || "").replace(/^["'\s]+|["'\s]+$/g, "");
+
+    // Fetch existing lists to avoid duplicates
+    const existingRes = await fetch(
+      `https://graph.microsoft.com/v1.0/sites/${siteId}/lists?$select=id,name,displayName`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!existingRes.ok) {
+      const err = await existingRes.json().catch(() => ({}));
+      throw new HttpsError("internal", err.error?.message || "Failed to fetch existing lists.");
+    }
+    const existingData = await existingRes.json();
+    const existingNames = new Set(
+      (existingData.value || []).map(l => (l.displayName || l.name || "").toLowerCase())
+    );
+    const existingByName = Object.fromEntries(
+      (existingData.value || []).map(l => [(l.displayName || l.name || "").toLowerCase(), l.id])
+    );
+
+    // List definitions
+    const listsToCreate = [
+      {
+        displayName: "Curriculum",
+        description: "District curriculum documents used to ground AI lesson plan generation.",
+        template: "documentLibrary",
+        columns: [
+          { name: "GradeLevel", text: {} },
+          { name: "Subject",    text: {} },
+          { name: "Standard",   text: {} },
+        ],
+      },
+      {
+        displayName: "OfficialDocuments",
+        description: "AI-generated lesson plans and parent letters awaiting district approval.",
+        template: "documentLibrary",
+        columns: [
+          { name: "Grade",          text: {} },
+          { name: "Subject",        text: {} },
+          { name: "School",         text: {} },
+          { name: "DocumentType",   choice: { choices: ["LessonPlan", "ParentLetter"], defaultValue: "LessonPlan" } },
+          { name: "ApprovalStatus", choice: { choices: ["PendingApproval", "Approved", "Rejected"], defaultValue: "PendingApproval" } },
+        ],
+      },
+      {
+        displayName: "StudentContent",
+        description: "Curriculum-aligned content items used to ground the student AI companion.",
+        template: "genericList",
+        columns: [
+          { name: "GradeLevel", text: {} },
+          { name: "Subject",    text: {} },
+          { name: "Standard",   text: {} },
+        ],
+      },
+      {
+        displayName: "Policies",
+        description: "District policy document titles injected into the student AI companion.",
+        template: "genericList",
+        columns: [],
+      },
+    ];
+
+    const results = [];
+
+    for (const listDef of listsToCreate) {
+      const key = listDef.displayName.toLowerCase();
+      if (existingNames.has(key)) {
+        results.push({ name: listDef.displayName, id: existingByName[key], status: "existed" });
+        continue;
+      }
+
+      // Create the list
+      const createRes = await fetch(
+        `https://graph.microsoft.com/v1.0/sites/${siteId}/lists`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            displayName: listDef.displayName,
+            description: listDef.description,
+            list: { template: listDef.template },
+          }),
+        }
+      );
+      if (!createRes.ok) {
+        const err = await createRes.json().catch(() => ({}));
+        results.push({ name: listDef.displayName, status: "failed", error: err.error?.message });
+        continue;
+      }
+      const created = await createRes.json();
+      const listId = created.id;
+
+      // Add custom columns
+      for (const col of listDef.columns) {
+        const colBody = { name: col.name, ...( col.text ? { text: {} } : { choice: col.choice }) };
+        await fetch(
+          `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/columns`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(colBody),
+          }
+        ).catch(() => {}); // column errors are non-fatal
+      }
+
+      results.push({ name: listDef.displayName, id: listId, status: "created" });
+    }
+
+    return { results };
+  }
+);
