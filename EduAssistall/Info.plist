@@ -19,6 +19,10 @@
         <string>remote-notification</string>
     </array>
 
+    <!-- Required when the app calls requestAuthorization() for push notifications. -->
+    <key>NSUserNotificationsUsageDescription</key>
+    <string>EduAssist sends you notifications when your teacher assigns new content or sends you a message.</string>
+
     <!-- Required by Firebase OAuthProvider (Microsoft/Entra sign-in) to redirect back to the app after browser auth. -->
     <key>CFBundleURLTypes</key>
     <array>

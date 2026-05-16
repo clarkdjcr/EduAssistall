@@ -10,8 +10,8 @@ Use this document when filling in App Store Connect. All fields marked **[REQUIR
 |---|---|
 | App Name | EduAssist |
 | Bundle ID | clarkdjcr.EduAssistall |
-| Version | 1.0 |
-| Build | 1 |
+| Version | 1.2 |
+| Build | 6 |
 | Primary Language | English (U.S.) |
 | Category (Primary) | Education |
 | Category (Secondary) | Productivity |
@@ -71,22 +71,24 @@ options are available in Settings.
 AI tutor,K-12,homework help,learning,education,students,teachers,study,COPPA,classroom
 ```
 
-https://github.com/clarkdjcr/EduAssistall
+### Support URL **[REQUIRED — must be live before submission]**
 ```
-https://[YOUR DOMAIN]/support
+https://clarkdjcr.github.io/EduAssistall/
 ```
 
 ### Marketing URL
-https://https://github.com/clarkdjcr/EduAssistall
+```
+https://clarkdjcr.github.io/EduAssistall/
 ```
 
 ### Privacy Policy URL **[REQUIRED — must be live before submission]**
 ```
-https://https://github.com/clarkdjcr/EduAssistall))]/privacy
+https://clarkdjcr.github.io/EduAssistall/privacy.html
 ```
 
-> Host the content from `docs/PRIVACY_POLICY.md` at this URL. It must be
-> publicly accessible without a login.
+> `docs/privacy.html` is served via GitHub Pages at the URL above. Enable GitHub Pages on the repo
+> (Settings → Pages → Source: Deploy from branch `main`, folder `/docs`) and it will go live within minutes.
+> It must be publicly accessible without a login before you submit.
 
 ---
 
