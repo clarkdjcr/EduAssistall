@@ -201,6 +201,21 @@ device has internet access.
 Note: The app uses COPPA-compliant data practices. Student data is never
 used for advertising. The AI model receives only anonymised context
 (grade level, subject, mode) — no name or email.
+
+IT Integration tab (teacher account): The "IT Integration" section in
+Settings connects to optional Microsoft SharePoint infrastructure for
+districts that use it. Status indicators may appear orange/red on the
+demo account — this is expected, as SharePoint credentials are not
+configured for review accounts. All core app features (AI companion,
+monitoring, learning paths) work without SharePoint.
+
+Educator controls: From the Teacher Monitor tab, tapping a student and
+using "Pause Session" will lock that student's AI Companion tab. This is
+an intentional safety control. To unlock, tap "Resume Session."
+
+Push notifications: The app requests notification permission on first
+launch to support teacher-to-student messaging and content assignment
+alerts. You may deny the prompt — it does not affect core functionality.
 ```
 
 ---
