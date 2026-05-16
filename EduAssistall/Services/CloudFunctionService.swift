@@ -357,11 +357,17 @@ final class CloudFunctionService {
         let sharePointSiteAccessible: Bool
         let sharePointError: String?
         let lists: ListsStatus
+        let discoveredLists: [DiscoveredList]
         let checkedAt: String
 
         var overallHealthy: Bool {
             secrets.coreAIReady && azureConnected && sharePointSiteAccessible
         }
+    }
+
+    struct DiscoveredList: Identifiable {
+        let id: String
+        let name: String
     }
 
     struct WebhookRegistrationResult {
@@ -400,6 +406,10 @@ final class CloudFunctionService {
                 studentContent: l["studentContent"] ?? false,
                 policies:     l["policies"]      ?? false
             ),
+            discoveredLists: (dict["discoveredLists"] as? [[String: String]] ?? []).compactMap { d in
+                guard let id = d["id"], let name = d["name"] else { return nil }
+                return DiscoveredList(id: id, name: name)
+            },
             checkedAt: dict["checkedAt"] as? String ?? ""
         )
     }

@@ -25,6 +25,9 @@ struct ITAdminSetupView: View {
                 connectionStatusSection(v)
                 coreServicesSection(v)
                 microsoftSection(v)
+                if !v.discoveredLists.isEmpty {
+                    discoveredListsSection(v.discoveredLists)
+                }
                 sharePointListsSection(v)
             } else if isVerifying {
                 Section {
@@ -266,6 +269,33 @@ struct ITAdminSetupView: View {
             Text("SharePoint Libraries")
         } footer: {
             Text("Get list IDs via: GET https://graph.microsoft.com/v1.0/sites/{siteId}/lists — note the \"id\" field for each library. Optional lists degrade gracefully if absent.")
+        }
+    }
+
+    // MARK: - Discovered Lists
+
+    private func discoveredListsSection(_ lists: [CloudFunctionService.DiscoveredList]) -> some View {
+        Section {
+            ForEach(lists) { list in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(list.name)
+                        .font(.subheadline.bold())
+                    HStack(spacing: 8) {
+                        Text(list.id)
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer()
+                        CopyButton2(value: list.id)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        } header: {
+            Text("Lists Found on Site — tap to copy ID")
+        } footer: {
+            Text("Use these IDs with the firebase functions:secrets:set commands below to connect each library.")
         }
     }
 

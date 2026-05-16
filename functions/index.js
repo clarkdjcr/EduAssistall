@@ -3927,6 +3927,7 @@ exports.verifySharePointSetup = onCall(
 
     let sharePointSiteAccessible = false;
     let sharePointError = null;
+    let discoveredLists = [];
     const sharePointLists = { curriculum: false, officialDocs: false, studentContent: false, policies: false };
 
     if (token && secretsConfigured.SHAREPOINT_SITE_ID) {
@@ -3945,11 +3946,27 @@ exports.verifySharePointSetup = onCall(
         sharePointError = e.message;
       }
 
+      // Discover all lists on the site so the IT admin can see IDs without Graph Explorer.
+      if (sharePointSiteAccessible) {
+        try {
+          const listsRes = await fetch(
+            `https://graph.microsoft.com/v1.0/sites/${siteId}/lists?$select=id,name,displayName,list`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (listsRes.ok) {
+            const listsData = await listsRes.json();
+            discoveredLists = (listsData.value || [])
+              .filter(l => !l.list?.hidden)
+              .map(l => ({ id: l.id, name: l.displayName || l.name }));
+          }
+        } catch { /* non-fatal */ }
+      }
+
       const listChecks = [
-        ["curriculum",   "SHAREPOINT_CURRICULUM_LIST_ID"],
-        ["officialDocs", "SHAREPOINT_OFFICIAL_DOCS_LIST_ID"],
+        ["curriculum",    "SHAREPOINT_CURRICULUM_LIST_ID"],
+        ["officialDocs",  "SHAREPOINT_OFFICIAL_DOCS_LIST_ID"],
         ["studentContent","SHAREPOINT_STUDENT_CONTENT_LIST_ID"],
-        ["policies",     "SHAREPOINT_POLICIES_LIST_ID"],
+        ["policies",      "SHAREPOINT_POLICIES_LIST_ID"],
       ];
       await Promise.all(listChecks.map(async ([key, envVar]) => {
         const listId = process.env[envVar];
@@ -3970,6 +3987,7 @@ exports.verifySharePointSetup = onCall(
       azureError,
       sharePointSiteAccessible,
       sharePointError,
+      discoveredLists,
       sharePointLists,
       checkedAt: new Date().toISOString(),
     };
