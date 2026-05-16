@@ -11,7 +11,7 @@ Use this document when filling in App Store Connect. All fields marked **[REQUIR
 | App Name | EduAssist |
 | Bundle ID | clarkdjcr.EduAssistall |
 | Version | 1.2 |
-| Build | 6 |
+| Build | 7 |
 | Primary Language | English (U.S.) |
 | Category (Primary) | Education |
 | Category (Secondary) | Productivity |
