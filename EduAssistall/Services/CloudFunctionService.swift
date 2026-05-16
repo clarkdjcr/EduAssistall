@@ -339,8 +339,10 @@ final class CloudFunctionService {
             let officialDocsListId: Bool
             let studentContentListId: Bool
             let policiesListId: Bool
+            let districtApiKeyConfigured: Bool
 
-            var coreAIReady: Bool { anthropicKey }
+            /// True when at least one Anthropic key is usable (district key preferred).
+            var coreAIReady: Bool { districtApiKeyConfigured || anthropicKey }
             var emailReady: Bool { sendgridKey }
             var azureCredsReady: Bool { azureTenantId && azureClientId && azureClientSecret }
             var sharepointCoreReady: Bool { sharepointSiteId }
@@ -385,16 +387,17 @@ final class CloudFunctionService {
         let l = dict["sharePointLists"] as? [String: Bool] ?? [:]
         return SetupVerificationResult(
             secrets: SetupVerificationResult.SecretsStatus(
-                anthropicKey:        s["ANTHROPIC_API_KEY"]                ?? false,
-                sendgridKey:         s["SENDGRID_API_KEY"]                 ?? false,
-                azureTenantId:       s["AZURE_TENANT_ID"]                  ?? false,
-                azureClientId:       s["AZURE_CLIENT_ID"]                  ?? false,
-                azureClientSecret:   s["AZURE_CLIENT_SECRET"]              ?? false,
-                sharepointSiteId:    s["SHAREPOINT_SITE_ID"]               ?? false,
-                curriculumListId:    s["SHAREPOINT_CURRICULUM_LIST_ID"]    ?? false,
-                officialDocsListId:  s["SHAREPOINT_OFFICIAL_DOCS_LIST_ID"] ?? false,
-                studentContentListId:s["SHAREPOINT_STUDENT_CONTENT_LIST_ID"] ?? false,
-                policiesListId:      s["SHAREPOINT_POLICIES_LIST_ID"]      ?? false
+                anthropicKey:             s["ANTHROPIC_API_KEY"]                ?? false,
+                sendgridKey:              s["SENDGRID_API_KEY"]                 ?? false,
+                azureTenantId:            s["AZURE_TENANT_ID"]                  ?? false,
+                azureClientId:            s["AZURE_CLIENT_ID"]                  ?? false,
+                azureClientSecret:        s["AZURE_CLIENT_SECRET"]              ?? false,
+                sharepointSiteId:         s["SHAREPOINT_SITE_ID"]               ?? false,
+                curriculumListId:         s["SHAREPOINT_CURRICULUM_LIST_ID"]    ?? false,
+                officialDocsListId:       s["SHAREPOINT_OFFICIAL_DOCS_LIST_ID"] ?? false,
+                studentContentListId:     s["SHAREPOINT_STUDENT_CONTENT_LIST_ID"] ?? false,
+                policiesListId:           s["SHAREPOINT_POLICIES_LIST_ID"]      ?? false,
+                districtApiKeyConfigured: dict["districtApiKeyConfigured"]       as? Bool ?? false
             ),
             azureConnected:          dict["azureConnected"]             as? Bool   ?? false,
             azureError:              dict["azureError"]                 as? String,
@@ -453,6 +456,14 @@ final class CloudFunctionService {
                 subscriptionId: r["subscriptionId"] as? String,
                 error:          r["error"]          as? String
             )
+        }
+    }
+
+    func setDistrictApiKey(_ apiKey: String) async throws {
+        let result = try await functions.httpsCallable("setDistrictApiKey").call(["apiKey": apiKey])
+        guard let dict = result.data as? [String: Any],
+              dict["success"] as? Bool == true else {
+            throw URLError(.badServerResponse)
         }
     }
 

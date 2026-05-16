@@ -279,6 +279,15 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
+    // districtSecrets/{districtId}
+    // Stores per-district Anthropic API keys. Never readable or writable by
+    // clients — only the Admin SDK (Cloud Functions) can access this collection.
+    // -------------------------------------------------------------------------
+    match /districtSecrets/{districtId} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
     // classroomConfig/{teacherId}
     // -------------------------------------------------------------------------
     match /classroomConfig/{teacherId} {

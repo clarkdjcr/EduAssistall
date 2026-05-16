@@ -18,6 +18,12 @@ struct ITAdminSetupView: View {
     @State private var listCreationError: String?
     @State private var savedBanner   = false
 
+    // Anthropic API key entry
+    @State private var anthropicApiKey    = ""
+    @State private var isSavingKey        = false
+    @State private var saveKeySucceeded   = false
+    @State private var saveKeyError: String?
+
     private let projectId = "eduassist-b1f49"
 
     var body: some View {
@@ -26,6 +32,7 @@ struct ITAdminSetupView: View {
             tenantInputSection
             if let v = verification {
                 connectionStatusSection(v)
+                anthropicKeySection(v)
                 coreServicesSection(v)
                 microsoftSection(v)
                 if !v.discoveredLists.isEmpty {
@@ -158,6 +165,69 @@ struct ITAdminSetupView: View {
             .padding(.vertical, 4)
         } header: {
             Text("Connection Status")
+        }
+    }
+
+    // MARK: - Anthropic API Key
+
+    private func anthropicKeySection(_ v: CloudFunctionService.SetupVerificationResult) -> some View {
+        Section {
+            HStack(spacing: 12) {
+                Image(systemName: v.secrets.districtApiKeyConfigured ? "checkmark.circle.fill" : "key.slash")
+                    .foregroundStyle(v.secrets.districtApiKeyConfigured ? .green : .orange)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(v.secrets.districtApiKeyConfigured ? "District key active" : "Using shared key")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(v.secrets.districtApiKeyConfigured ? .green : .orange)
+                    Text(v.secrets.districtApiKeyConfigured
+                         ? "AI calls are billed to your district's Anthropic account."
+                         : "AI calls are billed to the EduAssist shared account.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, 4)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Anthropic API Key").font(.caption).foregroundStyle(.secondary)
+                SecureField("sk-ant-…", text: $anthropicApiKey)
+                    .autocorrectionDisabled()
+                #if os(iOS)
+                    .textInputAutocapitalization(.never)
+                #endif
+                    .font(.system(.body, design: .monospaced))
+            }
+            .padding(.vertical, 2)
+
+            Button {
+                Task { await saveApiKey() }
+            } label: {
+                HStack {
+                    Spacer()
+                    if isSavingKey {
+                        ProgressView()
+                        Text("Validating & Saving…").padding(.leading, 8)
+                    } else {
+                        Image(systemName: saveKeySucceeded ? "checkmark.circle.fill" : "key.fill")
+                        Text(saveKeySucceeded ? "Key Saved" : "Save & Validate Key")
+                    }
+                    Spacer()
+                }
+                .fontWeight(.semibold)
+                .foregroundStyle(saveKeySucceeded ? .green : .blue)
+            }
+            .disabled(isSavingKey || anthropicApiKey.isEmpty)
+
+            if let err = saveKeyError {
+                Label(err, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+                    .font(.caption)
+            }
+        } header: {
+            Text("Anthropic API Key")
+        } footer: {
+            Text("Paste your district's key from console.anthropic.com/settings/keys. It is validated, then stored server-side in an encrypted collection — it never leaves the server or appears in app traffic.")
         }
     }
 
@@ -541,6 +611,25 @@ struct ITAdminSetupView: View {
             verifyError = error.localizedDescription
         }
         isVerifying = false
+    }
+
+    private func saveApiKey() async {
+        isSavingKey = true
+        saveKeyError = nil
+        saveKeySucceeded = false
+        do {
+            try await CloudFunctionService.shared.setDistrictApiKey(anthropicApiKey)
+            saveKeySucceeded = true
+            anthropicApiKey = ""
+            await verify()
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                saveKeySucceeded = false
+            }
+        } catch {
+            saveKeyError = error.localizedDescription
+        }
+        isSavingKey = false
     }
 
     private func createLists() async {

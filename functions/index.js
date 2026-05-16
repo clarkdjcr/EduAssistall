@@ -18,6 +18,21 @@ function getAnthropicClient() {
   return _anthropic;
 }
 
+// Returns a per-district Anthropic client if the district has stored their own key in
+// districtSecrets/{districtId}; falls back to the global shared key. Never throws —
+// on any Firestore error the global key is used so Claude calls degrade gracefully.
+async function getAnthropicClientForDistrict(districtId, db) {
+  if (!districtId) return getAnthropicClient();
+  try {
+    const snap = await db.collection("districtSecrets").doc(districtId).get();
+    const key = snap.data()?.anthropicApiKey;
+    if (key) return new Anthropic({ apiKey: key });
+  } catch (e) {
+    console.warn(`districtSecrets lookup failed for ${districtId}:`, e.message);
+  }
+  return getAnthropicClient();
+}
+
 // ---------------------------------------------------------------------------
 // MARK: - Microsoft Graph Client (SharePoint grounding)
 // Token cached for the lifetime of the instance (expires_in - 60s buffer).
@@ -1204,7 +1219,7 @@ exports.askCompanion = onCall(
 
     // Call Claude — send redactedMessage so PII never reaches the model or its logs (FR-104).
     // FR-008: max_tokens is grade-band-specific to enforce length at the token level.
-    const anthropic = getAnthropicClient();
+    const anthropic = await getAnthropicClientForDistrict(profile.districtId, db);
     let response;
     try {
       response = await anthropic.messages.create({
@@ -1388,11 +1403,13 @@ exports.generateRecommendations = onCall(
 
     const db = getFirestore();
 
+    // Always fetch caller profile — need districtId for API key routing.
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const callerData = callerSnap.data() || {};
+
     // Only teachers, admins, or the student themselves may generate recommendations.
     if (request.auth.uid !== studentId) {
-      const callerSnap = await db.collection("users").doc(request.auth.uid).get();
-      const callerRole = callerSnap.data()?.role;
-      if (callerRole !== "admin" && callerRole !== "teacher") {
+      if (callerData.role !== "admin" && callerData.role !== "teacher") {
         throw new HttpsError("permission-denied", "You are not authorised to generate recommendations for this student.");
       }
     }
@@ -1442,7 +1459,7 @@ Return a JSON array of exactly 3 objects, each with:
 
 Return ONLY the JSON array, no other text.`;
 
-    const anthropic = getAnthropicClient();
+    const anthropic = await getAnthropicClientForDistrict(callerData.districtId, db);
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 1024,
@@ -1504,8 +1521,8 @@ exports.generateLessonPlan = onCall(
 
     const db = getFirestore();
     const callerSnap = await db.collection("users").doc(request.auth.uid).get();
-    const callerRole = callerSnap.data()?.role;
-    if (callerRole !== "teacher" && callerRole !== "admin") {
+    const callerData = callerSnap.data() || {};
+    if (callerData.role !== "teacher" && callerData.role !== "admin") {
       throw new HttpsError("permission-denied", "Only teachers and admins may generate lesson plans.");
     }
 
@@ -1572,7 +1589,7 @@ exports.generateLessonPlan = onCall(
       `ASSESSMENT\n[How mastery of each objective will be measured]\n\n` +
       `STANDARDS ALIGNMENT\n[Explicit connection to standard and curriculum materials used]`;
 
-    const anthropic = getAnthropicClient();
+    const anthropic = await getAnthropicClientForDistrict(callerData.districtId, db);
     let response;
     try {
       response = await anthropic.messages.create({
@@ -1645,8 +1662,8 @@ exports.generateParentLetter = onCall(
 
     const db = getFirestore();
     const callerSnap = await db.collection("users").doc(request.auth.uid).get();
-    const callerRole = callerSnap.data()?.role;
-    if (callerRole !== "teacher" && callerRole !== "admin") {
+    const callerData = callerSnap.data() || {};
+    if (callerData.role !== "teacher" && callerData.role !== "admin") {
       throw new HttpsError("permission-denied", "Only teachers and admins may generate parent letters.");
     }
 
@@ -1748,7 +1765,7 @@ exports.generateParentLetter = onCall(
       `[School name placeholder]\n\n` +
       `Keep the total letter under 300 words. Do not use bullet points.`;
 
-    const anthropic = getAnthropicClient();
+    const anthropic = await getAnthropicClientForDistrict(callerData.districtId, db);
     let response;
     try {
       response = await anthropic.messages.create({
@@ -2170,7 +2187,8 @@ exports.generateJournalEntry = onCall(
     }
 
     const db = getFirestore();
-    const anthropic = getAnthropicClient();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const anthropic = await getAnthropicClientForDistrict(callerSnap.data()?.districtId, db);
 
     // Fetch up to 20 most-recent messages from the conversation.
     const messagesSnap = await db
@@ -3892,9 +3910,19 @@ exports.verifySharePointSetup = onCall(
     if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
     const db = getFirestore();
     const callerSnap = await db.collection("users").doc(request.auth.uid).get();
-    const role = callerSnap.data()?.role;
+    const callerData = callerSnap.data() || {};
+    const role = callerData.role;
     if (role !== "admin" && role !== "teacher") {
       throw new HttpsError("permission-denied", "Admin or teacher only.");
+    }
+
+    // Check if this district has their own Anthropic API key stored in districtSecrets.
+    let districtApiKeyConfigured = false;
+    if (callerData.districtId) {
+      try {
+        const secretSnap = await db.collection("districtSecrets").doc(callerData.districtId).get();
+        districtApiKeyConfigured = !!(secretSnap.data()?.anthropicApiKey);
+      } catch { /* non-fatal */ }
     }
 
     const secretsConfigured = {
@@ -3983,6 +4011,7 @@ exports.verifySharePointSetup = onCall(
 
     return {
       secretsConfigured,
+      districtApiKeyConfigured,
       azureConnected,
       azureError,
       sharePointSiteAccessible,
@@ -4126,5 +4155,60 @@ exports.createSharePointLists = onCall(
     }
 
     return { results };
+  }
+);
+
+// ---------------------------------------------------------------------------
+// MARK: - Set District Anthropic API Key
+// Validates the supplied key against the Anthropic API then stores it in
+// districtSecrets/{districtId} (Admin SDK only — clients cannot read that collection).
+// All subsequent Claude calls for this district use their own key via
+// getAnthropicClientForDistrict(). Falls back to the shared key if never set.
+// ---------------------------------------------------------------------------
+
+exports.setDistrictApiKey = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+
+    const { apiKey } = request.data;
+    if (!apiKey || typeof apiKey !== "string") {
+      throw new HttpsError("invalid-argument", "apiKey is required.");
+    }
+
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const callerData = callerSnap.data() || {};
+    if (callerData.role !== "admin" && callerData.role !== "teacher") {
+      throw new HttpsError("permission-denied", "Admin or teacher only.");
+    }
+    if (!callerData.districtId) {
+      throw new HttpsError("failed-precondition", "Your account is not linked to a district. Set districtId on your user profile first.");
+    }
+
+    // Validate the key with a minimal API call (max_tokens:1, negligible cost).
+    try {
+      const testClient = new Anthropic({ apiKey });
+      await testClient.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1,
+        messages: [{ role: "user", content: "ping" }],
+      });
+    } catch (err) {
+      const status = err.status ?? 0;
+      if (status === 401 || status === 403) {
+        throw new HttpsError("invalid-argument", "The API key was rejected by Anthropic. Please check it and try again.");
+      }
+      // Network/overload errors — treat key as potentially valid, don't block save.
+      console.warn("setDistrictApiKey: validation call failed with non-auth error:", err.message);
+    }
+
+    await db.collection("districtSecrets").doc(callerData.districtId).set({
+      anthropicApiKey: apiKey,
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedBy: request.auth.uid,
+    }, { merge: true });
+
+    return { success: true };
   }
 );
