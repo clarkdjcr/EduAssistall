@@ -46,6 +46,27 @@ struct DataPrivacyView: View {
                 )
             }
 
+            Section("AI Companion Permission") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("To use the AI Companion, your chat messages, VARK preferences, and grade band are sent securely to Anthropic (our third-party AI provider) using secure Firebase Cloud Functions. No advertising or model training is conducted with your data.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    Toggle(isOn: Binding(
+                        get: { authVM.currentProfile?.aiConsentGiven ?? false },
+                        set: { newValue in
+                            Task {
+                                try? await authVM.updateAIConsent(granted: newValue)
+                            }
+                        }
+                    )) {
+                        Text("Share Data with AI Service")
+                            .font(.subheadline.bold())
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
             Section("Data Collected") {
                 ForEach(dataTypes, id: \.self) { item in
                     Label(item, systemImage: "checkmark.circle")

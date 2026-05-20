@@ -796,12 +796,23 @@ exports.askCompanion = onCall(
 
     const db = getFirestore();
 
-    // --- FR-106: Kill switch — check companion lock before any processing ---
-    const lockSnap = await db.collection("companionLocks").doc(studentId).get();
+    // --- FR-106: Kill switch & AI Consent check — check before any processing ---
+    const [lockSnap, userSnap] = await Promise.all([
+      db.collection("companionLocks").doc(studentId).get(),
+      db.collection("users").doc(studentId).get(),
+    ]);
+
     if (lockSnap.exists && lockSnap.data()?.isLocked === true) {
       throw new HttpsError(
         "permission-denied",
         "Your companion session has been paused by your educator. Please speak with them to continue."
+      );
+    }
+
+    if (!userSnap.exists || userSnap.data()?.aiConsentGiven !== true) {
+      throw new HttpsError(
+        "permission-denied",
+        "AI Companion consent has not been granted. Please review and enable it in Privacy & Data settings."
       );
     }
 

@@ -4,7 +4,11 @@ import SwiftUI
 // Students and parents must acknowledge AI usage, teacher visibility, and behavioral
 // monitoring before accessing the companion for the first time.
 struct AIDisclosureView: View {
+    @Environment(AuthViewModel.self) private var authVM
     let onComplete: () -> Void
+
+    @State private var hasConsented = false
+    @State private var isSaving = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -22,8 +26,8 @@ struct AIDisclosureView: View {
                         DisclosurePoint(
                             icon: "brain.head.profile",
                             color: .blue,
-                            title: "Powered by AI",
-                            detail: "Your learning companion is an AI system powered by Claude (Anthropic). It can make mistakes — always verify important information with your teacher."
+                            title: "Powered by Anthropic's Claude",
+                            detail: "Your learning companion is powered by a secure, third-party AI provider (Anthropic). In order to assist you, your chat messages, VARK learning styles, and grade level context must be securely sent to Anthropic. It will never use your data for advertising or model training."
                         )
                         DisclosurePoint(
                             icon: "eye",
@@ -50,21 +54,55 @@ struct AIDisclosureView: View {
                             detail: "AI is never used to make decisions about your grades, placement, discipline, or any official school records. Those decisions always involve a qualified human educator."
                         )
                     }
+                    
+                    Divider()
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Data Sharing & Consent")
+                            .font(.headline)
+                        
+                        Toggle(isOn: $hasConsented) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("I grant permission to use my learning data")
+                                    .font(.subheadline.bold())
+                                Text("I agree to share my chat inputs, learning profile, and grade level with Anthropic via secure Cloud Functions to enable the AI companion. I understand I can revoke this consent at any time in Settings.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .toggleStyle(.automatic)
+                        .padding(.vertical, 8)
+                    }
+                    .padding(.top, 8)
                 }
                 .padding(24)
             }
 
             VStack(spacing: 0) {
                 Divider()
-                Button(action: onComplete) {
-                    Text("I Understand")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                Button {
+                    Task {
+                        isSaving = true
+                        try? await authVM.updateAIConsent(granted: true)
+                        isSaving = false
+                        onComplete()
+                    }
+                } label: {
+                    Group {
+                        if isSaving {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text("Agree & Enable AI Companion")
+                                .font(.headline)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(hasConsented ? Color.blue : Color.gray.opacity(0.4))
+                    .foregroundStyle(hasConsented ? .white : .secondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
+                .disabled(!hasConsented || isSaving)
                 .padding(.horizontal, 24)
                 .padding(.vertical, 24)
                 .background(Color.appGroupedBackground)

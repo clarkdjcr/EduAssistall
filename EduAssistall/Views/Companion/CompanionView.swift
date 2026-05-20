@@ -7,6 +7,8 @@ import ImagePlayground
 struct CompanionView: View {
     let profile: UserProfile
 
+    @Environment(AuthViewModel.self) private var authVM
+
     @State private var messages: [ChatMessage] = []
     @State private var inputText = ""
     @State private var isThinking = false
@@ -43,6 +45,10 @@ struct CompanionView: View {
     @State private var imageConceptText = ""
     @State private var generatedImageURL: URL?
 
+    private var currentProfile: UserProfile {
+        authVM.currentProfile ?? profile
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -55,10 +61,15 @@ struct CompanionView: View {
                 if !ConnectivityService.shared.isOnline {
                     offlineBanner
                 }
-                aiDisclosureStrip
-                messageList
-                Divider()
-                inputBar
+                
+                if currentProfile.aiConsentGiven {
+                    aiDisclosureStrip
+                    messageList
+                    Divider()
+                    inputBar
+                } else {
+                    consentRequiredView
+                }
             }
             .background(Color.appGroupedBackground)
             .navigationTitle("AI Companion")
@@ -85,7 +96,7 @@ struct CompanionView: View {
                 await loadHistory()
                 await loadModeFromProfile()
                 await loadActivePath()
-                if !hasSeenAIDisclosure {
+                if !currentProfile.aiConsentGiven && !hasSeenAIDisclosure {
                     showAIDisclosure = true
                 }
             }
@@ -473,6 +484,64 @@ struct CompanionView: View {
             (["technology", "coding", "programming", "computer"],                              "Technology"),
         ]
         return subjectMap.first { pair in pair.keywords.contains { title.contains($0) } }?.subject
+    }
+
+    private var consentRequiredView: some View {
+        VStack(spacing: 24) {
+            Spacer()
+            
+            ZStack {
+                Circle()
+                    .fill(Color.blue.opacity(0.1))
+                    .frame(width: 100, height: 100)
+                
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.blue, .purple],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+            
+            VStack(spacing: 8) {
+                Text("AI Companion Consent Required")
+                    .font(.title2.bold())
+                    .multilineTextAlignment(.center)
+                
+                Text("To talk with your AI learning companion, you must review the data sharing disclosure and grant permission. Your learning data is sent securely to Anthropic's Claude AI service.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+            
+            Button {
+                showAIDisclosure = true
+            } label: {
+                Text("Review & Enable AI Companion")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(
+                            colors: [.blue, .indigo],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .shadow(color: .blue.opacity(0.3), radius: 8, y: 4)
+            }
+            .buttonStyle(.plain)
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.appGroupedBackground)
     }
 }
 

@@ -26,6 +26,13 @@ final class FirestoreService {
         ])
     }
 
+    func updateAIConsent(uid: String, granted: Bool) async throws {
+        try await db.collection("users").document(uid).updateData([
+            "aiConsentGiven": granted,
+            "aiConsentAt": granted ? FieldValue.serverTimestamp() : FieldValue.delete()
+        ])
+    }
+
     func updateRole(uid: String, role: UserRole) async throws {
         try await db.collection("users").document(uid).updateData([
             "role": role.rawValue

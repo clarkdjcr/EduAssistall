@@ -238,6 +238,12 @@ final class AuthViewModel {
         }
     }
 
+    func updateAIConsent(granted: Bool) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        try await FirestoreService.shared.updateAIConsent(uid: uid, granted: granted)
+        await reloadProfile()
+    }
+
     // MARK: - Helpers
 
     var currentProfile: UserProfile? {

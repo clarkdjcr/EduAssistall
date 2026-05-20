@@ -17,6 +17,8 @@ struct UserProfile: Codable, Identifiable, Equatable {
     var fcmToken: String?
     var privacyConsentGiven: Bool
     var privacyConsentAt: Date?
+    var aiConsentGiven: Bool
+    var aiConsentAt: Date?
     var districtId: String?
     /// IANA timezone identifier (e.g. "America/Los_Angeles"). Auto-detected from the
     /// device on first sign-in and refreshed on every subsequent sign-in so the digest
@@ -30,7 +32,7 @@ struct UserProfile: Codable, Identifiable, Equatable {
     var parentEmail: String?
 
     // Custom decode so fields added after launch (timezone, onboardingComplete,
-    // privacyConsentGiven) don't crash older Firestore documents that lack them.
+    // privacyConsentGiven, aiConsentGiven) don't crash older Firestore documents that lack them.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id                   = try c.decode(String.self,   forKey: .id)
@@ -49,6 +51,8 @@ struct UserProfile: Codable, Identifiable, Equatable {
         fcmToken             = try c.decodeIfPresent(String.self, forKey: .fcmToken)
         privacyConsentGiven  = try c.decodeIfPresent(Bool.self,   forKey: .privacyConsentGiven)  ?? false
         privacyConsentAt     = try c.decodeIfPresent(Date.self,   forKey: .privacyConsentAt)
+        aiConsentGiven       = try c.decodeIfPresent(Bool.self,   forKey: .aiConsentGiven)       ?? false
+        aiConsentAt          = try c.decodeIfPresent(Date.self,   forKey: .aiConsentAt)
         districtId           = try c.decodeIfPresent(String.self, forKey: .districtId)
         timezone             = try c.decodeIfPresent(String.self, forKey: .timezone) ?? TimeZone.current.identifier
         birthYear            = try c.decodeIfPresent(Int.self,    forKey: .birthYear)
@@ -62,7 +66,7 @@ struct UserProfile: Codable, Identifiable, Equatable {
     }
 
     init(id: String, email: String, displayName: String, role: UserRole,
-         privacyConsentGiven: Bool = false, birthYear: Int? = nil, parentEmail: String? = nil) {
+         privacyConsentGiven: Bool = false, aiConsentGiven: Bool = false, birthYear: Int? = nil, parentEmail: String? = nil) {
         self.id = id
         self.email = email
         self.displayName = displayName
@@ -71,6 +75,8 @@ struct UserProfile: Codable, Identifiable, Equatable {
         self.createdAt = Date()
         self.privacyConsentGiven = privacyConsentGiven
         self.privacyConsentAt = privacyConsentGiven ? Date() : nil
+        self.aiConsentGiven = aiConsentGiven
+        self.aiConsentAt = aiConsentGiven ? Date() : nil
         self.timezone = TimeZone.current.identifier
         self.birthYear = birthYear
         self.parentEmail = parentEmail
