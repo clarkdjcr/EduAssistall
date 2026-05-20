@@ -58,6 +58,15 @@ extension View {
         #endif
     }
 
+    /// Numeric and punctuation keyboard — iOS/visionOS only.
+    func numberInput() -> some View {
+        #if os(iOS) || os(visionOS)
+        self.keyboardType(.numbersAndPunctuation)
+        #else
+        self
+        #endif
+    }
+
     /// Hide the back button — iOS/visionOS only (no-op on macOS).
     func hideBackButton() -> some View {
         #if os(iOS) || os(visionOS)
@@ -72,6 +81,37 @@ extension View {
     func modify<T: View>(@ViewBuilder transform: (Self) -> T) -> T {
         transform(self)
     }
+
+    /// Cross-platform picker style - wheel on iOS/visionOS, menu on macOS.
+    func adaptivePickerStyle() -> some View {
+        #if os(iOS) || os(visionOS)
+        self.pickerStyle(.wheel)
+        #else
+        self.pickerStyle(.menu)
+        #endif
+    }
+
+    /// Page TabView style for onboarding pages - page on iOS/visionOS, automatic on macOS.
+    func welcomeTabViewStyle() -> some View {
+        #if os(iOS) || os(visionOS)
+        self.tabViewStyle(.page(indexDisplayMode: .never))
+        #else
+        self.tabViewStyle(.automatic)
+        #endif
+    }
+
+    /// Cross-platform full screen cover / sheet fallback.
+    func adaptiveFullScreenCover<Item, Content>(
+        item: Binding<Item?>,
+        onDismiss: (() -> Void)? = nil,
+        @ViewBuilder content: @escaping (Item) -> Content
+    ) -> some View where Item: Identifiable, Content: View {
+        #if os(iOS) || os(visionOS)
+        self.fullScreenCover(item: item, onDismiss: onDismiss, content: content)
+        #else
+        self.sheet(item: item, onDismiss: onDismiss, content: content)
+        #endif
+    }
 }
 
 /// Cross-platform clipboard write.
@@ -82,4 +122,23 @@ func copyToClipboard(_ text: String) {
     NSPasteboard.general.clearContents()
     NSPasteboard.general.setString(text, forType: .string)
     #endif
+}
+
+/// Cross-platform ToolbarItemPlacement extensions.
+extension ToolbarItemPlacement {
+    static var adaptiveTrailing: ToolbarItemPlacement {
+        #if os(iOS) || os(visionOS)
+        return .topBarTrailing
+        #else
+        return .primaryAction
+        #endif
+    }
+    
+    static var adaptiveLeading: ToolbarItemPlacement {
+        #if os(iOS) || os(visionOS)
+        return .topBarLeading
+        #else
+        return .cancellationAction
+        #endif
+    }
 }

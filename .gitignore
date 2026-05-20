@@ -1,6 +1,9 @@
 # macOS metadata
 ._*
 .DS_Store
+.antigravitycli/
+.claude/
+
 
 # Xcode user-specific
 xcuserdata/

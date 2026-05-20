@@ -38,7 +38,7 @@ struct AddStudentView: View {
                     TextField("Email address ✱", text: $email)
                         .emailInput()
                     TextField("Grade (e.g. 7)", text: $grade)
-                        .keyboardType(.numbersAndPunctuation)
+                        .numberInput()
                 }
 
                 Section {

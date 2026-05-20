@@ -88,7 +88,7 @@ struct AddContentItemView: View {
                     .disabled(title.isEmpty)
                 }
             }
-            .fullScreenCover(item: $pendingQuizItem) { quizItem in
+            .adaptiveFullScreenCover(item: $pendingQuizItem) { quizItem in
                 ManageQuizQuestionsView(item: quizItem, teacherId: teacherId) {
                     pendingQuizItem = nil
                     dismiss()

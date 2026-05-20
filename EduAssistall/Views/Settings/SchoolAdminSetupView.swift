@@ -67,9 +67,7 @@ struct SchoolAdminSetupView: View {
             LabeledField(label: "School Name", placeholder: "e.g. Lincoln Elementary", text: $schoolName)
             LabeledField(label: "City, State", placeholder: "e.g. Chicago, IL", text: $cityState)
             LabeledField(label: "School Email Domain", placeholder: "e.g. lincoln.edu", text: $emailDomain)
-                .keyboardType(.URL)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+                .urlInput()
         } header: {
             Text("School Information")
         } footer: {

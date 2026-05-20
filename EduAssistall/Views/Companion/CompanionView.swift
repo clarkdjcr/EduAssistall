@@ -75,7 +75,7 @@ struct CompanionView: View {
             .navigationTitle("AI Companion")
             .inlineNavigationTitle()
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .adaptiveTrailing) {
                     Button {
                         showModePicker = true
                     } label: {
@@ -311,7 +311,7 @@ struct CompanionView: View {
         .background(Color.appGroupedBackground)
         #if canImport(ImagePlayground)
         .modify {
-            if #available(iOS 18.1, *) {
+            if #available(iOS 18.1, macOS 15.1, *) {
                 $0.imagePlaygroundSheet(
                     isPresented: $showImagePlayground,
                     concept: imageConceptText
@@ -713,7 +713,7 @@ private struct ModePickerSheet: View {
             .navigationTitle("Learning Mode")
             .inlineNavigationTitle()
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .adaptiveTrailing) {
                     Button("Done") { dismiss() }
                 }
             }

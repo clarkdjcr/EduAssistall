@@ -91,7 +91,7 @@ struct RegisterView: View {
                                         Text(String(year)).tag(year)
                                     }
                                 }
-                                .pickerStyle(.wheel)
+                                .adaptivePickerStyle()
                                 .frame(height: 100)
                                 .clipped()
                                 .background(Color.appSecondaryBackground)

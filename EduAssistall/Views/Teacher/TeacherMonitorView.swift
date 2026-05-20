@@ -30,7 +30,7 @@ struct TeacherMonitorView: View {
                                     studentEmail: link.studentEmail
                                 )
                                 .toolbar {
-                                    ToolbarItem(placement: .topBarTrailing) {
+                                    ToolbarItem(placement: .adaptiveTrailing) {
                                         HStack {
                                             // FR-201: Alerts button when flags exist
                                             let flags = sessionFlags[link.studentId] ?? []

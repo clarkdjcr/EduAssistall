@@ -76,7 +76,7 @@ private struct SS_CompanionView: View {
             .navigationTitle("AI Companion")
             .inlineNavigationTitle()
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .adaptiveTrailing) {
                     Label("Guided Discovery", systemImage: "dial.medium").labelStyle(.iconOnly)
                 }
             }
@@ -282,7 +282,11 @@ private struct SS_GoalsView: View {
                     ForEach(completed) { goal in SS_GoalRow(goal: goal) }
                 }
             }
+            #if os(iOS)
             .listStyle(.insetGrouped)
+            #else
+            .listStyle(.inset)
+            #endif
             .background(Color.appGroupedBackground)
             .navigationTitle("My Goals")
             .inlineNavigationTitle()
@@ -436,11 +440,15 @@ private struct SS_ModePickerView: View {
                 }
                 .buttonStyle(.plain)
             }
+            #if os(iOS)
             .listStyle(.insetGrouped)
+            #else
+            .listStyle(.inset)
+            #endif
             .navigationTitle("Learning Mode")
             .inlineNavigationTitle()
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .adaptiveTrailing) {
                     Button("Done") {}
                 }
             }

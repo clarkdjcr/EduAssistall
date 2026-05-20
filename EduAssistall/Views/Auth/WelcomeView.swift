@@ -44,7 +44,7 @@ struct WelcomeView: View {
                         .tag(i)
                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
+            .welcomeTabViewStyle()
             .ignoresSafeArea()
 
             VStack(spacing: 20) {

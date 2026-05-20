@@ -29,7 +29,7 @@ struct ClassroomConfigView: View {
         .navigationTitle("Classroom Config")
         .inlineNavigationTitle()
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .adaptiveTrailing) {
                 Button(isSaving ? "Saving…" : "Save") {
                     Task { await save() }
                 }

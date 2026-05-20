@@ -92,7 +92,7 @@ struct LearningPathDetailView: View {
         .toolbar {
             // FR-006: Answer mode toggle — only visible to teachers/admins.
             if showAnswerModeToggle {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .adaptiveTrailing) {
                     Toggle(isOn: $answerModeEnabled) {
                         Label(
                             answerModeEnabled ? "Answer Mode On" : "Answer Mode Off",

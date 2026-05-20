@@ -46,7 +46,7 @@ struct ConversationTranscriptView: View {
         .navigationTitle("\(studentEmail) — Live")
         .inlineNavigationTitle()
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .adaptiveTrailing) {
                 HStack(spacing: 12) {
                     // FR-204: hint injection button (only when teacher profile available)
                     if teacherProfile != nil {
@@ -102,14 +102,14 @@ struct ConversationTranscriptView: View {
             .navigationTitle("Send Hint to \(studentEmail)")
             .inlineNavigationTitle()
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .adaptiveLeading) {
                     Button("Cancel") {
                         hintText = ""
                         hintSentConfirmation = false
                         showHintSheet = false
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .adaptiveTrailing) {
                     Button(isSendingHint ? "Sending…" : "Send") {
                         Task { await sendHint() }
                     }
