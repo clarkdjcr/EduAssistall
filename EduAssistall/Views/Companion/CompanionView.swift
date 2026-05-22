@@ -96,7 +96,7 @@ struct CompanionView: View {
                 await loadHistory()
                 await loadModeFromProfile()
                 await loadActivePath()
-                if !currentProfile.aiConsentGiven && !hasSeenAIDisclosure {
+                if !currentProfile.aiConsentGiven {
                     showAIDisclosure = true
                 }
             }
