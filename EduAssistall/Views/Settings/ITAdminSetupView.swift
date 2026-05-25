@@ -18,6 +18,11 @@ struct ITAdminSetupView: View {
     @State private var listCreationError: String?
     @State private var savedBanner   = false
 
+    // Document backend selection
+    @State private var documentBackend     = "sharepoint"
+    @State private var isSavingBackend     = false
+    @State private var saveBackendError: String?
+
     // Anthropic API key entry
     @State private var anthropicApiKey    = ""
     @State private var isSavingKey        = false
@@ -29,16 +34,23 @@ struct ITAdminSetupView: View {
     var body: some View {
         List {
             adminIdentitySection
-            tenantInputSection
+            backendPickerSection
+            if documentBackend == "sharepoint" {
+                tenantInputSection
+            }
             if let v = verification {
                 connectionStatusSection(v)
                 anthropicKeySection(v)
                 coreServicesSection(v)
-                microsoftSection(v)
-                if !v.discoveredLists.isEmpty {
-                    discoveredListsSection(v.discoveredLists)
+                if documentBackend == "sharepoint" {
+                    microsoftSection(v)
+                    if !v.discoveredLists.isEmpty {
+                        discoveredListsSection(v.discoveredLists)
+                    }
+                    sharePointListsSection(v)
+                } else {
+                    firebaseBackendStatusSection
                 }
-                sharePointListsSection(v)
             } else if isVerifying {
                 Section {
                     HStack(spacing: 12) {
@@ -66,7 +78,10 @@ struct ITAdminSetupView: View {
         .background(Color.appGroupedBackground)
         .navigationTitle("IT Admin Setup")
         .inlineNavigationTitle()
-        .task { await verify() }
+        .task {
+            await loadBackend()
+            await verify()
+        }
         .overlay(alignment: .bottom) {
             if savedBanner {
                 Text("Webhooks registered")
@@ -80,6 +95,63 @@ struct ITAdminSetupView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: savedBanner)
+    }
+
+    // MARK: - Backend Picker
+
+    private var backendPickerSection: some View {
+        Section {
+            Picker("Document Storage", selection: $documentBackend) {
+                Text("SharePoint (Microsoft 365)").tag("sharepoint")
+                Text("Firebase (no M365 required)").tag("firebase")
+            }
+            .pickerStyle(.menu)
+            .onChange(of: documentBackend) { _, _ in
+                Task { await saveBackend() }
+            }
+
+            if isSavingBackend {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("Saving…").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            if let err = saveBackendError {
+                Label(err, systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red).font(.caption)
+            }
+        } header: {
+            Text("Document Backend")
+        } footer: {
+            if documentBackend == "firebase" {
+                Text("Uses Firebase Storage + Firestore. No Microsoft 365 license required. Ideal for districts without M365 and for homeschool users.")
+            } else {
+                Text("Uses SharePoint document libraries. Requires Microsoft 365 licensing and an Azure app registration.")
+            }
+        }
+    }
+
+    private var firebaseBackendStatusSection: some View {
+        Section {
+            HStack(spacing: 12) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Firebase Storage Ready")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.green)
+                    Text("Documents are stored in Firebase Storage and Firestore. No additional configuration needed.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, 4)
+        } header: {
+            Text("Document Storage — Firebase")
+        } footer: {
+            Text("AI-generated documents (lesson plans, parent letters) are stored in officialDocuments and require teacher approval before use.")
+        }
     }
 
     // MARK: - Admin Identity
@@ -601,6 +673,24 @@ struct ITAdminSetupView: View {
     }
 
     // MARK: - Actions
+
+    private func loadBackend() async {
+        let districtId = profile.districtId ?? "default"
+        if let config = try? await FirestoreService.shared.fetchDistrictConfig(districtId: districtId) {
+            documentBackend = config.documentBackend ?? "sharepoint"
+        }
+    }
+
+    private func saveBackend() async {
+        isSavingBackend = true
+        saveBackendError = nil
+        do {
+            try await CloudFunctionService.shared.setDocumentBackend(documentBackend)
+        } catch {
+            saveBackendError = error.localizedDescription
+        }
+        isSavingBackend = false
+    }
 
     private func verify() async {
         isVerifying = true

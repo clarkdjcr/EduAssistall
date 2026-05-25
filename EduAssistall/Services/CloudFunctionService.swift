@@ -103,12 +103,12 @@ final class CloudFunctionService {
 
     struct LessonPlanResult {
         let lessonPlan: String
-        let sharepointItemId: String?
+        let documentId: String?
     }
 
     struct ParentLetterResult {
         let letter: String
-        let sharepointItemId: String?
+        let documentId: String?
         let studentName: String
     }
 
@@ -133,7 +133,7 @@ final class CloudFunctionService {
         }
         return LessonPlanResult(
             lessonPlan: plan,
-            sharepointItemId: dict["sharepointItemId"] as? String
+            documentId: dict["documentId"] as? String
         )
     }
 
@@ -156,7 +156,7 @@ final class CloudFunctionService {
         }
         return ParentLetterResult(
             letter: letter,
-            sharepointItemId: dict["sharepointItemId"] as? String,
+            documentId: dict["documentId"] as? String,
             studentName: dict["studentName"] as? String ?? "Student"
         )
     }
@@ -456,6 +456,25 @@ final class CloudFunctionService {
                 subscriptionId: r["subscriptionId"] as? String,
                 error:          r["error"]          as? String
             )
+        }
+    }
+
+    func approveDocument(documentId: String, action: String) async throws {
+        let result = try await functions.httpsCallable("approveDocument").call([
+            "documentId": documentId,
+            "action": action,
+        ])
+        guard let dict = result.data as? [String: Any],
+              dict["success"] as? Bool == true else {
+            throw URLError(.badServerResponse)
+        }
+    }
+
+    func setDocumentBackend(_ backend: String) async throws {
+        let result = try await functions.httpsCallable("setDocumentBackend").call(["backend": backend])
+        guard let dict = result.data as? [String: Any],
+              dict["success"] as? Bool == true else {
+            throw URLError(.badServerResponse)
         }
     }
 

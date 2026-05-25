@@ -28,6 +28,7 @@ struct DistrictConfig: Codable, Identifiable {
     var gradeBandTopics: [String: [String]]        // keyed by GradeBand.rawValue
     var counselorIds: [String]
     var updatedAt: Date
+    var documentBackend: String?                  // "sharepoint" | "firebase"; nil treated as "sharepoint"
 
     init(id: String, districtName: String = "") {
         self.id = id
@@ -38,6 +39,7 @@ struct DistrictConfig: Codable, Identifiable {
         )
         self.counselorIds = []
         self.updatedAt = Date()
+        self.documentBackend = nil
     }
 
     /// Merged blocked topics for a specific grade band: district-wide + band-specific.

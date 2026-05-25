@@ -4,7 +4,7 @@ struct TestDataProvider {
 
     // MARK: - Built-in Practice Tests
 
-    static let tests: [PracticeTest] = [satMath, actEnglish, commonCoreMath6, commonCoreMath8, actScience]
+    static let tests: [PracticeTest] = [satMath, actEnglish, commonCoreMath6, commonCoreMath8, actScience, aiLiteracy]
 
     // MARK: - SAT Math
 
@@ -137,6 +137,132 @@ struct TestDataProvider {
                 options: ["Music makes plants happier.", "Plants exposed to 8 hrs of light/day grow 20% taller than those with 4 hrs.", "Nature is beautiful.", "All living things have a purpose."], correctIndex: 1, explanation: "A scientific hypothesis must be specific, measurable, and falsifiable. Option B specifies a measurable condition and outcome.", standardCode: nil, subject: "Science"),
         ],
         timeLimit: 8,
+        createdAt: Date()
+    )
+
+    // MARK: - AI Literacy (AI4K12 Big Ideas alignment)
+
+    static let aiLiteracy = PracticeTest(
+        id: "ai-literacy-hs",
+        title: "AI Literacy — Working in an AI World",
+        type: .practice,
+        subject: "Technology",
+        gradeLevel: "9",
+        questions: [
+            PracticeTestQuestion(
+                id: "ai1",
+                question: "Machine learning is best described as:",
+                options: [
+                    "Programming a computer with exact rules for every situation",
+                    "A system that learns patterns from data and improves with experience",
+                    "A robot that physically learns by watching humans",
+                    "A type of internet search engine"
+                ],
+                correctIndex: 1,
+                explanation: "Machine learning systems improve by finding patterns in training data — they are not manually programmed with rules for every case. This is the core difference from traditional software.",
+                standardCode: "AI4K12-BI3",
+                subject: "Technology"
+            ),
+            PracticeTestQuestion(
+                id: "ai2",
+                question: "Training data is important in AI because:",
+                options: [
+                    "It powers the computer's electricity",
+                    "The AI model learns the patterns and biases present in that data",
+                    "It is the programming code that runs the AI",
+                    "It stores the AI's answers so it can look them up"
+                ],
+                correctIndex: 1,
+                explanation: "An AI model can only learn from the examples it is trained on. If those examples are incomplete or biased, the model inherits those flaws — 'garbage in, garbage out.'",
+                standardCode: "AI4K12-BI3",
+                subject: "Technology"
+            ),
+            PracticeTestQuestion(
+                id: "ai3",
+                question: "A hiring algorithm trained mostly on resumes from male engineers is likely to:",
+                options: [
+                    "Automatically fix the imbalance by ignoring gender",
+                    "Rate all candidates equally regardless of background",
+                    "Underrank equally qualified female candidates",
+                    "Refuse to process any resumes"
+                ],
+                correctIndex: 2,
+                explanation: "AI systems reflect the biases in their training data. A model trained mainly on male engineers will learn patterns associated with male candidates and score them higher — this is called algorithmic bias.",
+                standardCode: "AI4K12-BI5",
+                subject: "Technology"
+            ),
+            PracticeTestQuestion(
+                id: "ai4",
+                question: "AI ethics is the study of:",
+                options: [
+                    "How to program AI to pass standardized tests",
+                    "Whether AI can feel emotions",
+                    "How to ensure AI systems are fair, safe, and accountable",
+                    "The history of computer science"
+                ],
+                correctIndex: 2,
+                explanation: "AI ethics addresses questions like: Who is harmed if an AI makes a mistake? Who is responsible? Is the data used with consent? These questions shape how responsible AI is built and deployed.",
+                standardCode: "AI4K12-BI5",
+                subject: "Technology"
+            ),
+            PracticeTestQuestion(
+                id: "ai5",
+                question: "Which of these tasks is current AI most capable of performing accurately?",
+                options: [
+                    "Understanding the emotional context behind every human conversation",
+                    "Recognizing patterns in large datasets, like images or text",
+                    "Making fully independent ethical judgments",
+                    "Understanding sarcasm and humor 100% of the time"
+                ],
+                correctIndex: 1,
+                explanation: "Today's AI excels at pattern recognition — classifying images, translating text, detecting anomalies in data. It still struggles with genuine reasoning, emotion, and nuanced human communication.",
+                standardCode: "AI4K12-BI2",
+                subject: "Technology"
+            ),
+            PracticeTestQuestion(
+                id: "ai6",
+                question: "A large language model (LLM) like Claude or GPT generates responses by:",
+                options: [
+                    "Looking up answers in a fixed encyclopedia",
+                    "Predicting the most likely next words based on patterns learned from text",
+                    "Searching the internet in real time for every answer",
+                    "Asking human experts and relaying their answers"
+                ],
+                correctIndex: 1,
+                explanation: "LLMs are trained to predict what text comes next based on massive amounts of human-written text. They generate responses token by token — they do not retrieve facts, which is why they can 'hallucinate' incorrect information.",
+                standardCode: "AI4K12-BI3",
+                subject: "Technology"
+            ),
+            PracticeTestQuestion(
+                id: "ai7",
+                question: "Which practice best demonstrates responsible AI use at school or work?",
+                options: [
+                    "Submitting AI-generated work without reviewing it, to save time",
+                    "Using AI only to do things you already know how to do",
+                    "Verifying AI-generated facts with trusted sources before using them",
+                    "Sharing personal information freely to get better AI responses"
+                ],
+                correctIndex: 2,
+                explanation: "AI can generate confident-sounding but incorrect information. Responsible users always verify important facts with authoritative sources. Sharing personal data risks privacy, and unreviewed AI output risks errors.",
+                standardCode: "AI4K12-BI5",
+                subject: "Technology"
+            ),
+            PracticeTestQuestion(
+                id: "ai8",
+                question: "As AI automates routine tasks, the workforce skills that will be most valuable are:",
+                options: [
+                    "Memorizing large amounts of factual information",
+                    "Critical thinking, creativity, and collaboration with AI tools",
+                    "The ability to type as fast as possible",
+                    "Avoiding the use of any AI tools"
+                ],
+                correctIndex: 1,
+                explanation: "AI handles repetitive, pattern-based tasks well. Humans add the most value through judgment, empathy, ethics, and creative problem-solving — and through knowing how to direct AI tools toward the right goals.",
+                standardCode: "AI4K12-BI5",
+                subject: "Technology"
+            )
+        ],
+        timeLimit: 10,
         createdAt: Date()
     )
 

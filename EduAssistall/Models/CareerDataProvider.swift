@@ -165,6 +165,77 @@ struct CareerDataProvider {
             colorName: "brown"
         ),
         CareerPath(
+            id: "ai-ml-engineer",
+            title: "AI / Machine Learning Engineer",
+            description: "Design, train, and deploy AI models that power products used by millions — from recommendation engines to medical diagnosis tools and autonomous vehicles.",
+            relatedInterests: ["Artificial Intelligence", "Technology", "Math", "Coding", "Computers", "Science"],
+            educationOptions: [
+                EducationOption(id: "ai-1", type: .college, name: "Computer Science or AI B.S.", duration: "4 years", estimatedAnnualCost: 35_000, description: "Core courses in machine learning, linear algebra, probability, and software engineering."),
+                EducationOption(id: "ai-2", type: .college, name: "AI / Machine Learning M.S.", duration: "2 additional years", estimatedAnnualCost: 30_000, description: "Deep specialization in neural networks, NLP, computer vision, or reinforcement learning."),
+                EducationOption(id: "ai-3", type: .selfTaught, name: "Online Courses + Kaggle", duration: "1–2 years", estimatedAnnualCost: 0, description: "Fast.ai, Coursera Deep Learning Specialization, and Kaggle competitions build real, portfolio-ready skills for free.")
+            ],
+            averageSalary: "$145,000 / year",
+            growthOutlook: "Explosive (+40%)",
+            icon: "brain.head.profile",
+            colorName: "indigo"
+        ),
+        CareerPath(
+            id: "ai-ethics-analyst",
+            title: "AI Ethics & Policy Analyst",
+            description: "Ensure AI systems are fair, safe, and accountable. Work at tech companies, governments, or nonprofits to shape the rules for responsible AI development.",
+            relatedInterests: ["Artificial Intelligence", "Social Issues", "Law", "Psychology", "Technology", "Writing"],
+            educationOptions: [
+                EducationOption(id: "ae-1", type: .college, name: "Philosophy, Law, or Public Policy B.A.", duration: "4 years", estimatedAnnualCost: 30_000, description: "Ethics, logic, policy analysis, and technology law. A technical minor in CS strengthens applications."),
+                EducationOption(id: "ae-2", type: .college, name: "Technology Policy M.S. / J.D.", duration: "2–3 additional years", estimatedAnnualCost: 35_000, description: "Graduate study in AI governance, privacy law, or human-computer interaction policy.")
+            ],
+            averageSalary: "$95,000 / year",
+            growthOutlook: "Rapidly growing (new field)",
+            icon: "scale.3d",
+            colorName: "purple"
+        ),
+        CareerPath(
+            id: "prompt-engineer",
+            title: "AI Product Specialist / Prompt Engineer",
+            description: "Bridge AI capability and real-world use. Design prompts, workflows, and products that make AI tools useful, safe, and effective for specific industries.",
+            relatedInterests: ["Artificial Intelligence", "Technology", "Writing", "Business", "Communication", "Creativity"],
+            educationOptions: [
+                EducationOption(id: "pe-1", type: .college, name: "Computer Science or Linguistics B.S.", duration: "4 years", estimatedAnnualCost: 33_000, description: "Understanding of both language systems and software makes prompt engineers most effective."),
+                EducationOption(id: "pe-2", type: .selfTaught, name: "Online Courses + AI Tool Practice", duration: "6–12 months", estimatedAnnualCost: 0, description: "Learn prompt design through hands-on experimentation with LLMs, GPTs, and AI APIs — many top practitioners are self-taught.")
+            ],
+            averageSalary: "$110,000 / year",
+            growthOutlook: "Emerging, high demand",
+            icon: "text.bubble.fill",
+            colorName: "cyan"
+        ),
+        CareerPath(
+            id: "robotics-engineer",
+            title: "Robotics Engineer",
+            description: "Build machines that sense the world, make decisions, and take physical action — from surgical robots and warehouse automation to self-driving vehicles and drones.",
+            relatedInterests: ["Robotics", "Engineering", "Artificial Intelligence", "Math", "Science", "Technology"],
+            educationOptions: [
+                EducationOption(id: "re-1", type: .college, name: "Mechanical or Electrical Engineering B.S.", duration: "4 years", estimatedAnnualCost: 36_000, description: "Core mechanical, electrical, and software engineering with electives in robotics and control systems."),
+                EducationOption(id: "re-2", type: .college, name: "Robotics Engineering M.S.", duration: "2 additional years", estimatedAnnualCost: 32_000, description: "Specialized graduate programs in autonomous systems, human-robot interaction, or industrial automation.")
+            ],
+            averageSalary: "$105,000 / year",
+            growthOutlook: "Much faster than average (+22%)",
+            icon: "gearshape.2.fill",
+            colorName: "orange"
+        ),
+        CareerPath(
+            id: "cybersecurity-analyst",
+            title: "Cybersecurity Analyst",
+            description: "Defend networks, data, and AI systems against attacks. As AI powers more of our world, securing it becomes one of the most critical and in-demand jobs.",
+            relatedInterests: ["Cybersecurity", "Technology", "Coding", "Math", "Artificial Intelligence", "Engineering"],
+            educationOptions: [
+                EducationOption(id: "ca-1", type: .college, name: "Cybersecurity or CS B.S.", duration: "4 years", estimatedAnnualCost: 30_000, description: "Network security, cryptography, ethical hacking, and systems engineering."),
+                EducationOption(id: "ca-2", type: .technical, name: "Security Certifications (CompTIA, CISSP)", duration: "6–12 months", estimatedAnnualCost: 3_000, description: "Industry certifications are highly valued alongside or instead of a degree for many analyst roles.")
+            ],
+            averageSalary: "$112,000 / year",
+            growthOutlook: "Much faster than average (+32%)",
+            icon: "lock.shield.fill",
+            colorName: "red"
+        ),
+        CareerPath(
             id: "chef",
             title: "Chef / Culinary Arts",
             description: "Create memorable dining experiences through flavors, technique, and presentation. Work in restaurants, catering, or run your own food business.",
@@ -273,6 +344,33 @@ struct CareerDataProvider {
             quote: "Like what you do, and then you will do your best.",
             relatedInterests: ["Math", "Science", "Technology", "Astronomy", "Engineering"],
             icon: "star.fill"
+        ),
+        Luminary(
+            id: "joy-buolamwini",
+            name: "Joy Buolamwini",
+            field: "AI Ethics & Algorithmic Justice",
+            bio: "Joy Buolamwini is a computer scientist, poet of code, and founder of the Algorithmic Justice League. While at MIT, she discovered that leading facial recognition systems were dramatically less accurate for darker-skinned faces, exposing systemic bias in AI. Her research sparked policy changes at major tech companies and a global conversation about fairness in AI.",
+            quote: "The future of AI is not something that just happens to us — it is something we choose.",
+            relatedInterests: ["Artificial Intelligence", "Social Issues", "Technology", "Engineering", "Law"],
+            icon: "person.fill.viewfinder"
+        ),
+        Luminary(
+            id: "fei-fei-li",
+            name: "Fei-Fei Li",
+            field: "Computer Vision & AI for Good",
+            bio: "Fei-Fei Li is a Stanford professor who co-created ImageNet — the massive image dataset that sparked the modern deep learning revolution. She co-directs the Stanford Human-Centered AI Institute (HAI) and is a leading voice for AI that benefits humanity. She also co-founded AI4ALL, a nonprofit expanding access to AI education for underrepresented students.",
+            quote: "There is nothing artificial about AI. It is inspired by people, it is created by people, and — most importantly — it impacts people.",
+            relatedInterests: ["Artificial Intelligence", "Science", "Technology", "Math", "Helping Others", "Education"],
+            icon: "eye.fill"
+        ),
+        Luminary(
+            id: "geoffrey-hinton",
+            name: "Geoffrey Hinton",
+            field: "Deep Learning & AI Safety",
+            bio: "Geoffrey Hinton is often called the 'Godfather of Deep Learning.' His decades of research on neural networks laid the foundation for modern AI — from voice assistants to medical imaging AI. In 2023 he left Google to speak more freely about the potential risks of AI, becoming one of the field's most prominent advocates for careful, responsible development.",
+            quote: "I console myself with the thought that, if we do eventually create super-intelligent beings, perhaps they will be better than us.",
+            relatedInterests: ["Artificial Intelligence", "Science", "Math", "Technology", "Engineering"],
+            icon: "brain.fill"
         )
     ]
 

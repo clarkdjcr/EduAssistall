@@ -3,7 +3,7 @@ import SwiftUI
 struct DocumentResultView: View {
     let title: String
     let content: String
-    let sharepointItemId: String?
+    let documentId: String?
     let documentType: String
 
     @State private var showCopied = false
@@ -13,14 +13,14 @@ struct DocumentResultView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    if sharepointItemId != nil {
+                    if documentId != nil {
                         HStack(spacing: 8) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Saved to OfficialDocuments")
+                                Text("Saved to Documents")
                                     .font(.subheadline.bold())
-                                Text("Pending your approval in SharePoint")
+                                Text("Pending your approval")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
