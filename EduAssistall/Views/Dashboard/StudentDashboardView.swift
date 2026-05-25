@@ -516,8 +516,7 @@ struct StudentProfileSheet: View {
 
                 Section {
                     Button(role: .destructive) {
-                        authVM.signOut()
-                        dismiss()
+                        Task { @MainActor in authVM.signOut() }
                     } label: {
                         Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
                     }

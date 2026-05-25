@@ -84,7 +84,7 @@ struct PendingParentalConsentView: View {
                 .disabled(isChecking)
 
                 Button {
-                    authVM.signOut()
+                    Task { @MainActor in authVM.signOut() }
                 } label: {
                     Text("Sign Out")
                         .font(.subheadline)

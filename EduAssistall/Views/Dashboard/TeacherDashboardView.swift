@@ -52,7 +52,7 @@ struct TeacherDashboardView: View {
                         }
                         Divider()
                         Button(role: .destructive) {
-                            authVM.signOut()
+                            Task { @MainActor in authVM.signOut() }
                         } label: {
                             Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
                         }

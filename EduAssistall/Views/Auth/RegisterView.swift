@@ -46,13 +46,19 @@ struct RegisterView: View {
                             .padding(.horizontal, 24)
 
                         HStack(spacing: 12) {
-                            ForEach([UserRole.student, .teacher, .parent], id: \.self) { role in
+                            ForEach([UserRole.student, .parent], id: \.self) { role in
                                 RoleCard(role: role, isSelected: selectedRole == role) {
                                     selectedRole = role
                                 }
                             }
                         }
                         .padding(.horizontal, 24)
+
+                        Text("Teachers & school staff: contact your district administrator to receive an invitation.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
                     }
 
                     // Form Fields
