@@ -6,7 +6,8 @@ private let availableInterests = [
     "Biology", "Chemistry", "Physics", "Geography",
     "Languages", "Drama", "Film", "Photography",
     "Engineering", "Medicine", "Law", "Business",
-    "Environment", "Space", "Animals", "Psychology"
+    "Environment", "Space", "Animals", "Psychology",
+    "Artificial Intelligence", "Robotics", "Cybersecurity"
 ]
 
 struct InterestsView: View {
