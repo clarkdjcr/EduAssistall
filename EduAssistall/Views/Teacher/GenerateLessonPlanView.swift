@@ -75,7 +75,7 @@ struct GenerateLessonPlanView: View {
                     DocumentResultView(
                         title: "Lesson Plan — \(subject) Grade \(grade)",
                         content: result.lessonPlan,
-                        sharepointItemId: result.sharepointItemId,
+                        documentId: result.documentId,
                         documentType: "lesson plan"
                     )
                 }

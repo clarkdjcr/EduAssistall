@@ -1,10 +1,11 @@
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
-const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const { getAuth } = require("firebase-admin/auth");
+const { getStorage } = require("firebase-admin/storage");
 const Anthropic = require("@anthropic-ai/sdk").default;
 const sgMail = require("@sendgrid/mail");
 const crypto = require("crypto");
@@ -262,6 +263,103 @@ async function writeToOfficialDocuments({ filename, content, metadata }) {
     return listItemId;
   } catch (err) {
     console.error("writeToOfficialDocuments failed:", err.message);
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// MARK: - Firebase Document Backend
+// Alternative to SharePoint for districts without M365 or homeschool users.
+// Controlled by districtConfig/{districtId}.documentBackend:
+//   "sharepoint" (default) → existing Graph API path
+//   "firebase"             → Firebase Storage + Firestore path
+// ---------------------------------------------------------------------------
+
+function getDocumentBackend(districtData) {
+  return districtData?.documentBackend ?? "sharepoint";
+}
+
+let _storageBucket = null;
+function getStorageBucket() {
+  if (!_storageBucket) _storageBucket = getStorage().bucket();
+  return _storageBucket;
+}
+
+async function fetchFirebaseGrounding(grade, subject, db) {
+  try {
+    const cacheKey = `fb:${grade}:${subject || ""}`;
+    const cached   = _groundingCache.get(cacheKey);
+    if (cached && (Date.now() - cached.fetchedAt) < CACHE_TTL_MS) {
+      if (await isGroundingCacheValid("firebase-student-content", cached.fetchedAt)) {
+        return cached.items;
+      }
+    }
+    let query = db.collection("groundingContent").where("gradeLevel", "==", grade).limit(5);
+    if (subject) query = query.where("subject", "==", subject);
+    const snap  = await query.get();
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    _groundingCache.set(cacheKey, { items, fetchedAt: Date.now() });
+    return items;
+  } catch {
+    return [];
+  }
+}
+
+async function downloadFirebaseFileContent(storagePath) {
+  if (!storagePath) return null;
+  try {
+    const [content] = await getStorageBucket().file(storagePath).download();
+    return content.toString("utf-8").slice(0, 4000);
+  } catch {
+    return null;
+  }
+}
+
+async function fetchFirebasePoliciesContext(districtId, db) {
+  try {
+    let query = db.collection("districtPolicies").limit(5);
+    if (districtId) query = query.where("districtId", "in", [districtId, "all"]);
+    const snap   = await query.get();
+    const titles = snap.docs.map((d) => d.data().title || "Policy").filter(Boolean);
+    return titles.length > 0 ? titles.join(", ") : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchFirebaseCurriculumItems(grade, subject, db, limit = 5) {
+  try {
+    let query = db.collection("curriculumContent").where("gradeLevel", "==", grade).limit(limit);
+    if (subject) query = query.where("subject", "==", subject);
+    const snap = await query.get();
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch {
+    return [];
+  }
+}
+
+async function writeToFirebaseOfficialDocs({ filename, content, metadata, teacherUid, db }) {
+  try {
+    const docRef      = db.collection("officialDocuments").doc();
+    const storagePath = `official-docs/${metadata.districtId || "shared"}/${docRef.id}_${filename}`;
+    await getStorageBucket().file(storagePath).save(Buffer.from(content, "utf-8"), { contentType: "text/plain" });
+    await docRef.set({
+      title:          metadata.title        || filename,
+      gradeLevel:     metadata.grade        || "",
+      subject:        metadata.subject      || "",
+      school:         metadata.school       || "All",
+      documentType:   metadata.documentType || "Other",
+      approvalStatus: "PendingApproval",
+      teacherUid:     teacherUid            || "",
+      content:        content.slice(0, 100000),
+      storagePath,
+      filename,
+      districtId:     metadata.districtId   || null,
+      createdAt:      FieldValue.serverTimestamp(),
+    });
+    return docRef.id;
+  } catch (err) {
+    console.error("writeToFirebaseOfficialDocs failed:", err.message);
     return null;
   }
 }
@@ -936,7 +1034,6 @@ exports.askCompanion = onCall(
     // Reading on every call means any admin change propagates within one request cycle (<60s). (FR-102/105)
     const gradeBand = getGradeBand(profile.gradeLevel || profile.grade);
 
-    // Start SharePoint fetches now — run in parallel with district config read.
     // Subject priority: active path → first active goal → client-supplied currentSubject.
     const groundingSubject =
       activePath?.subject ||
@@ -944,21 +1041,12 @@ exports.askCompanion = onCall(
       request.data.currentSubject ||
       null;
 
-    const groundingPromise = fetchSharePointGrounding(
-      profile.gradeLevel || profile.grade,
-      groundingSubject
-    ).catch((err) => {
-      console.warn("SharePoint grounding degraded:", err.message);
-      return [];
-    });
-
-    // Policies fetch runs concurrently — degrades to null if not configured.
-    const policiesPromise = fetchPoliciesContext().catch(() => null);
-
+    // Load district config — needed for blocked topics AND document backend routing.
     let districtBlockedTopics = [];
+    let districtData = {};
     if (profile.districtId) {
       const districtSnap = await db.collection("districtConfig").doc(profile.districtId).get();
-      const districtData = districtSnap.data() || {};
+      districtData = districtSnap.data() || {};
 
       // FR-105: merge district-wide blocked topics with this student's grade-band topics.
       const bandTopics = (districtData.gradeBandTopics || {})[gradeBand] ?? [];
@@ -966,6 +1054,20 @@ exports.askCompanion = onCall(
       // Deduplicate: grade-band topics + district-wide topics
       districtBlockedTopics = [...new Set([...allDistrictTopics, ...bandTopics])];
     }
+
+    // Start grounding + policies fetches — routed to SharePoint or Firebase per district config.
+    const backend = getDocumentBackend(districtData);
+    const groundingPromise = (backend === "firebase"
+      ? fetchFirebaseGrounding(profile.gradeLevel || profile.grade, groundingSubject, db)
+      : fetchSharePointGrounding(profile.gradeLevel || profile.grade, groundingSubject)
+    ).catch((err) => {
+      console.warn("Grounding fetch degraded:", err.message);
+      return [];
+    });
+    const policiesPromise = (backend === "firebase"
+      ? fetchFirebasePoliciesContext(profile.districtId, db)
+      : fetchPoliciesContext()
+    ).catch(() => null);
 
     // --- FR-102/105: Check input against district + grade-band block list ---
     if (districtBlockedTopics.length > 0) {
@@ -1023,36 +1125,35 @@ exports.askCompanion = onCall(
         `but only when it genuinely fits the conversation. Do not force it.`;
     }
 
-    // SharePoint grounding — await items, then download content of the best match.
-    // Content download is sequential after the grounding fetch but overlaps with
-    // the synchronous system prompt building above, so net latency impact is small.
+    // Grounding — await items, then download content of the best match.
+    // SharePoint items: { id, fields: { Title, Subject, Standard } }
+    // Firebase items:   { id, title, subject, standard, storagePath }
     const groundingItems = await groundingPromise;
     if (groundingItems.length > 0) {
       const bestMatch = groundingItems[0];
-      const f = bestMatch.fields || {};
+      const f = bestMatch.fields || bestMatch; // normalise both backends
 
-      // Download actual file content (capped at 2 KB for student chat prompts).
-      const fileContent = await downloadSharePointFileContent(
-        process.env.SHAREPOINT_SITE_ID,
-        process.env.SHAREPOINT_STUDENT_CONTENT_LIST_ID,
-        bestMatch.id
+      const fileContent = await (backend === "firebase"
+        ? downloadFirebaseFileContent(bestMatch.storagePath)
+        : downloadSharePointFileContent(
+            process.env.SHAREPOINT_SITE_ID,
+            process.env.SHAREPOINT_STUDENT_CONTENT_LIST_ID,
+            bestMatch.id
+          )
       ).catch(() => null);
 
       if (fileContent) {
-        // Rich grounding — inject actual curriculum text so Claude's answer matches
-        // the exact vocabulary, examples, and structure the district uses.
         systemPrompt +=
-          `\n\nDISTRICT CURRICULUM MATERIAL — "${f.Title || "Untitled"}"` +
-          (f.Standard ? ` (Standard: ${f.Standard})` : "") + `:\n` +
+          `\n\nDISTRICT CURRICULUM MATERIAL — "${f.Title || f.title || "Untitled"}"` +
+          ((f.Standard || f.standard) ? ` (Standard: ${f.Standard || f.standard})` : "") + `:\n` +
           fileContent.slice(0, 2000) +
           `\n\nAlign your explanation with the above curriculum material. ` +
           `Use the same vocabulary, examples, and instructional approach where relevant. ` +
           `Do not contradict it.`;
       } else {
-        // Fallback to metadata-only grounding if the download fails.
         const refs = groundingItems.map((item) => {
-          const fi = item.fields || {};
-          return [fi.Title || "Untitled", fi.Subject, fi.Standard].filter(Boolean).join(" — ");
+          const fi = item.fields || item;
+          return [fi.Title || fi.title || "Untitled", fi.Subject || fi.subject, fi.Standard || fi.standard].filter(Boolean).join(" — ");
         }).join("; ");
         systemPrompt +=
           ` DISTRICT CURRICULUM CONTEXT: The following materials are in this student's` +
@@ -1437,9 +1538,13 @@ exports.generateRecommendations = onCall(
     const progressList = progressSnap.docs.map((d) => d.data());
 
     // Fetch curriculum grounding now that we have grade from the profile.
-    const curriculumItems = await fetchCurriculumItems(
-      profile.gradeLevel || profile.grade,
-      null  // no subject filter — surface all subjects for recommendations
+    const districtSnapRec = profile.districtId
+      ? await db.collection("districtConfig").doc(profile.districtId).get()
+      : null;
+    const backendRec = getDocumentBackend(districtSnapRec?.data());
+    const curriculumItems = await (backendRec === "firebase"
+      ? fetchFirebaseCurriculumItems(profile.gradeLevel || profile.grade, null, db)
+      : fetchCurriculumItems(profile.gradeLevel || profile.grade, null)
     ).catch(() => []);
 
     const totalItems = paths.flatMap((p) => p.items || []).length;
@@ -1448,8 +1553,8 @@ exports.generateRecommendations = onCall(
     const curriculumContext = curriculumItems.length > 0
       ? `\nDistrict Curriculum Available for Grade ${profile.gradeLevel || "unknown"}:\n` +
         curriculumItems.map((i) => {
-          const f = i.fields || {};
-          return `- ${f.Title || "Untitled"} (${f.Subject || "General"}${f.Standard ? `, Standard: ${f.Standard}` : ""})`;
+          const f = i.fields || i; // normalise SharePoint ({ fields:{} }) and Firebase (flat)
+          return `- ${f.Title || f.title || "Untitled"} (${f.Subject || f.subject || "General"}${(f.Standard || f.standard) ? `, Standard: ${f.Standard || f.standard}` : ""})`;
         }).join("\n") +
         "\nAlign recommendations to these materials where possible.\n"
       : "";
@@ -1542,14 +1647,21 @@ exports.generateLessonPlan = onCall(
       throw new HttpsError("invalid-argument", "grade, subject, and topic are required.");
     }
 
-    const siteId = process.env.SHAREPOINT_SITE_ID;
-    const curriculumListId = process.env.SHAREPOINT_CURRICULUM_LIST_ID;
+    const districtSnapLP = callerData.districtId
+      ? await db.collection("districtConfig").doc(callerData.districtId).get()
+      : null;
+    const backendLP = getDocumentBackend(districtSnapLP?.data());
 
     // Fetch curriculum items and download content of up to 2 matches in parallel.
-    const curriculumItems = await fetchCurriculumItems(grade, subject).catch(() => []);
+    const curriculumItems = await (backendLP === "firebase"
+      ? fetchFirebaseCurriculumItems(grade, subject, db)
+      : fetchCurriculumItems(grade, subject)
+    ).catch(() => []);
     const contentSnippets = await Promise.all(
       curriculumItems.slice(0, 2).map((item) =>
-        downloadSharePointFileContent(siteId, curriculumListId, item.id)
+        backendLP === "firebase"
+          ? downloadFirebaseFileContent(item.storagePath)
+          : downloadSharePointFileContent(process.env.SHAREPOINT_SITE_ID, process.env.SHAREPOINT_CURRICULUM_LIST_ID, item.id)
       )
     );
 
@@ -1558,8 +1670,8 @@ exports.generateLessonPlan = onCall(
     if (curriculumItems.length > 0) {
       groundingBlock = "\n\nDISTRICT CURRICULUM REFERENCE MATERIALS:\n";
       curriculumItems.slice(0, 2).forEach((item, i) => {
-        const f = item.fields || {};
-        groundingBlock += `\n--- ${f.Title || "Document"} (${f.Subject || subject}, ${f.Standard || "No standard"}) ---\n`;
+        const f = item.fields || item; // normalise both backends
+        groundingBlock += `\n--- ${f.Title || f.title || "Document"} (${f.Subject || f.subject || subject}, ${f.Standard || f.standard || "No standard"}) ---\n`;
         if (contentSnippets[i]) {
           groundingBlock += contentSnippets[i] + "\n";
         }
@@ -1619,17 +1731,18 @@ exports.generateLessonPlan = onCall(
     // Write draft to OfficialDocuments (ApprovalStatus: PendingApproval per FR-C4).
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const filename = `LessonPlan_${grade}_${subject.replace(/\s+/g, "")}_${timestamp}.txt`;
-    const sharepointItemId = await writeToOfficialDocuments({
-      filename,
-      content: lessonPlanText,
-      metadata: {
-        title:        `${subject} – ${topic} (Grade ${grade})`,
-        grade,
-        subject,
-        school:       callerSnap.data()?.schoolId || "All",
-        documentType: "LessonPlan",
-      },
-    });
+    const docMeta = {
+      title:        `${subject} – ${topic} (Grade ${grade})`,
+      grade,
+      subject,
+      school:       callerSnap.data()?.schoolId || "All",
+      documentType: "LessonPlan",
+      districtId:   callerData.districtId || null,
+    };
+    const documentId = await (backendLP === "firebase"
+      ? writeToFirebaseOfficialDocs({ filename, content: lessonPlanText, metadata: docMeta, teacherUid: request.auth.uid, db })
+      : writeToOfficialDocuments({ filename, content: lessonPlanText, metadata: docMeta })
+    );
 
     // FR-G6: audit log (fire-and-forget).
     writeAiAuditLog(db, {
@@ -1641,14 +1754,12 @@ exports.generateLessonPlan = onCall(
     });
 
     return {
-      lessonPlan:       lessonPlanText,
-      sharepointItemId: sharepointItemId ?? null,
-      curriculumSources: curriculumItems.slice(0, 2).map((i) => ({
-        id:      i.id,
-        title:   i.fields?.Title || "Untitled",
-        subject: i.fields?.Subject,
-        standard: i.fields?.Standard,
-      })),
+      lessonPlan:  lessonPlanText,
+      documentId:  documentId ?? null,
+      curriculumSources: curriculumItems.slice(0, 2).map((i) => {
+        const f = i.fields || i;
+        return { id: i.id, title: f.Title || f.title || "Untitled", subject: f.Subject || f.subject, standard: f.Standard || f.standard };
+      }),
     };
   }
 );
@@ -1793,32 +1904,37 @@ exports.generateParentLetter = onCall(
     const letterText = response.content[0].text;
 
     // Write draft to OfficialDocuments (PendingApproval — teacher must review before sending).
+    const districtSnapPL = callerData.districtId
+      ? await db.collection("districtConfig").doc(callerData.districtId).get()
+      : null;
+    const backendPL = getDocumentBackend(districtSnapPL?.data());
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     const filename  = `ParentLetter_${studentId}_${letterType}_${timestamp}.txt`;
-    const sharepointItemId = await writeToOfficialDocuments({
-      filename,
-      content:  letterText,
-      metadata: {
-        title:        `Parent Letter – ${studentName} (${letterType})`,
-        grade,
-        subject:      subject || "",
-        school:       profile.schoolId || callerSnap.data()?.schoolId || "All",
-        documentType: "ParentLetter",
-      },
-    });
+    const plMeta = {
+      title:        `Parent Letter – ${studentName} (${letterType})`,
+      grade,
+      subject:      subject || "",
+      school:       profile.schoolId || callerSnap.data()?.schoolId || "All",
+      documentType: "ParentLetter",
+      districtId:   callerData.districtId || null,
+    };
+    const documentId = await (backendPL === "firebase"
+      ? writeToFirebaseOfficialDocs({ filename, content: letterText, metadata: plMeta, teacherUid: request.auth.uid, db })
+      : writeToOfficialDocuments({ filename, content: letterText, metadata: plMeta })
+    );
 
     // FR-G6: audit log (fire-and-forget).
     writeAiAuditLog(db, {
       uid:            request.auth.uid,
       profile:        { schoolId: callerSnap.data()?.schoolId },
-      groundingItems: [],   // parent letters use Firestore data, not SharePoint curriculum
+      groundingItems: [],
       usage:          response.usage,
       cacheHit:       false,
     });
 
     return {
-      letter:           letterText,
-      sharepointItemId: sharepointItemId ?? null,
+      letter:     letterText,
+      documentId: documentId ?? null,
       studentName,
       letterType,
     };
@@ -4221,5 +4337,90 @@ exports.setDistrictApiKey = onCall(
     }, { merge: true });
 
     return { success: true };
+  }
+);
+
+// MARK: - Approve/Reject Official Document (Firebase backend)
+// Teacher-only. Updates approvalStatus on an officialDocuments doc.
+exports.approveDocument = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const callerData = callerSnap.data() || {};
+    if (callerData.role !== "teacher" && callerData.role !== "admin") {
+      throw new HttpsError("permission-denied", "Only teachers and admins may approve documents.");
+    }
+    const { documentId, action } = request.data;
+    if (!documentId || !["approve", "reject"].includes(action)) {
+      throw new HttpsError("invalid-argument", "documentId and action (approve|reject) are required.");
+    }
+    const docRef  = db.collection("officialDocuments").doc(documentId);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) throw new HttpsError("not-found", "Document not found.");
+    const docData = docSnap.data();
+    if (callerData.role !== "admin" && docData.teacherUid !== request.auth.uid) {
+      throw new HttpsError("permission-denied", "You can only approve your own documents.");
+    }
+    const newStatus = action === "approve" ? "Approved" : "Rejected";
+    await docRef.update({
+      approvalStatus: newStatus,
+      reviewedBy:     request.auth.uid,
+      reviewedAt:     FieldValue.serverTimestamp(),
+    });
+    db.collection("aiAuditLog").add({
+      featureId:  "approveDocument",
+      uid:        request.auth.uid,
+      documentId,
+      action,
+      newStatus,
+      createdAt:  FieldValue.serverTimestamp(),
+    }).catch(() => {});
+    return { success: true, status: newStatus };
+  }
+);
+
+// MARK: - Set Document Backend (admin)
+exports.setDocumentBackend = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const callerData = callerSnap.data() || {};
+    if (callerData.role !== "admin" && callerData.role !== "teacher") {
+      throw new HttpsError("permission-denied", "Admin or teacher role required.");
+    }
+    const { backend } = request.data;
+    if (!["sharepoint", "firebase"].includes(backend)) {
+      throw new HttpsError("invalid-argument", "backend must be 'sharepoint' or 'firebase'.");
+    }
+    const districtId = callerData.districtId || "default";
+    await db.collection("districtConfig").doc(districtId).set(
+      { documentBackend: backend, backendUpdatedAt: FieldValue.serverTimestamp(), backendUpdatedBy: request.auth.uid },
+      { merge: true }
+    );
+    return { success: true, backend };
+  }
+);
+
+// MARK: - Firestore Triggers: Firebase grounding cache invalidation
+// Writes to groundingCacheVersion so in-process caches are cleared within one request cycle.
+exports.onGroundingContentWrite = onDocumentWritten(
+  { document: "groundingContent/{docId}", region: "us-central1" },
+  async () => {
+    await getFirestore().collection("groundingCacheVersion").doc("firebase-student-content").set({
+      invalidatedAt: FieldValue.serverTimestamp(),
+    });
+  }
+);
+
+exports.onCurriculumContentWrite = onDocumentWritten(
+  { document: "curriculumContent/{docId}", region: "us-central1" },
+  async () => {
+    await getFirestore().collection("groundingCacheVersion").doc("firebase-curriculum").set({
+      invalidatedAt: FieldValue.serverTimestamp(),
+    });
   }
 );

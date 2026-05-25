@@ -119,7 +119,7 @@ struct GenerateParentLetterView: View {
                     DocumentResultView(
                         title: "Parent Letter — \(result.studentName)",
                         content: result.letter,
-                        sharepointItemId: result.sharepointItemId,
+                        documentId: result.documentId,
                         documentType: "parent letter"
                     )
                 }
