@@ -95,6 +95,12 @@ struct DataPrivacyView: View {
                 }
             }
 
+            Section("Legal") {
+                Link(destination: URL(string: "https://clarkdjcr.github.io/EduAssistall/privacy.html")!) {
+                    Label("Privacy Policy", systemImage: "doc.text")
+                }
+            }
+
             Section {
                 if let err = deleteError {
                     Text(err).foregroundStyle(.red).font(.footnote)
