@@ -25,6 +25,12 @@
     <key>NSUserNotificationsUsageDescription</key>
     <string>EduAssist sends you notifications when your teacher assigns new content or sends you a message.</string>
 
+    <!-- Disable Firebase Messaging app delegate proxy. We set up Messaging.delegate manually in AppDelegate
+         (iOS only). Setting this to NO prevents FCM from swizzling on macOS where UIApplicationDelegate
+         does not exist, eliminating the I-FCM001000 / I-SWZ001014 log noise. -->
+    <key>FirebaseAppDelegateProxyEnabled</key>
+    <false/>
+
     <!-- Required by Firebase OAuthProvider (Microsoft/Entra sign-in) to redirect back to the app after browser auth. -->
     <key>CFBundleURLTypes</key>
     <array>

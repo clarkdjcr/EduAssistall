@@ -310,10 +310,13 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
-    // systemConfig/{docId}  — admin-only (data residency, etc.)
+    // systemConfig/{docId}  — all authenticated users can read (DataResidencyService
+    // reads systemConfig/dataResidency on every sign-in to verify US data residency).
+    // Only admins may write.
     // -------------------------------------------------------------------------
     match /systemConfig/{docId} {
-      allow read, write: if request.auth != null && isAdmin();
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null && isAdmin();
     }
 
     // -------------------------------------------------------------------------
@@ -332,7 +335,9 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     match /criticalSafetyEvents/{eventId} { allow read, write: if false; }
     match /safetyClassifications/{docId}  { allow read, write: if false; }
-    match /auditLogs/{docId}              { allow read, write: if false; }
+    // auditLogs: clients may append their own events (sign-in, sign-out, export, etc.).
+    // No client may read, update, or delete — tamper-evident append-only trail.
+    match /auditLogs/{docId}              { allow create: if request.auth != null; allow read, update, delete: if false; }
     match /rateLimits/{docId}             { allow read, write: if false; }
     match /performanceMetrics/{docId}     { allow read, write: if false; }
     match /healthPing/{docId}             { allow read, write: if false; }
