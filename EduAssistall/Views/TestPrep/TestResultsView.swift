@@ -4,6 +4,7 @@ struct TestResultsView: View {
     let test: PracticeTest
     let attempt: TestAttempt
     let onDone: () -> Void
+    let onRetake: () -> Void
 
     @State private var expandedQuestion: String?
 
@@ -31,7 +32,10 @@ struct TestResultsView: View {
             .navigationTitle("Results")
             .inlineNavigationTitle()
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Try Again") { onRetake() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { onDone() }
                         .fontWeight(.semibold)
                 }

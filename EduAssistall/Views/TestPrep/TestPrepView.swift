@@ -4,15 +4,40 @@ struct TestPrepView: View {
     let profile: UserProfile
 
     @State private var attempts: [TestAttempt] = []
+    @State private var learningProfile: LearningProfile?
     @State private var isLoading = true
     @State private var selectedTest: PracticeTest?
     @State private var filterType: TestType? = nil
+    @State private var showForYouOnly = false
 
     private let tests = TestDataProvider.tests
 
+    private var studentGrade: Int? {
+        guard let g = learningProfile?.grade, !g.isEmpty else { return nil }
+        return Int(g)
+    }
+
+    private var recommendedTests: [PracticeTest] {
+        guard let grade = studentGrade else { return [] }
+        return tests.filter { isRecommended($0, forGrade: grade) }
+    }
+
+    private func isRecommended(_ test: PracticeTest, forGrade grade: Int) -> Bool {
+        if test.type == .sat || test.type == .act { return grade >= 9 }
+        guard let testGrade = Int(test.gradeLevel) else { return false }
+        return abs(testGrade - grade) <= 1
+    }
+
     private var filtered: [PracticeTest] {
-        guard let t = filterType else { return tests }
-        return tests.filter { $0.type == t }
+        let base: [PracticeTest]
+        if showForYouOnly, let grade = studentGrade {
+            base = tests.filter { isRecommended($0, forGrade: grade) }
+        } else if let t = filterType {
+            base = tests.filter { $0.type == t }
+        } else {
+            base = tests
+        }
+        return base
     }
 
     var body: some View {
@@ -20,6 +45,9 @@ struct TestPrepView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     typeFilter
+                    if !recommendedTests.isEmpty && !showForYouOnly && filterType == nil {
+                        forYouSection
+                    }
                     testGrid
                     if !attempts.isEmpty { historySection }
                     Spacer(minLength: 32)
@@ -44,42 +72,84 @@ struct TestPrepView: View {
     private var typeFilter: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                filterChip(label: "All", type: nil)
+                filterChip(label: "All", forYou: false, type: nil)
+                if !recommendedTests.isEmpty {
+                    filterChip(label: "For You", forYou: true, type: nil)
+                }
                 ForEach(TestType.allCases, id: \.self) { type in
-                    filterChip(label: type.displayName, type: type)
+                    filterChip(label: type.displayName, forYou: false, type: type)
                 }
             }
             .padding(.horizontal, 20)
         }
     }
 
-    private func filterChip(label: String, type: TestType?) -> some View {
-        let isSelected = filterType == type
-        return Button(label) { filterType = type }
-            .font(.subheadline)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .background(isSelected ? Color.blue : Color.blue.opacity(0.08))
-            .foregroundStyle(isSelected ? Color.white : Color.blue)
-            .clipShape(Capsule())
+    private func filterChip(label: String, forYou: Bool, type: TestType?) -> some View {
+        let isSelected = forYou ? showForYouOnly : (!showForYouOnly && filterType == type)
+        return Button(label) {
+            showForYouOnly = forYou
+            filterType = forYou ? nil : type
+        }
+        .font(.subheadline)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .background(isSelected ? Color.blue : Color.blue.opacity(0.08))
+        .foregroundStyle(isSelected ? Color.white : Color.blue)
+        .clipShape(Capsule())
+    }
+
+    // MARK: - For You Section
+
+    private var forYouSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Recommended for Grade \(learningProfile?.grade ?? "")", systemImage: "star.fill")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Button("See all") { showForYouOnly = true }
+                    .font(.subheadline)
+                    .foregroundStyle(.blue)
+            }
+            .padding(.horizontal, 20)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(recommendedTests) { test in
+                        TestCard(test: test, bestScore: bestScore(for: test.id)) {
+                            selectedTest = test
+                        }
+                        .frame(width: 180)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+        }
     }
 
     // MARK: - Test Grid
 
     private var testGrid: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Practice Tests")
+            Text(showForYouOnly ? "For Your Grade" : filterType.map { $0.displayName + " Tests" } ?? "All Tests")
                 .font(.headline)
                 .padding(.horizontal, 20)
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                ForEach(filtered) { test in
-                    TestCard(test: test, bestScore: bestScore(for: test.id)) {
-                        selectedTest = test
+            if filtered.isEmpty {
+                Text("No tests match this filter.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 20)
+            } else {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                    ForEach(filtered) { test in
+                        TestCard(test: test, bestScore: bestScore(for: test.id)) {
+                            selectedTest = test
+                        }
                     }
                 }
+                .padding(.horizontal, 20)
             }
-            .padding(.horizontal, 20)
         }
     }
 
@@ -106,7 +176,10 @@ struct TestPrepView: View {
 
     private func load() async {
         isLoading = true
-        attempts = (try? await FirestoreService.shared.fetchTestAttempts(studentId: profile.id)) ?? []
+        async let fetchedAttempts = FirestoreService.shared.fetchTestAttempts(studentId: profile.id)
+        async let fetchedProfile = FirestoreService.shared.fetchLearningProfile(studentId: profile.id)
+        attempts = (try? await fetchedAttempts) ?? []
+        learningProfile = try? await fetchedProfile
         isLoading = false
     }
 }
