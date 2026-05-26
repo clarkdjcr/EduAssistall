@@ -461,6 +461,8 @@ struct StudentProfileSheet: View {
     @Environment(AuthViewModel.self) private var authVM
     @Environment(\.dismiss) private var dismiss
     @State private var pendingCount = 0
+    @State private var showLinks = false
+    @State private var showPrivacy = false
 
     var body: some View {
         NavigationStack {
@@ -488,11 +490,12 @@ struct StudentProfileSheet: View {
                     }
 
                     Section {
-                        NavigationLink {
-                            PendingLinksView(studentId: profile.id)
+                        Button {
+                            showLinks = true
                         } label: {
                             HStack {
                                 Label("Link Requests", systemImage: "person.badge.plus")
+                                    .foregroundStyle(.primary)
                                 Spacer()
                                 if pendingCount > 0 {
                                     Text("\(pendingCount)")
@@ -503,28 +506,66 @@ struct StudentProfileSheet: View {
                                         .background(Color.orange)
                                         .clipShape(Capsule())
                                 }
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .sheet(isPresented: $showLinks) {
+                            NavigationStack {
+                                PendingLinksView(studentId: profile.id)
+                                    .toolbar {
+                                        ToolbarItem(placement: .topBarTrailing) {
+                                            Button("Done") { showLinks = false }
+                                        }
+                                    }
                             }
                         }
 
-                        NavigationLink {
-                            DataPrivacyView()
+                        Button {
+                            showPrivacy = true
                         } label: {
-                            Label("Privacy & Data", systemImage: "lock.shield")
+                            HStack {
+                                Label("Privacy & Data", systemImage: "lock.shield")
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .sheet(isPresented: $showPrivacy) {
+                            NavigationStack {
+                                DataPrivacyView()
+                                    .toolbar {
+                                        ToolbarItem(placement: .topBarTrailing) {
+                                            Button("Done") { showPrivacy = false }
+                                        }
+                                    }
+                            }
                         }
                     }
                 }
 
                 Section {
                     Button(role: .destructive) {
-                        Task { @MainActor in authVM.signOut() }
+                        dismiss()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            authVM.signOut()
+                        }
                     } label: {
                         Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
                     }
                 }
             }
+            #if os(iOS)
+            .listStyle(.insetGrouped)
+            #else
+            .listStyle(.inset)
+            #endif
             .navigationTitle("Profile")
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                 }
             }
