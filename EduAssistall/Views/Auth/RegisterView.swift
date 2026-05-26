@@ -39,7 +39,8 @@ struct RegisterView: View {
                     }
                     .padding(.top, 32)
 
-                    // Role Selector
+                    // Role Selector — student and parent only.
+                    // Teachers are provisioned by a school administrator, not through in-app registration.
                     VStack(alignment: .leading, spacing: 12) {
                         Text("I am a...")
                             .font(.headline)

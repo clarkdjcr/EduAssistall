@@ -224,7 +224,11 @@ final class AuthViewModel {
             AuditService.shared.log(.signOut, userId: uid)
             OfflineCacheService.shared.clearAll(for: uid)
         }
-        try? Auth.auth().signOut()
+        // Defer the Firebase call by one run-loop cycle so iPadOS 26's TabView
+        // finishes its current layout pass before the view hierarchy is replaced.
+        DispatchQueue.main.async {
+            try? Auth.auth().signOut()
+        }
     }
 
     // MARK: - Complete Onboarding
