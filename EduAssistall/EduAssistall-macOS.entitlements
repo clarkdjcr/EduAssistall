@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Outbound HTTPS/gRPC for Firebase Auth, Firestore, and Cloud Functions. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<!-- macOS App Sandbox (required for Mac App Store). -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<!-- macOS push notification entitlement (correct key for macOS; iOS uses aps-environment). -->
+	<key>com.apple.developer.aps-environment</key>
+	<string>production</string>
+</dict>
+</plist>

@@ -51,6 +51,12 @@ struct EduAssistallApp: App {
     @AppStorage("a11y_reduceMotion")  private var reduceMotion:   Bool = false
 
     init() {
+        #if !os(iOS)
+        // Firebase Messaging auto-init requires APS entitlements that only exist on iOS.
+        // Disabling it prevents FCM registration errors from interfering with
+        // Auth/Firestore initialization on macOS and visionOS.
+        UserDefaults.standard.set(false, forKey: "FirebaseMessagingAutoInitEnabled")
+        #endif
         FirebaseApp.configure()
         let container = try! ModelContainer(for: CachedLearningPath.self, CachedStudentProgress.self)
         cacheContainer = container
