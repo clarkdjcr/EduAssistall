@@ -163,7 +163,7 @@ struct CurriculumLibraryView: View {
                 try await FirestoreService.shared.deleteCurriculumDocument(id: doc.id, collectionType: doc.collectionType)
                 documents.removeAll { $0.id == doc.id }
             } catch {
-                deleteError = "Failed to delete "\(doc.title)": \(error.localizedDescription)"
+                deleteError = "Failed to delete \"\(doc.title)\": \(error.localizedDescription)"
             }
         }
     }
