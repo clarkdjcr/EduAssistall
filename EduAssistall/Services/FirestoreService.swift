@@ -750,6 +750,50 @@ final class FirestoreService {
         try await batch.commit()
     }
 
+    // MARK: - Curriculum Documents (Firebase document backend)
+
+    func fetchCurriculumDocuments() async throws -> [CurriculumDocEntry] {
+        async let currSnap = db.collection("curriculumContent")
+            .order(by: "createdAt", descending: true).limit(to: 100).getDocuments()
+        async let grndSnap = db.collection("groundingContent")
+            .order(by: "createdAt", descending: true).limit(to: 100).getDocuments()
+        let (curr, grnd) = try await (currSnap, grndSnap)
+        let currDocs = curr.documents.compactMap { CurriculumDocEntry(from: $0, collectionType: "curriculum") }
+        let grndDocs = grnd.documents.compactMap { CurriculumDocEntry(from: $0, collectionType: "grounding") }
+        return (currDocs + grndDocs).sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+    }
+
+    func saveCurriculumDocument(
+        title: String,
+        subject: String,
+        gradeLevel: String,
+        standard: String,
+        content: String,
+        collectionType: String,
+        districtId: String?,
+        uploadedBy: String
+    ) async throws {
+        let collection = collectionType == "grounding" ? "groundingContent" : "curriculumContent"
+        let filename = title.replacingOccurrences(of: " ", with: "_") + ".txt"
+        try await db.collection(collection).document().setData([
+            "title":          title,
+            "subject":        subject,
+            "gradeLevel":     gradeLevel,
+            "standard":       standard,
+            "content":        content,
+            "collectionType": collectionType,
+            "filename":       filename,
+            "districtId":     districtId as Any,
+            "uploadedBy":     uploadedBy,
+            "createdAt":      FieldValue.serverTimestamp(),
+        ])
+    }
+
+    func deleteCurriculumDocument(id: String, collectionType: String) async throws {
+        let collection = collectionType == "grounding" ? "groundingContent" : "curriculumContent"
+        try await db.collection(collection).document(id).delete()
+    }
+
     // MARK: - Badges
 
     func checkAndAwardBadges(studentId: String) async {

@@ -315,6 +315,13 @@ async function downloadFirebaseFileContent(storagePath) {
   }
 }
 
+// Returns inline content if the document was uploaded via the admin library,
+// otherwise falls back to downloading from Firebase Storage.
+function getFirebaseDocContent(item) {
+  if (item.content) return Promise.resolve(item.content.slice(0, 4000));
+  return downloadFirebaseFileContent(item.storagePath);
+}
+
 async function fetchFirebasePoliciesContext(districtId, db) {
   try {
     let query = db.collection("districtPolicies").limit(5);
@@ -1134,7 +1141,7 @@ exports.askCompanion = onCall(
       const f = bestMatch.fields || bestMatch; // normalise both backends
 
       const fileContent = await (backend === "firebase"
-        ? downloadFirebaseFileContent(bestMatch.storagePath)
+        ? getFirebaseDocContent(bestMatch)
         : downloadSharePointFileContent(
             process.env.SHAREPOINT_SITE_ID,
             process.env.SHAREPOINT_STUDENT_CONTENT_LIST_ID,
@@ -1660,7 +1667,7 @@ exports.generateLessonPlan = onCall(
     const contentSnippets = await Promise.all(
       curriculumItems.slice(0, 2).map((item) =>
         backendLP === "firebase"
-          ? downloadFirebaseFileContent(item.storagePath)
+          ? getFirebaseDocContent(item)
           : downloadSharePointFileContent(process.env.SHAREPOINT_SITE_ID, process.env.SHAREPOINT_CURRICULUM_LIST_ID, item.id)
       )
     );

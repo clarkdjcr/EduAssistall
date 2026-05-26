@@ -384,6 +384,15 @@ private struct ProfileSettingsView: View {
                         }
                     }
 
+                    // Curriculum library — admin only (upload curriculum + grounding content)
+                    if let profile = authVM.currentProfile, profile.role == .admin {
+                        NavigationLink {
+                            CurriculumLibraryView(profile: profile)
+                        } label: {
+                            Label("Curriculum Library", systemImage: "archivebox.fill")
+                        }
+                    }
+
                     // Documents awaiting teacher approval (Firebase backend)
                     if let profile = authVM.currentProfile,
                        profile.role == .teacher || profile.role == .admin {
