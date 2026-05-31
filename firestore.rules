@@ -155,6 +155,26 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
+    // testAttempts/{attemptId}
+    // Students create/read their own practice-test results. Linked adults and
+    // admins can read for progress dashboards and Teacher Assist analytics.
+    // -------------------------------------------------------------------------
+    match /testAttempts/{attemptId} {
+      allow read: if request.auth != null && (
+          resource.data.studentId == request.auth.uid ||
+          isLinked(resource.data.studentId) ||
+          isAdmin()
+      );
+      allow create: if request.auth != null && (
+          request.resource.data.studentId == request.auth.uid || isAdmin()
+      );
+      allow update: if false;
+      allow delete: if request.auth != null && (
+          resource.data.studentId == request.auth.uid || isAdmin()
+      );
+    }
+
+    // -------------------------------------------------------------------------
     // conversations/{studentId}/messages/{msgId}
     // Students write their own messages. Cloud Functions write AI replies via
     // Admin SDK (bypasses these rules). No client can update or delete.

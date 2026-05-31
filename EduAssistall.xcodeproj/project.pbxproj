@@ -442,7 +442,7 @@
 				CODE_SIGN_ENTITLEMENTS = EduAssistall/EduAssistall.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "EduAssistall/EduAssistall-macOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 965RA266P3;
 				ENABLE_APP_SANDBOX = YES;
@@ -465,7 +465,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = clarkdjcr.EduAssistall;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				"REGISTER_APP_GROUPS[sdk=iphoneos*]" = YES;
@@ -491,7 +491,7 @@
 				CODE_SIGN_ENTITLEMENTS = EduAssistall/EduAssistall.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "EduAssistall/EduAssistall-macOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 965RA266P3;
 				ENABLE_APP_SANDBOX = YES;
@@ -514,7 +514,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = clarkdjcr.EduAssistall;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				"REGISTER_APP_GROUPS[sdk=iphoneos*]" = YES;

@@ -10,8 +10,8 @@ Use this document when filling in App Store Connect. All fields marked **[REQUIR
 |---|---|
 | App Name | EduAssist |
 | Bundle ID | clarkdjcr.EduAssistall |
-| Version | 1.2 |
-| Build | 7 |
+| Version | 1.5 |
+| Build | 14 |
 | Primary Language | English (U.S.) |
 | Category (Primary) | Education |
 | Category (Secondary) | Productivity |
@@ -255,7 +255,8 @@ Suggested screens to capture:
 2. Student Dashboard with learning path progress
 3. Learning Goals list
 4. Teacher Monitor dashboard showing active students
-5. Mode Picker sheet (the four learning modes)
+5. Teacher Assist workspace with standards, groups, and parent update draft
+6. Mode Picker sheet (the four learning modes)
 
 ---
 
