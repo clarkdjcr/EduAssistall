@@ -198,6 +198,13 @@ struct TeacherDashboardView: View {
                 .buttonStyle(.plain)
 
                 NavigationLink {
+                    TeacherAssistView(teacherProfile: profile)
+                } label: {
+                    QuickActionCard(icon: "wand.and.stars", label: "Teacher Assist", color: .mint)
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
                     TeacherReportsDestination(confirmedStudents: confirmedStudents)
                 } label: {
                     QuickActionCard(icon: "chart.bar.fill", label: "Reports", color: .teal)

@@ -423,6 +423,25 @@ final class FirestoreService {
             }
     }
 
+    func fetchActiveSessions(studentIds: [String]) async throws -> [String: ActiveSession] {
+        guard !studentIds.isEmpty else { return [:] }
+        var result: [String: ActiveSession] = [:]
+        let chunks = stride(from: 0, to: studentIds.count, by: 30).map {
+            Array(studentIds[$0..<min($0 + 30, studentIds.count)])
+        }
+        for chunk in chunks {
+            let snapshot = try await db.collection("activeSessions")
+                .whereField("studentId", in: chunk)
+                .getDocuments()
+            for doc in snapshot.documents {
+                if let session = try? doc.data(as: ActiveSession.self) {
+                    result[session.studentId] = session
+                }
+            }
+        }
+        return result
+    }
+
     /// Real-time listener for a student's conversation messages (read-only transcript).
     func listenConversationMessages(
         studentId: String,
@@ -488,6 +507,32 @@ final class FirestoreService {
             .collection("flags")
             .document(flagId)
             .updateData(["acknowledged": true])
+    }
+
+    func fetchRecentSessionFlags(studentId: String, limit: Int = 20) async throws -> [SessionFlag] {
+        let snapshot = try await db.collection("sessionFlags")
+            .document(studentId)
+            .collection("flags")
+            .order(by: "createdAt", descending: true)
+            .limit(to: limit)
+            .getDocuments()
+
+        return snapshot.documents.compactMap { doc in
+            let d = doc.data()
+            guard let typeRaw = d["type"] as? String,
+                  let type_ = SessionFlagType(rawValue: typeRaw),
+                  let reason = d["reason"] as? String else { return nil }
+            let createdAt = (d["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+            return SessionFlag(
+                id: doc.documentID,
+                studentId: studentId,
+                type: type_,
+                reason: reason,
+                messagePreview: d["messagePreview"] as? String,
+                acknowledged: d["acknowledged"] as? Bool ?? false,
+                createdAt: createdAt
+            )
+        }
     }
 
     // MARK: - Teacher Hints (FR-204)

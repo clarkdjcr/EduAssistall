@@ -106,6 +106,11 @@ private struct TeacherTabView: View {
                     Label("Create", systemImage: "sparkles")
                 }
 
+            TeacherAssistView(teacherProfile: profile)
+                .tabItem {
+                    Label("Assist", systemImage: "wand.and.stars")
+                }
+
             MessagesListView(profile: profile)
                 .tabItem {
                     Label("Messages", systemImage: "message.fill")
