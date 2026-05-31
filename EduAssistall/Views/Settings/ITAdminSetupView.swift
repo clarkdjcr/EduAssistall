@@ -124,7 +124,7 @@ struct ITAdminSetupView: View {
             Text("Document Backend")
         } footer: {
             if documentBackend == "firebase" {
-                Text("Uses Firebase Storage + Firestore. No Microsoft 365 license required. Ideal for districts without M365 and for homeschool users.")
+                Text("Use this for homeschool, micro-school, co-op, or district setups without Microsoft 365. Documents stay in Firebase Storage + Firestore and still require teacher approval.")
             } else {
                 Text("Uses SharePoint document libraries. Requires Microsoft 365 licensing and an Azure app registration.")
             }
@@ -141,7 +141,7 @@ struct ITAdminSetupView: View {
                     Text("Firebase Storage Ready")
                         .font(.subheadline.bold())
                         .foregroundStyle(.green)
-                    Text("Documents are stored in Firebase Storage and Firestore. No additional configuration needed.")
+                    Text("Ready for homeschool or non-M365 document retention and teacher approval.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }

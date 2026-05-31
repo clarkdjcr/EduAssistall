@@ -203,11 +203,14 @@ used for advertising. The AI model receives only anonymised context
 (grade level, subject, mode) — no name or email.
 
 IT Integration tab (teacher account): The "IT Integration" section in
-Settings connects to optional Microsoft SharePoint infrastructure for
-districts that use it. Status indicators may appear orange/red on the
-demo account — this is expected, as SharePoint credentials are not
-configured for review accounts. All core app features (AI companion,
-monitoring, learning paths) work without SharePoint.
+Settings supports two document-storage modes. Districts with Microsoft
+365 can choose SharePoint. Homeschool users, micro-schools, co-ops, and
+districts without Microsoft 365 can choose Firebase document storage.
+Status indicators may appear orange/red on the demo account if
+SharePoint is selected — this is expected, as SharePoint credentials are
+not configured for review accounts. All core app features (AI companion,
+monitoring, learning paths, Firebase document retention, and teacher
+approval) work without SharePoint.
 
 Educator controls: From the Teacher Monitor tab, tapping a student and
 using "Pause Session" will lock that student's AI Companion tab. This is

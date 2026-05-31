@@ -1,6 +1,8 @@
 # EduAssist × Microsoft SharePoint Integration
 ### Curriculum-Grounded AI — Built for the Way Districts Already Work
 
+> This guide is for districts that already use Microsoft 365 and want EduAssist connected to SharePoint. Homeschool users, micro-schools, co-ops, and districts without Microsoft 365 should use the Firebase onboarding path in `docs/ONBOARDING.md`.
+
 ---
 
 ## Why This Matters for Your District
