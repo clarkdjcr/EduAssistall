@@ -1,5 +1,21 @@
 import SwiftUI
 
+var adaptiveTopBarLeading: ToolbarItemPlacement {
+    #if os(macOS)
+    .cancellationAction
+    #else
+    .topBarLeading
+    #endif
+}
+
+var adaptiveTopBarTrailing: ToolbarItemPlacement {
+    #if os(macOS)
+    .confirmationAction
+    #else
+    .topBarTrailing
+    #endif
+}
+
 extension View {
     /// Email address keyboard + autocomplete hints — iOS/visionOS only.
     func emailInput() -> some View {

@@ -30,7 +30,7 @@ struct CurriculumLibraryView: View {
         .navigationTitle("Curriculum Library")
         .inlineNavigationTitle()
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: adaptiveTopBarTrailing) {
                 Button {
                     showUpload = true
                 } label: {

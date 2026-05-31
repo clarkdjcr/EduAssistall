@@ -32,10 +32,10 @@ struct TestResultsView: View {
             .navigationTitle("Results")
             .inlineNavigationTitle()
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: adaptiveTopBarLeading) {
                     Button("Try Again") { onRetake() }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: adaptiveTopBarTrailing) {
                     Button("Done") { onDone() }
                         .fontWeight(.semibold)
                 }

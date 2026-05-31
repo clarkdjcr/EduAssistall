@@ -515,7 +515,7 @@ struct StudentProfileSheet: View {
                             NavigationStack {
                                 PendingLinksView(studentId: profile.id)
                                     .toolbar {
-                                        ToolbarItem(placement: .topBarTrailing) {
+                                        ToolbarItem(placement: adaptiveTopBarTrailing) {
                                             Button("Done") { showLinks = false }
                                         }
                                     }
@@ -538,7 +538,7 @@ struct StudentProfileSheet: View {
                             NavigationStack {
                                 DataPrivacyView()
                                     .toolbar {
-                                        ToolbarItem(placement: .topBarTrailing) {
+                                        ToolbarItem(placement: adaptiveTopBarTrailing) {
                                             Button("Done") { showPrivacy = false }
                                         }
                                     }
@@ -565,7 +565,7 @@ struct StudentProfileSheet: View {
             #endif
             .navigationTitle("Profile")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: adaptiveTopBarTrailing) {
                     Button("Done") { dismiss() }
                 }
             }
