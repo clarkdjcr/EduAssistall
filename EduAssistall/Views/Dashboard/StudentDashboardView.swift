@@ -466,7 +466,7 @@ struct StudentProfileSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            Form {
                 if let profile = authVM.currentProfile {
                     Section {
                         HStack(spacing: 14) {
@@ -511,16 +511,6 @@ struct StudentProfileSheet: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        .sheet(isPresented: $showLinks) {
-                            NavigationStack {
-                                PendingLinksView(studentId: profile.id)
-                                    .toolbar {
-                                        ToolbarItem(placement: adaptiveTopBarTrailing) {
-                                            Button("Done") { showLinks = false }
-                                        }
-                                    }
-                            }
-                        }
 
                         Button {
                             showPrivacy = true
@@ -532,16 +522,6 @@ struct StudentProfileSheet: View {
                                 Image(systemName: "chevron.right")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                            }
-                        }
-                        .sheet(isPresented: $showPrivacy) {
-                            NavigationStack {
-                                DataPrivacyView()
-                                    .toolbar {
-                                        ToolbarItem(placement: adaptiveTopBarTrailing) {
-                                            Button("Done") { showPrivacy = false }
-                                        }
-                                    }
                             }
                         }
                     }
@@ -558,15 +538,32 @@ struct StudentProfileSheet: View {
                     }
                 }
             }
-            #if os(iOS)
-            .listStyle(.insetGrouped)
-            #else
-            .listStyle(.inset)
-            #endif
             .navigationTitle("Profile")
             .toolbar {
                 ToolbarItem(placement: adaptiveTopBarTrailing) {
                     Button("Done") { dismiss() }
+                }
+            }
+            .sheet(isPresented: $showLinks) {
+                if let profile = authVM.currentProfile {
+                    NavigationStack {
+                        PendingLinksView(studentId: profile.id)
+                            .toolbar {
+                                ToolbarItem(placement: adaptiveTopBarTrailing) {
+                                    Button("Done") { showLinks = false }
+                                }
+                            }
+                    }
+                }
+            }
+            .sheet(isPresented: $showPrivacy) {
+                NavigationStack {
+                    DataPrivacyView()
+                        .toolbar {
+                            ToolbarItem(placement: adaptiveTopBarTrailing) {
+                                Button("Done") { showPrivacy = false }
+                            }
+                        }
                 }
             }
             .task {
