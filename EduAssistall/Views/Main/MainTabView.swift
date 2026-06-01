@@ -80,6 +80,11 @@ private struct StudentTabView: View {
                 .tabItem {
                     Label("Progress", systemImage: "chart.bar.fill")
                 }
+
+            ProfileSettingsView()
+                .tabItem {
+                    Label("Profile", systemImage: "person.fill")
+                }
         }
     }
 }
