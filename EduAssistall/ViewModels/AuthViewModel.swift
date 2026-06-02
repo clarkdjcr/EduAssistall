@@ -225,15 +225,17 @@ final class AuthViewModel {
             AuditService.shared.log(.signOut, userId: uid)
             OfflineCacheService.shared.clearAll(for: uid)
         }
-        // Call Firebase signOut() directly — do NOT mutate authState here.
-        // signOut() fires the auth state listener synchronously, but the listener
-        // wraps handleAuthStateChange in Task { @MainActor in ... }, so the view-
-        // hierarchy transition is *enqueued* and runs after the current event
-        // completes. This lets open sheets finish their presentation cycle before
-        // the hierarchy is replaced (fixing a freeze/crash when signing out from
-        // a Learning sheet), while still avoiding the DispatchQueue.main.async
-        // deferral that previously raced with iPadOS 26's TabView layout pass.
-        try? Auth.auth().signOut()
+        // Defer the view-hierarchy replacement by 100 ms — enough for the run loop
+        // to finish any in-progress layout pass, sheet presentation, or navigation
+        // transition on any tab before the hierarchy is replaced. This is
+        // deterministic (unlike relying on Task or DispatchQueue scheduling) and
+        // imperceptible to the user. Setting authState first gives an immediate
+        // visual transition; signOut() then tells Firebase to clean up locally.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(100))
+            authState = .unauthenticated
+            try? Auth.auth().signOut()
+        }
     }
 
     // MARK: - Complete Onboarding
