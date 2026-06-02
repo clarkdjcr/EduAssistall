@@ -56,6 +56,7 @@ struct TeacherDashboardView: View {
                         } label: {
                             Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
                         }
+                        .accessibilityIdentifier("sign_out_button")
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }

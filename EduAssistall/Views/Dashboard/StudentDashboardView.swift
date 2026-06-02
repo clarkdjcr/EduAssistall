@@ -536,6 +536,7 @@ struct StudentProfileSheet: View {
                     } label: {
                         Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
                     }
+                    .accessibilityIdentifier("sign_out_button")
                 }
             }
             .navigationTitle("Profile")

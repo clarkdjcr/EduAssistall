@@ -1,0 +1,145 @@
+name: Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# Cancel superseded runs on the same branch to save CI minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 1: Cloud Function unit tests (Node.js / Jest)
+  # Covers: safety classifiers, PII redaction, word-limit logic, distress detector
+  # No Firebase connection needed — pure in-process logic.
+  # ─────────────────────────────────────────────────────────────────────────────
+  functions-tests:
+    name: "Cloud Functions — Jest"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: EduAssistall/functions
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: EduAssistall/functions/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Jest tests
+        run: npm test
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jest-coverage
+          path: EduAssistall/functions/coverage/
+          if-no-files-found: ignore
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 2: Swift unit tests (XCTest, no Firebase, no simulator needed)
+  # Covers: AuthState machine, sign-out double-trigger guard, LocalDraftService,
+  #         ChatMessage model, AuthState Equatable
+  # ─────────────────────────────────────────────────────────────────────────────
+  swift-unit-tests:
+    name: "Swift — XCTest Unit Tests"
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project EduAssistall/EduAssistall.xcodeproj \
+            -scheme EduAssistall
+
+      - name: Build & run unit tests (iPad simulator)
+        run: |
+          xcodebuild test \
+            -project EduAssistall/EduAssistall.xcodeproj \
+            -scheme EduAssistall \
+            -destination 'platform=iOS Simulator,name=iPad Pro 13-inch (M4),OS=latest' \
+            -only-testing:EduAssistallTests \
+            -resultBundlePath TestResults/unit.xcresult \
+            | xcpretty || true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: TestResults/
+          if-no-files-found: ignore
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 3: Swift UI tests (XCUITest on simulator)
+  # Covers: sign-out from every tab, sign-out with sheets open,
+  #         sign-out with companion in-flight, companion context persistence.
+  # Requires a test Firebase project or the emulator — set FIREBASE_TOKEN secret.
+  # UI tests are skipped on forks (no secrets) but run on main repo pushes.
+  # ─────────────────────────────────────────────────────────────────────────────
+  swift-ui-tests:
+    name: "Swift — XCUITest UI Tests"
+    runs-on: macos-15
+    # Only run UI tests on pushes to main or PRs targeting main —
+    # they require test credentials and take ~10 minutes.
+    if: >
+      github.ref == 'refs/heads/main' ||
+      github.base_ref == 'main' ||
+      contains(github.event.head_commit.message, '[run-ui-tests]')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project EduAssistall/EduAssistall.xcodeproj \
+            -scheme EduAssistall
+
+      - name: Boot iPad simulator
+        run: |
+          UDID=$(xcrun simctl list devices available | grep 'iPad Pro 13' | head -1 | grep -o '\(.*\)' | tr -d '()')
+          xcrun simctl boot "$UDID" || true
+          echo "SIM_UDID=$UDID" >> $GITHUB_ENV
+
+      - name: Run UI tests
+        env:
+          # Store these in GitHub Actions Secrets: Settings → Secrets → Actions
+          UITEST_EMAIL:    ${{ secrets.UITEST_STUDENT_EMAIL }}
+          UITEST_PASSWORD: ${{ secrets.UITEST_STUDENT_PASSWORD }}
+        run: |
+          xcodebuild test \
+            -project EduAssistall/EduAssistall.xcodeproj \
+            -scheme EduAssistall \
+            -destination "id=$SIM_UDID" \
+            -only-testing:EduAssistallUITests \
+            -resultBundlePath TestResults/ui.xcresult \
+            | xcpretty || true
+
+      - name: Upload UI test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results
+          path: TestResults/
+          if-no-files-found: ignore

@@ -48,6 +48,10 @@ final class AuthViewModel {
     @MainActor
     private func handleAuthStateChange(user: FirebaseAuth.User?) async {
         guard let user else {
+            // Guard against the double-trigger: signOut() already set authState = .unauthenticated
+            // before calling Auth.auth().signOut(), which fires this listener. Applying it a second
+            // time while SwiftUI is mid-rebuild from the first set causes a layout freeze on macOS.
+            if case .unauthenticated = authState { return }
             NSLog("[Auth] state → unauthenticated (no user)")
             authState = .unauthenticated
             return
@@ -221,18 +225,17 @@ final class AuthViewModel {
 
     @MainActor
     func signOut() {
-        if let uid = Auth.auth().currentUser?.uid {
-            AuditService.shared.log(.signOut, userId: uid)
-            OfflineCacheService.shared.clearAll(for: uid)
-        }
+        let uid = Auth.auth().currentUser?.uid
+        if let uid { AuditService.shared.log(.signOut, userId: uid) }
         // Defer the view-hierarchy replacement by 100 ms — enough for the run loop
         // to finish any in-progress layout pass, sheet presentation, or navigation
-        // transition on any tab before the hierarchy is replaced. This is
-        // deterministic (unlike relying on Task or DispatchQueue scheduling) and
-        // imperceptible to the user. Setting authState first gives an immediate
-        // visual transition; signOut() then tells Firebase to clean up locally.
+        // transition on any tab before the hierarchy is replaced.
+        // clearAll runs inside the Task so it doesn't block the main thread at tap time.
+        // Auth.auth().signOut() fires the state listener, but handleAuthStateChange guards
+        // against the redundant .unauthenticated set to avoid a mid-rebuild freeze on macOS.
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(100))
+            if let uid { OfflineCacheService.shared.clearAll(for: uid) }
             authState = .unauthenticated
             try? Auth.auth().signOut()
         }

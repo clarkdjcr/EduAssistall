@@ -404,10 +404,10 @@ const INPUT_CLASSIFIER_VERSION = "input-v1.0";
 // NOTE: self_harm is intentionally absent — those inputs are handled by the FR-103
 // distress detector, which returns an empathetic response rather than an error.
 const BLOCKED_PATTERNS = [
-  { re: /\b(kill|murder|shoot|stab|bomb|explode|attack|assault)\b/i,        category: "violence" },
-  { re: /\b(gun|pistol|rifle|shotgun|knife|weapon|explosive|grenade|ammo)\b/i, category: "weapons" },
-  { re: /\b(cocaine|heroin|meth|fentanyl|opioid|drug dealing|narcotics)\b/i, category: "drugs" },
-  { re: /\b(porn|pornography|nude|naked|genitals|sexual intercourse)\b/i,   category: "sexual" },
+  { re: /\b(kill|murder|shoot|stab|bomb|explode|attack|assault)\b/i,           category: "violence" },
+  { re: /\b(guns?|pistols?|rifles?|shotguns?|knifes?|knives|weapons?|explosives?|grenades?|ammo)\b/i, category: "weapons" },
+  { re: /\b(cocaine|heroin|meth|fentanyl|opioid|drug dealing|narcotics)\b/i,   category: "drugs" },
+  { re: /\b(porn|pornography|nude|naked|genitals|sexual intercourse)\b/i,      category: "sexual" },
 ];
 
 // Patterns that result in NEEDS_REVIEW — message passes through but is flagged.
@@ -448,7 +448,7 @@ const OUTPUT_CLASSIFIER_VERSION = "output-v1.0";
 
 // Output patterns that must never reach a student.
 const OUTPUT_BLOCKED_PATTERNS = [
-  { re: /\b(how to make a (bomb|weapon|gun|explosive|drug))\b/i,            category: "harmful_instructions" },
+  { re: /\b(how to make a|steps? to make a|how to build a|instructions? (for|to) make)\s+(bomb|weapon|gun|explosive|drug)/i, category: "harmful_instructions" },
   { re: /\b(step[s]? to (kill|harm|hurt|assault))\b/i,                      category: "violence_instructions" },
   { re: /\b(you should (kill|hurt|harm) (yourself|someone))\b/i,            category: "self_harm_encouragement" },
   { re: /\b(porn|pornography|nude|naked|genitals|sexual intercourse)\b/i,   category: "sexual" },
@@ -521,8 +521,8 @@ const PII_PATTERNS = [
   { re: /(?<![a-zA-Z0-9._%+\-])@[A-Za-z0-9_]{2,30}\b/g,                      label: "social_handle" },
   // URLs / profile links
   { re: /https?:\/\/[^\s]{6,}/g,                                               label: "url" },
-  // "My name is <Name>" / "I am <Name>" — two-word capitalised names
-  { re: /\b(?:my name is|i am|i'm|call me)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)+)/g, label: "name_disclosure" },
+  // "My name is <Name>" / "I am <Name>" — two-word capitalised names (case-insensitive trigger)
+  { re: /\b(?:my name is|i am|i'm|call me)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)+)/gi, label: "name_disclosure" },
   // Date of birth patterns — "born on", "DOB", "birthday" + date
   { re: /\b(?:born\s+on|dob|date of birth|birthday)[^a-z]{0,10}\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/gi, label: "date_of_birth" },
   // ZIP codes (standalone 5-digit or ZIP+4) — only flag in address-like context
@@ -752,10 +752,10 @@ function writeSessionFlag(db, { studentId, type, reason, messagePreview }) {
 
 const FRUSTRATION_PATTERNS = [
   { re: /\b(I don'?t get (this|it)|I (don'?t|cant|can'?t) understand|this (makes no sense|is confusing|is too hard))\b/i, reason: "confusion" },
-  { re: /\b(I give up|this is (stupid|pointless|impossible|dumb)|I hate (this|school|math|reading|science))\b/i,           reason: "disengagement" },
-  { re: /\b(why do (we|I) even (need|have to) (learn|know|do) this)\b/i,                                                  reason: "relevance_challenge" },
-  { re: /\b(nothing makes sense|I'?m (so )?(lost|confused|stuck))\b/i,                                                   reason: "confusion" },
-  { re: /\b(I'?ve (tried|been trying) (everything|so hard)|this is (taking forever|way too long))\b/i,                   reason: "effort_frustration" },
+  { re: /\b(I give up|this is (so )?(stupid|pointless|impossible|dumb)|I hate (this|school|math|reading|science))\b/i,     reason: "disengagement" },
+  { re: /\b(why do (we|I) even (need( to)?|have to) (learn|know|do) this)\b/i,                                            reason: "relevance_challenge" },
+  { re: /\b(nothing makes sense|I'?m (so )?(lost|confused|stuck))\b/i,                                                    reason: "confusion" },
+  { re: /\b(I'?ve (tried|been trying) (everything|so hard)|this is (taking forever|way too long))\b/i,                    reason: "effort_frustration" },
 ];
 
 /**
@@ -1253,14 +1253,18 @@ exports.askCompanion = onCall(
     // ask the question directly. Example: "Which part of fractions are you working on right now?"
     // Only proceed with an answer once the student's intent is clear from their reply.
     systemPrompt +=
-      "\n\nCLARIFICATION RULE (FR-004): Before answering, assess whether the student's message " +
-      "is ambiguous. A message is ambiguous if: (a) it uses 'it', 'this', 'that', or 'they' " +
-      "without a clear referent from recent context; (b) the topic or subject is missing; " +
-      "(c) multiple equally valid interpretations exist; or (d) it is too vague to answer " +
-      "accurately (e.g. 'I need help', 'I don't understand', 'explain it'). " +
-      "If ANY of these apply, respond with ONLY a single clarifying question — nothing else. " +
-      "Do not guess. Do not partially answer. Do not list multiple questions. " +
-      "If the message is clear, answer normally without mentioning this rule.";
+      "\n\nCLARIFICATION RULE (FR-004): Before asking a clarifying question, FIRST check the " +
+      "conversation history and session context above — if any prior exchange makes the student's " +
+      "intent clear, answer directly without asking. Only ask a clarifying question when the " +
+      "message is genuinely unresolvable from all available context. A message is ambiguous only if: " +
+      "(a) it uses 'it', 'this', 'that', or 'they' AND no prior message in this conversation " +
+      "establishes what those words refer to; (b) the topic is completely missing and there is " +
+      "no prior topic in context; (c) multiple equally valid interpretations exist even with context; " +
+      "or (d) it is so vague that even with conversation history you cannot determine what the student " +
+      "needs (e.g. a first message of just 'I need help' with zero prior context). " +
+      "If ANY of these apply, respond with ONLY a single focused clarifying question — nothing else. " +
+      "Do not list multiple questions. " +
+      "If the message is clear (with or without context), answer normally without mentioning this rule.";
 
     // FR-008: Age-appropriate word limits per grade band.
     const { wordLimit, maxTokens } = getWordLimit(profile.gradeLevel || profile.grade);
@@ -1269,43 +1273,48 @@ exports.askCompanion = onCall(
       "Count carefully. If you need more space, prioritise the most important point and stop. " +
       "Never truncate mid-sentence — end at a complete sentence within the limit.";
 
-    // 2B: If the iOS client sent a compressed history summary, use it instead of loading
-    // 40 raw messages from Firestore. This reduces input tokens by ~60–80% for long sessions
-    // and avoids a Firestore read on every message. We still load a small tail for FR-002
-    // returning-session detection when compressed history is provided.
+    // 2B: If the iOS client sent a compressed history summary, inject it into the system prompt
+    // for broad session context, then still load the last 6 raw messages from Firestore so Claude
+    // can resolve immediate follow-up references ("that", "it", "the same topic") without asking
+    // generic clarifying questions. Cap at 2000 chars to prevent prompt injection while preserving
+    // enough context for the summary to be useful.
     const compressedHistory = typeof request.data.compressedHistory === "string"
-      ? request.data.compressedHistory.slice(0, 500)  // cap to prevent prompt injection
+      ? request.data.compressedHistory.slice(0, 2000)  // cap to prevent prompt injection
       : null;
+
+    if (compressedHistory) {
+      systemPrompt +=
+        `\n\nRECENT SESSION CONTEXT (summary of the conversation so far): ${compressedHistory}. ` +
+        `Use this context to resolve any references the student makes (e.g. "that", "it", "the same topic") ` +
+        `without asking them to restate what they already told you.`;
+    }
 
     let history = [];
     let historyDocs = [];
 
-    if (compressedHistory) {
-      // Inject the compressed summary as a synthetic assistant turn so Claude has context.
-      history = [{ role: "assistant", content: `[Previous session summary]: ${compressedHistory}` }];
-    } else {
-      // FR-001: Load last 40 messages (20 user + 20 assistant turns) for ≥20-turn context window.
-      const historySnap = await db
-        .collection("conversations")
-        .doc(conversationId)
-        .collection("messages")
-        .orderBy("createdAt", "desc")
-        .limit(40)
-        .get();
+    // Always load recent raw messages from Firestore. When compressedHistory is present, a short
+    // tail (6 messages) is enough for follow-up resolution. Without it, load the full 40-message
+    // window (FR-001: ≥20-turn context).
+    const messageLimit = compressedHistory ? 6 : 40;
+    const historySnap = await db
+      .collection("conversations")
+      .doc(conversationId)
+      .collection("messages")
+      .orderBy("createdAt", "desc")
+      .limit(messageLimit)
+      .get();
 
-      historyDocs = historySnap.docs.reverse();
-      history = historyDocs.map((doc) => {
-        const d = doc.data();
-        return { role: d.role, content: d.text };
-      });
-    }
+    historyDocs = historySnap.docs.reverse();
+    history = historyDocs.map((doc) => {
+      const d = doc.data();
+      return { role: d.role, content: d.text };
+    });
 
     // FR-002: Detect a returning session (last message > 24 h ago) and inject milestone context.
-    // When compressed history is provided we skip this — the client has already summarised context.
     const lastMsgTime = historyDocs.length > 0
       ? historyDocs[historyDocs.length - 1].data().createdAt?.toDate?.()
       : null;
-    const isNewSession = !compressedHistory &&
+    const isNewSession =
       (!lastMsgTime || (Date.now() - lastMsgTime.getTime() > 24 * 60 * 60 * 1000));
 
     if (isNewSession) {
@@ -4436,3 +4445,20 @@ exports.onCurriculumContentWrite = onDocumentWritten(
     });
   }
 );
+
+// ---------------------------------------------------------------------------
+// Test-only exports — pure logic functions with no Firebase dependencies.
+// These are safe to export in production; Firebase Functions ignores unknown
+// exports. Keeping them unconditional avoids NODE_ENV coupling issues.
+// ---------------------------------------------------------------------------
+exports._test = {
+  classifyInput,
+  classifyOutput,
+  detectDistress,
+  detectFrustration,
+  detectAndRedactPII,
+  getWordLimit,
+  getGradeBand,
+  countWords,
+  truncateToWordLimit,
+};

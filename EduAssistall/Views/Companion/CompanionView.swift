@@ -277,6 +277,7 @@ struct CompanionView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20))
                 .accessibilityLabel("Message input")
                 .accessibilityHint("Type your question or message to the AI companion")
+                .accessibilityIdentifier("companion_input_field")
 
             // 2D: Image Playground — generate educational diagrams on-device (iOS 18.1+)
             #if canImport(ImagePlayground)
@@ -305,6 +306,7 @@ struct CompanionView: View {
             .keyboardShortcut(.return, modifiers: .command)
             .accessibilityLabel("Send message")
             .accessibilityHint(canSend ? "Sends your message to the AI companion" : "Type a message first")
+            .accessibilityIdentifier("companion_send_button")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)

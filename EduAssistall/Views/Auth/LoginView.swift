@@ -33,12 +33,14 @@ struct LoginView: View {
                             .padding()
                             .background(Color.appSecondaryBackground)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .accessibilityIdentifier("login_email_field")
 
                         SecureField("Password", text: $password)
                             .passwordInput()
                             .padding()
                             .background(Color.appSecondaryBackground)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .accessibilityIdentifier("login_password_field")
 
                         if let error = errorMessage {
                             Text(error)
@@ -66,6 +68,7 @@ struct LoginView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                         .disabled(isLoading || email.isEmpty || password.isEmpty)
+                        .accessibilityIdentifier("login_sign_in_button")
                     }
                     .padding(.horizontal, 24)
 
