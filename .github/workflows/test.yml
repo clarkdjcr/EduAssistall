@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: EduAssistall/functions
+        working-directory: functions
 
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: EduAssistall/functions/package-lock.json
+          cache-dependency-path: functions/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -45,7 +45,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jest-coverage
-          path: EduAssistall/functions/coverage/
+          path: functions/coverage/
           if-no-files-found: ignore
 
   # ─────────────────────────────────────────────────────────────────────────────
@@ -66,13 +66,13 @@ jobs:
       - name: Resolve Swift packages
         run: |
           xcodebuild -resolvePackageDependencies \
-            -project EduAssistall/EduAssistall.xcodeproj \
+            -project EduAssistall.xcodeproj \
             -scheme EduAssistall
 
       - name: Build & run unit tests (iPad simulator)
         run: |
           xcodebuild test \
-            -project EduAssistall/EduAssistall.xcodeproj \
+            -project EduAssistall.xcodeproj \
             -scheme EduAssistall \
             -destination 'platform=iOS Simulator,name=iPad Pro 13-inch (M4),OS=latest' \
             -only-testing:EduAssistallTests \
@@ -91,14 +91,11 @@ jobs:
   # Job 3: Swift UI tests (XCUITest on simulator)
   # Covers: sign-out from every tab, sign-out with sheets open,
   #         sign-out with companion in-flight, companion context persistence.
-  # Requires a test Firebase project or the emulator — set FIREBASE_TOKEN secret.
-  # UI tests are skipped on forks (no secrets) but run on main repo pushes.
+  # UI tests only run on pushes to main or when commit message contains [run-ui-tests].
   # ─────────────────────────────────────────────────────────────────────────────
   swift-ui-tests:
     name: "Swift — XCUITest UI Tests"
     runs-on: macos-15
-    # Only run UI tests on pushes to main or PRs targeting main —
-    # they require test credentials and take ~10 minutes.
     if: >
       github.ref == 'refs/heads/main' ||
       github.base_ref == 'main' ||
@@ -113,7 +110,7 @@ jobs:
       - name: Resolve Swift packages
         run: |
           xcodebuild -resolvePackageDependencies \
-            -project EduAssistall/EduAssistall.xcodeproj \
+            -project EduAssistall.xcodeproj \
             -scheme EduAssistall
 
       - name: Boot iPad simulator
@@ -124,12 +121,11 @@ jobs:
 
       - name: Run UI tests
         env:
-          # Store these in GitHub Actions Secrets: Settings → Secrets → Actions
           UITEST_EMAIL:    ${{ secrets.UITEST_STUDENT_EMAIL }}
           UITEST_PASSWORD: ${{ secrets.UITEST_STUDENT_PASSWORD }}
         run: |
           xcodebuild test \
-            -project EduAssistall/EduAssistall.xcodeproj \
+            -project EduAssistall.xcodeproj \
             -scheme EduAssistall \
             -destination "id=$SIM_UDID" \
             -only-testing:EduAssistallUITests \
