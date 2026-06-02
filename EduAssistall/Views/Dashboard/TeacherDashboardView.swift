@@ -13,6 +13,7 @@ struct TeacherDashboardView: View {
     @State private var showImport = false
     @State private var showManageRoster = false
     @State private var showAddStudent = false
+    @State private var showLessonPlan = false
 
     private var confirmedStudents: [StudentAdultLink] {
         linkedStudents.filter(\.confirmed)
@@ -75,6 +76,9 @@ struct TeacherDashboardView: View {
             }
             .sheet(isPresented: $showAddStudent, onDismiss: { Task { await loadStudents() } }) {
                 AddStudentView(teacherProfile: profile)
+            }
+            .sheet(isPresented: $showLessonPlan) {
+                GenerateLessonPlanView(teacherProfile: profile)
             }
             .navigationDestination(isPresented: $showManageRoster) {
                 RosterManagementView(teacherProfile: profile)
@@ -176,10 +180,24 @@ struct TeacherDashboardView: View {
                 .padding(.horizontal, 20)
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
+                Button {
+                    showLessonPlan = true
+                } label: {
+                    QuickActionCard(icon: "doc.text.fill", label: "Plan Lesson", color: .blue)
+                }
+                .buttonStyle(.plain)
+
                 NavigationLink {
                     TeacherLearningPathView(teacherProfile: profile)
                 } label: {
-                    QuickActionCard(icon: "book.fill", label: "Learning Paths", color: .purple)
+                    QuickActionCard(icon: "list.bullet.clipboard.fill", label: "Assign Path", color: .purple)
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    TeacherAssistView(teacherProfile: profile)
+                } label: {
+                    QuickActionCard(icon: "wand.and.stars", label: "Teacher Assist", color: .mint)
                 }
                 .buttonStyle(.plain)
 
@@ -192,26 +210,19 @@ struct TeacherDashboardView: View {
                 .buttonStyle(.plain)
 
                 NavigationLink {
-                    MessagesListView(profile: profile)
-                } label: {
-                    QuickActionCard(icon: "message.fill", label: "Messages", color: .blue)
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink {
-                    TeacherAssistView(teacherProfile: profile)
-                } label: {
-                    QuickActionCard(icon: "wand.and.stars", label: "Teacher Assist", color: .mint)
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink {
                     TeacherReportsDestination(confirmedStudents: confirmedStudents)
                 } label: {
                     QuickActionCard(icon: "chart.bar.fill", label: "Reports", color: .teal)
                 }
                 .buttonStyle(.plain)
                 .disabled(confirmedStudents.isEmpty)
+
+                NavigationLink {
+                    MessagesListView(profile: profile)
+                } label: {
+                    QuickActionCard(icon: "message.fill", label: "Messages", color: .cyan)
+                }
+                .buttonStyle(.plain)
 
                 Button { showAddStudent = true } label: {
                     QuickActionCard(icon: "person.badge.plus", label: "Add Student", color: .indigo)

@@ -18,7 +18,7 @@ struct CreateLearningPathView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Path Details") {
+                Section("Assignment Details") {
                     TextField("Title", text: $title)
                     TextField("Description", text: $description, axis: .vertical)
                         .lineLimit(3)
@@ -62,7 +62,7 @@ struct CreateLearningPathView: View {
                         Label("Add Content Item", systemImage: "plus.circle.fill")
                     }
                 } header: {
-                    Text("Content Items (\(pendingItems.count))")
+                    Text("Approved Content (\(pendingItems.count))")
                 }
 
                 if let error = errorMessage {
@@ -73,7 +73,7 @@ struct CreateLearningPathView: View {
                     }
                 }
             }
-            .navigationTitle("New Learning Path")
+            .navigationTitle("Assign Student Path")
             .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

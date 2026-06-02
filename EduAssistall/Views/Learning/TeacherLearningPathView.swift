@@ -37,7 +37,7 @@ struct TeacherLearningPathView: View {
             }
         }
         .background(Color.appGroupedBackground)
-        .navigationTitle("Learning Paths")
+        .navigationTitle("Assign Paths")
         .inlineNavigationTitle()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -61,9 +61,9 @@ struct TeacherLearningPathView: View {
             Image(systemName: "book.closed.fill")
                 .font(.system(size: 56))
                 .foregroundStyle(.tertiary)
-            Text("No Learning Paths Yet")
+            Text("No Assigned Paths Yet")
                 .font(.title3.bold())
-            Text("Tap + to create your first learning path and assign it to a student.")
+            Text("Start with a lesson plan, then assign approved content as a student path.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -71,7 +71,7 @@ struct TeacherLearningPathView: View {
             Button {
                 showCreate = true
             } label: {
-                Label("Create Learning Path", systemImage: "plus.circle.fill")
+                Label("Assign Student Path", systemImage: "plus.circle.fill")
                     .fontWeight(.semibold)
                     .padding()
                     .background(Color.blue)
