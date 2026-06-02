@@ -945,6 +945,7 @@ exports.askCompanion = onCall(
     // NEEDS_REVIEW messages are allowed through but flagged (FR-103 will act on distress signals).
 
     // Fetch student context in parallel — including district config for FR-102 block list.
+    // goalsSnap uses a composite index (status + createdAt); degrade to [] while the index builds.
     const [profileSnap, pathsSnap, goalsSnap] = await Promise.all([
       db.collection("learningProfiles").doc(studentId).get(),
       db.collection("learningPaths")
@@ -956,7 +957,11 @@ exports.askCompanion = onCall(
         .where("status", "==", "inProgress")
         .orderBy("createdAt", "desc")
         .limit(5)
-        .get(),
+        .get()
+        .catch((err) => {
+          console.warn("learningGoals query failed (index may still be building):", err.message);
+          return { docs: [] };
+        }),
     ]);
 
     const profile = profileSnap.data() || {};
