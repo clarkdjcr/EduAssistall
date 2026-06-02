@@ -219,16 +219,19 @@ final class AuthViewModel {
 
     // MARK: - Sign Out
 
+    @MainActor
     func signOut() {
         if let uid = Auth.auth().currentUser?.uid {
             AuditService.shared.log(.signOut, userId: uid)
             OfflineCacheService.shared.clearAll(for: uid)
         }
-        // Defer the Firebase call by one run-loop cycle so iPadOS 26's TabView
-        // finishes its current layout pass before the view hierarchy is replaced.
-        DispatchQueue.main.async {
-            try? Auth.auth().signOut()
-        }
+        // Set state first so the view hierarchy transitions to the login screen
+        // before Firebase's async auth listener fires. This prevents a crash on
+        // iOS/iPadOS 26.5 where a deferred dispatch into Auth.signOut() can race
+        // with the TabView layout pass, causing the hierarchy to be replaced mid-frame.
+        // The auth listener will confirm .unauthenticated again — that's a safe no-op.
+        authState = .unauthenticated
+        try? Auth.auth().signOut()
     }
 
     // MARK: - Complete Onboarding
