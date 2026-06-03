@@ -157,6 +157,14 @@ private struct TeacherDocumentsTabView: View {
                     }
                 }
 
+                Section("Curriculum") {
+                    NavigationLink {
+                        CurriculumLibraryView(profile: profile)
+                    } label: {
+                        Label("Curriculum Library", systemImage: "archivebox.fill")
+                    }
+                }
+
                 Section("Pending Reviews") {
                     NavigationLink {
                         PendingRecommendationsView(reviewerProfile: profile, studentIds: studentIds)
@@ -394,8 +402,9 @@ private struct ProfileSettingsView: View {
                         }
                     }
 
-                    // Curriculum library — admin only (upload curriculum + grounding content)
-                    if let profile = authVM.currentProfile, profile.role == .admin {
+                    // Curriculum library — teachers and admins can upload curriculum + grounding content
+                    if let profile = authVM.currentProfile,
+                       profile.role == .teacher || profile.role == .admin {
                         NavigationLink {
                             CurriculumLibraryView(profile: profile)
                         } label: {
