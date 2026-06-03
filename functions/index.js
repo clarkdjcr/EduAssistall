@@ -72,6 +72,23 @@ async function getGraphToken() {
 
 const _groundingCache  = new Map(); // key: "grade:subject" → { items, fetchedAt }
 const CACHE_TTL_MS     = 30 * 60 * 1000;
+const DEFAULT_PUBLIC_STANDARDS_SOURCES = [
+  {
+    title: "NC DPI Standard Course of Study",
+    url: "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study",
+    sourceGroup: "ncdpi-scos",
+  },
+  {
+    title: "NC DPI Standard Course of Study Document Collection",
+    url: "https://www.dpi.nc.gov/document-collection/standard-course-study",
+    sourceGroup: "ncdpi-scos",
+  },
+  {
+    title: "NC DPI Office of Teaching and Learning",
+    url: "https://www.dpi.nc.gov/curriculum/",
+    sourceGroup: "ncdpi-standards-review",
+  },
+];
 
 async function isGroundingCacheValid(listId, fetchedAt) {
   try {
@@ -1638,6 +1655,53 @@ Return ONLY the JSON array, no other text.`;
   }
 );
 
+function countTeachingDays(startDate, endDate, teachingDays) {
+  if (!startDate || !endDate || !Array.isArray(teachingDays) || teachingDays.length === 0) return null;
+  const start = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return null;
+
+  const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const allowed = new Set(teachingDays);
+  let count = 0;
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    if (allowed.has(labels[d.getUTCDay()])) count += 1;
+  }
+  return count;
+}
+
+function buildPacingInputBlock({
+  startDate,
+  endDate,
+  teachingDays,
+  teachingDayCount,
+  supplementalResources,
+  teacherNotes,
+}) {
+  const lines = [];
+  if (startDate || endDate || (Array.isArray(teachingDays) && teachingDays.length > 0)) {
+    lines.push("\nTEACHING CALENDAR:");
+    if (startDate) lines.push(`Start date: ${startDate}`);
+    if (endDate) lines.push(`End date: ${endDate}`);
+    if (Array.isArray(teachingDays) && teachingDays.length > 0) {
+      lines.push(`Class meeting days: ${teachingDays.join(", ")}`);
+    }
+    if (teachingDayCount !== null && teachingDayCount !== undefined) {
+      lines.push(`Available teaching days in this window: ${teachingDayCount}`);
+    }
+  }
+  if (supplementalResources && String(supplementalResources).trim()) {
+    lines.push("\nTEACHER-APPROVED SUPPLEMENTAL SOURCES:");
+    lines.push(String(supplementalResources).trim().slice(0, 4000));
+    lines.push("Use these only to amplify the approved curriculum. Do not let them replace the standards or district materials.");
+  }
+  if (teacherNotes && String(teacherNotes).trim()) {
+    lines.push("\nTEACHER NOTES AND CONSTRAINTS:");
+    lines.push(String(teacherNotes).trim().slice(0, 3000));
+  }
+  return lines.length ? `${lines.join("\n")}\n` : "";
+}
+
 // MARK: - Generate Lesson Plan (FR-T5)
 // Teacher-facing. Grounds generation in district Curriculum library content,
 // writes the draft to OfficialDocuments (ApprovalStatus: PendingApproval),
@@ -1663,10 +1727,34 @@ exports.generateLessonPlan = onCall(
       throw new HttpsError("permission-denied", "Only teachers and admins may generate lesson plans.");
     }
 
-    const { grade, subject, topic, durationMinutes = 45, standard = "" } = request.data;
+    const {
+      grade,
+      subject,
+      topic,
+      durationMinutes = 45,
+      standard = "",
+      startDate = "",
+      endDate = "",
+      teachingDays = [],
+      supplementalResources = "",
+      teacherNotes = "",
+    } = request.data;
     if (!grade || !subject || !topic) {
       throw new HttpsError("invalid-argument", "grade, subject, and topic are required.");
     }
+
+    const normalizedTeachingDays = Array.isArray(teachingDays)
+      ? teachingDays.filter((day) => typeof day === "string" && day.trim()).slice(0, 7)
+      : [];
+    const teachingDayCount = countTeachingDays(startDate, endDate, normalizedTeachingDays);
+    const pacingBlock = buildPacingInputBlock({
+      startDate,
+      endDate,
+      teachingDays: normalizedTeachingDays,
+      teachingDayCount,
+      supplementalResources,
+      teacherNotes,
+    });
 
     const districtSnapLP = callerData.districtId
       ? await db.collection("districtConfig").doc(callerData.districtId).get()
@@ -1713,6 +1801,7 @@ exports.generateLessonPlan = onCall(
       `Subject: ${subject}\n` +
       `Topic: ${topic}\n` +
       (standard ? `Standard: ${standard}\n` : "") +
+      pacingBlock +
       groundingBlock +
       `\nFormat the lesson plan exactly as follows (use these headings verbatim):\n\n` +
       `LESSON PLAN: ${topic}\n` +
@@ -1731,7 +1820,10 @@ exports.generateLessonPlan = onCall(
       `At grade level: [Standard approach]\n` +
       `Above grade level: [Extension activity]\n\n` +
       `ASSESSMENT\n[How mastery of each objective will be measured]\n\n` +
-      `STANDARDS ALIGNMENT\n[Explicit connection to standard and curriculum materials used]`;
+      `DAILY PACING PLAN\n` +
+      `[Break the lesson or mini-unit into the actual available teaching days. For each day include objective, warm-up, core activity, resource use if any, formative check, and carry-over notes. If there is only one teaching day, write one complete day. If there are fewer days than the content needs, prioritize essentials and name what should move to extension or reteach.]\n\n` +
+      `STANDARDS ALIGNMENT\n[Explicit connection to standard and curriculum materials used]\n\n` +
+      `TEACHER REVIEW NOTES\n[Call out assumptions, source-use cautions, and what the teacher should approve or adjust before scheduling]`;
 
     const anthropic = await getAnthropicClientForDistrict(callerData.districtId, db);
     let response;
@@ -1756,9 +1848,15 @@ exports.generateLessonPlan = onCall(
       title:        `${subject} – ${topic} (Grade ${grade})`,
       grade,
       subject,
+      standard,
+      startDate:    startDate || null,
+      endDate:      endDate || null,
+      teachingDays: normalizedTeachingDays,
+      teachingDayCount,
       school:       callerSnap.data()?.schoolId || "All",
       documentType: "LessonPlan",
       districtId:   callerData.districtId || null,
+      workflowStatus: "Draft",
     };
     const documentId = await (backendLP === "firebase"
       ? writeToFirebaseOfficialDocs({ filename, content: lessonPlanText, metadata: docMeta, teacherUid: request.auth.uid, db })
@@ -3390,6 +3488,198 @@ exports.purgeStaleDrafts = onSchedule(
   }
 );
 
+function publicStandardsSourceId(url) {
+  return crypto.createHash("sha256").update(url).digest("hex").slice(0, 24);
+}
+
+function normalizePublicStandardsSnapshot(raw) {
+  return String(raw || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&#039;/g, "'")
+    .replace(/&quot;/g, "\"")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function fetchPublicStandardsSnapshot(url) {
+  const response = await fetch(url, {
+    headers: {
+      "user-agent": "EduAssist standards monitor",
+      accept: "text/html,text/plain,application/json,*/*",
+    },
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const raw = await response.text();
+  const normalized = normalizePublicStandardsSnapshot(raw);
+  return {
+    contentHash: crypto.createHash("sha256").update(normalized).digest("hex"),
+    excerpt: normalized.slice(0, 1200),
+    byteLength: Buffer.byteLength(raw),
+  };
+}
+
+async function loadPublicStandardsSources(db) {
+  const snap = await db.collection("publicStandardsSources")
+    .where("active", "==", true)
+    .limit(100)
+    .get()
+    .catch(() => null);
+
+  if (snap && !snap.empty) {
+    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).filter((source) => source.url);
+  }
+
+  return DEFAULT_PUBLIC_STANDARDS_SOURCES.map((source) => ({
+    id: publicStandardsSourceId(source.url),
+    active: true,
+    ...source,
+  }));
+}
+
+async function monitorPublicStandardsSourcesOnce(db) {
+  const sources = await loadPublicStandardsSources(db);
+  const results = [];
+
+  for (const source of sources) {
+    const sourceId = source.id || publicStandardsSourceId(source.url);
+    const sourceRef = db.collection("publicStandardsSources").doc(sourceId);
+    try {
+      const snapshot = await fetchPublicStandardsSnapshot(source.url);
+      const sourceSnap = await sourceRef.get();
+      const previousHash = sourceSnap.data()?.latestHash || null;
+
+      if (!previousHash) {
+        await sourceRef.set({
+          title: source.title || source.url,
+          url: source.url,
+          sourceGroup: source.sourceGroup || "public-standards",
+          active: source.active !== false,
+          latestHash: snapshot.contentHash,
+          approvedHash: sourceSnap.data()?.approvedHash || snapshot.contentHash,
+          lastCheckedAt: FieldValue.serverTimestamp(),
+          lastStatus: "initialized",
+          byteLength: snapshot.byteLength,
+        }, { merge: true });
+        results.push({ sourceId, status: "initialized" });
+        continue;
+      }
+
+      if (previousHash !== snapshot.contentHash) {
+        const alertRef = db.collection("standardsUpdateAlerts").doc();
+        await alertRef.set({
+          sourceId,
+          title: source.title || source.url,
+          url: source.url,
+          sourceGroup: source.sourceGroup || "public-standards",
+          previousHash,
+          currentHash: snapshot.contentHash,
+          status: "NeedsReview",
+          detectedAt: FieldValue.serverTimestamp(),
+          reviewedAt: null,
+          reviewedBy: null,
+          excerpt: snapshot.excerpt,
+          byteLength: snapshot.byteLength,
+        });
+        await sourceRef.set({
+          title: source.title || source.url,
+          url: source.url,
+          sourceGroup: source.sourceGroup || "public-standards",
+          active: source.active !== false,
+          previousHash,
+          latestHash: snapshot.contentHash,
+          lastCheckedAt: FieldValue.serverTimestamp(),
+          lastChangedAt: FieldValue.serverTimestamp(),
+          lastStatus: "changed",
+          lastAlertId: alertRef.id,
+          byteLength: snapshot.byteLength,
+        }, { merge: true });
+        results.push({ sourceId, status: "changed", alertId: alertRef.id });
+      } else {
+        await sourceRef.set({
+          title: source.title || source.url,
+          url: source.url,
+          sourceGroup: source.sourceGroup || "public-standards",
+          active: source.active !== false,
+          latestHash: snapshot.contentHash,
+          lastCheckedAt: FieldValue.serverTimestamp(),
+          lastStatus: "unchanged",
+          byteLength: snapshot.byteLength,
+        }, { merge: true });
+        results.push({ sourceId, status: "unchanged" });
+      }
+    } catch (err) {
+      await sourceRef.set({
+        title: source.title || source.url,
+        url: source.url,
+        sourceGroup: source.sourceGroup || "public-standards",
+        active: source.active !== false,
+        lastCheckedAt: FieldValue.serverTimestamp(),
+        lastStatus: "error",
+        lastError: err.message,
+      }, { merge: true });
+      results.push({ sourceId, status: "error", error: err.message });
+    }
+  }
+
+  await db.collection("standardsMonitorRuns").doc().set({
+    ranAt: FieldValue.serverTimestamp(),
+    sourceCount: sources.length,
+    results,
+  });
+  return results;
+}
+
+exports.monitorPublicStandardsSources = onSchedule(
+  { schedule: "30 6 * * 1", timeZone: "UTC", region: "us-central1", timeoutSeconds: 300 },
+  async () => {
+    await monitorPublicStandardsSourcesOnce(getFirestore());
+  }
+);
+
+exports.approveStandardsUpdate = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    if (callerSnap.data()?.role !== "admin") {
+      throw new HttpsError("permission-denied", "Only admins may approve standards updates.");
+    }
+
+    const { alertId, decision = "Approved", notes = "" } = request.data || {};
+    if (!alertId) throw new HttpsError("invalid-argument", "alertId is required.");
+    if (!["Approved", "Rejected", "NeedsReview"].includes(decision)) {
+      throw new HttpsError("invalid-argument", "decision must be Approved, Rejected, or NeedsReview.");
+    }
+
+    const alertRef = db.collection("standardsUpdateAlerts").doc(alertId);
+    const alertSnap = await alertRef.get();
+    if (!alertSnap.exists) throw new HttpsError("not-found", "Standards update alert not found.");
+    const alert = alertSnap.data();
+
+    const batch = db.batch();
+    batch.update(alertRef, {
+      status: decision,
+      reviewNotes: notes,
+      reviewedAt: FieldValue.serverTimestamp(),
+      reviewedBy: request.auth.uid,
+    });
+    if (decision === "Approved") {
+      batch.set(db.collection("publicStandardsSources").doc(alert.sourceId), {
+        approvedHash: alert.currentHash,
+        approvedAt: FieldValue.serverTimestamp(),
+        approvedBy: request.auth.uid,
+      }, { merge: true });
+    }
+    await batch.commit();
+    return { ok: true, alertId, decision };
+  }
+);
+
 // MARK: - Weekly PII Scan (FR-405)
 
 // Runs every Sunday at 02:00 UTC. Scans conversation messages stored in the past 7 days
@@ -4461,4 +4751,6 @@ exports._test = {
   getGradeBand,
   countWords,
   truncateToWordLimit,
+  publicStandardsSourceId,
+  normalizePublicStandardsSnapshot,
 };

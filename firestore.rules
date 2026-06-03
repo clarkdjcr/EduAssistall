@@ -412,6 +412,23 @@ service cloud.firestore {
       allow create, delete: if false;
     }
 
+    // publicStandardsSources / standardsUpdateAlerts / standardsMonitorRuns
+    // are written only by scheduled/callable Cloud Functions through Admin SDK.
+    // Admins can read them to review public standards updates before accepting
+    // curriculum changes into the approved source set.
+    match /publicStandardsSources/{docId} {
+      allow read: if request.auth != null && isAdmin();
+      allow write: if false;
+    }
+    match /standardsUpdateAlerts/{docId} {
+      allow read: if request.auth != null && isAdmin();
+      allow write: if false;
+    }
+    match /standardsMonitorRuns/{docId} {
+      allow read: if request.auth != null && isAdmin();
+      allow write: if false;
+    }
+
     // NOTE: no catch-all. Firestore denies by default — any collection not
     // listed above is implicitly inaccessible to all clients.
 

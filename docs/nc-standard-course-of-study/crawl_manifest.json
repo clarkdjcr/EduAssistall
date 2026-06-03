@@ -1,0 +1,3201 @@
+[
+  {
+    "title": "NC DPI Standard Course of Study",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study",
+    "output": "standard-course-of-study--landing.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/arts-education",
+    "output": "arts-education--overview.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/arts-education/standard-course-study-supporting-resources",
+    "output": "arts-education--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Dance Standard Course of Study",
+    "source_url": "https://docs.google.com/document/d/1IinsHEMGzDQ4LUD4wAblMj4j8c4WxHjsQNmBMeWmVRI/view",
+    "output": "arts-education--001--dance-standard-course-of-study.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Spanish Translation of Dance SCOS / Traducción al español de los estándares de danza",
+    "source_url": "https://docs.google.com/document/d/1pNj_i2bmEIgN2ZxCDMq8hOPF18SRfEL52Or2T_xjfVo/edit?usp=drive_link",
+    "output": "arts-education--002--spanish-translation-of-dance-scos-traduccion-al-espanol-de-los-estandares-de-danza.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Music Standard Course of Study",
+    "source_url": "https://docs.google.com/document/d/1Xb3xc6QJ-vf9gZJl6BfBurnjCTTAGF0gCypaz7oXeKk/view",
+    "output": "arts-education--003--music-standard-course-of-study.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Spanish Translation of Music SCOS / Traducción al español de los estándares musicales",
+    "source_url": "https://docs.google.com/document/d/1rnaNiNt4IVUZhevaekvIMmA-DIUNZhVCsIuox2ppapA/view",
+    "output": "arts-education--004--spanish-translation-of-music-scos-traduccion-al-espanol-de-los-estandares-musicales.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Theatre Arts Standards",
+    "source_url": "https://docs.google.com/document/d/1eClmEARNYWnGvqRUNkrPiTxo2JwypTa6H7JYEkiiQTE/view",
+    "output": "arts-education--005--theatre-arts-standards.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Spanish Translation of Theatre Arts Standards / Traducción al español de los estándares de artes teatrales",
+    "source_url": "https://docs.google.com/document/d/1pTuU9nSLQkUNFbWjGiiLRdjD-RDeHIJjRNvQS72m24k/view",
+    "output": "arts-education--006--spanish-translation-of-theatre-arts-standards-traduccion-al-espanol-de-los-estandares-de-a.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Visual Arts Standard Course of Study",
+    "source_url": "https://docs.google.com/document/d/1RQ2cU6h-xBR22ILtiOv_sYB85_uTT9CQqwdwmiCOwIw/edit?usp=drive_link",
+    "output": "arts-education--007--visual-arts-standard-course-of-study.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Spanish Translation of Visual Arts SCOS / Traducción al español de los estándares de artes visuales",
+    "source_url": "https://docs.google.com/document/d/1Ap1FOn5I6gDbEK3G91v3xY3joeUr_RA8w0u8oF_sgNo/edit?usp=drive_link",
+    "output": "arts-education--008--spanish-translation-of-visual-arts-scos-traduccion-al-espanol-de-los-estandares-de-artes-v.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1t6od0uGpVsY5SdM92Zz8BnTmwwJRFy--Yg2n41_5DBE/preview",
+    "output": "arts-education--009--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - First Grade",
+    "source_url": "https://docs.google.com/document/d/1gc2nuxQrQU5RQUWhFEzU4ir8wS-xhkr1rJbRYy5hmoE/preview",
+    "output": "arts-education--010--first-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Second Grade",
+    "source_url": "https://docs.google.com/document/d/1eo7cXcovt96p2c4qtgdVNj6Z2D9f8Ie9TKBusu-qwxw/preview",
+    "output": "arts-education--011--second-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Third Grade",
+    "source_url": "https://docs.google.com/document/d/1XN4NGoz0f53khTz3pTI_b_ZgPj3ooNDUEp3DKuGVzmE/preview",
+    "output": "arts-education--012--third-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fourth Grade",
+    "source_url": "https://docs.google.com/document/d/1CaBKIA9aqXOiFR4_hIiOLLrDRs3Fy6gCf33j0-tF3Gc/preview",
+    "output": "arts-education--013--fourth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fifth Grade",
+    "source_url": "https://docs.google.com/document/d/11IzvLYslyNNP403H4SYjDYmc0u-DDVjpVwd4O6nGNDs/preview",
+    "output": "arts-education--014--fifth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Sixth Grade",
+    "source_url": "https://docs.google.com/document/d/1nJU0Q7sVbBHb2r6uFSWGoQt3s2zvQ9xfjGr7Afsf8-c/preview",
+    "output": "arts-education--015--sixth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Seventh Grade",
+    "source_url": "https://docs.google.com/document/d/1IESBVuDK-tqV1MPZHRvC_e7wzcHlX__bWy5vk16jBAo/preview",
+    "output": "arts-education--016--seventh-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Eighth Grade",
+    "source_url": "https://docs.google.com/document/d/1qTagxuuH9JQzi9TPC5Ca_RzlPYuoEqjm4Rm7quEuKnw/preview",
+    "output": "arts-education--017--eighth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Beginning",
+    "source_url": "https://docs.google.com/document/d/1BtvfUisau_4S6q1ykXi1D8Sy0u4DOrLiXEOecmNU43U/preview",
+    "output": "arts-education--018--beginning.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Intermediate",
+    "source_url": "https://docs.google.com/document/d/1HQ2T4Iw61fw1DwiJIRfNFGXI16EN-Mffy9FufIAmCoM/preview",
+    "output": "arts-education--019--intermediate.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Accomplished",
+    "source_url": "https://docs.google.com/document/d/1CL4rS-VWpAgLwImjHMT0EASNILmeKo6Hd8oONu8paAA/preview",
+    "output": "arts-education--020--accomplished.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Advanced",
+    "source_url": "https://docs.google.com/document/d/13z00ZqDNtcnmyU-Dfg6GuC7Wgphs3Vi7vbuWBEDw9G8/preview",
+    "output": "arts-education--021--advanced.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Kindergarten General Music",
+    "source_url": "https://docs.google.com/document/d/17b6v5hmTXjrun_9Nk7KrGtHdQeEt-NgAiALGP23mtQg/view",
+    "output": "arts-education--022--kindergarten-general-music.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - First Grade General Music",
+    "source_url": "https://docs.google.com/document/d/1pGyp_8yqFjbWIi5w3TG1xLsoJUu0Ajs6WaWNw304mB8/view",
+    "output": "arts-education--023--first-grade-general-music.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Second Grade General Music",
+    "source_url": "https://docs.google.com/document/d/14a6mnz9OiydsrPUg_MzIsV8cd0lCoN-2EQzeTJqhxhI/view",
+    "output": "arts-education--024--second-grade-general-music.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Third Grade General Music",
+    "source_url": "https://docs.google.com/document/d/1N9OVtxUYJ3-XeLEZmu43bFtaezlo9lkTeWjN2RGLhYc/view",
+    "output": "arts-education--025--third-grade-general-music.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fourth Grade General Music",
+    "source_url": "https://docs.google.com/document/d/1xnqO-EqJupYmb-WlI_0G9LQY1Ch0cwxlKu76ARnEIHc/view",
+    "output": "arts-education--026--fourth-grade-general-music.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fifth Grade General Music",
+    "source_url": "https://docs.google.com/document/d/18N3cbhrILdGCxmbw9q3Jitz5XB6NtwQbnT2-Z0wpPrg/view",
+    "output": "arts-education--027--fifth-grade-general-music.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Sixth Grade General Music",
+    "source_url": "https://docs.google.com/document/d/1H2Nwtkiqn3k-_9TpFZiNTy316o6yj0hExkZ0l29oKec/view",
+    "output": "arts-education--028--sixth-grade-general-music.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Seventh Grade General Music",
+    "source_url": "https://docs.google.com/document/d/1a1FSAZadnYJdAGePHWUKXpcOW1e70J8i3LMfjDN8gr0/view",
+    "output": "arts-education--029--seventh-grade-general-music.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Eighth Grade General Music",
+    "source_url": "https://docs.google.com/document/d/1_PQ2986P9qYW8wWmcBgO4zPQkcLOybuC8TP_WVW8Swc/view",
+    "output": "arts-education--030--eighth-grade-general-music.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Beginning General Music",
+    "source_url": "https://docs.google.com/document/d/15BkttNAb_DlftzGXZYXY9_QGQBZTJy2Tu06FZLhF8-U/view",
+    "output": "arts-education--031--beginning-general-music.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Accomplished General Music",
+    "source_url": "https://docs.google.com/document/d/1AeoKzJVMw0mTvpAWnpsBkhYCnNyuh54BXjuAhAQ9OgE/view",
+    "output": "arts-education--032--accomplished-general-music.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Novice",
+    "source_url": "https://docs.google.com/document/d/1aRs2xT2NpAtIK2WOk2iNgaLINHV9qlIMzzEzVqwW2M4/preview",
+    "output": "arts-education--033--novice.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Developing",
+    "source_url": "https://docs.google.com/document/d/1c9Nb2yhmMWR2k6Eu3tlVsGLabHOfrZ91adsW6U5h8_8/preview",
+    "output": "arts-education--034--developing.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Intermediate",
+    "source_url": "https://docs.google.com/document/d/1Th8pmDLH0a5G3mSajm0LU6O_M0HOUXLmikH5FzOqjPk/preview",
+    "output": "arts-education--035--intermediate.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Accomplished",
+    "source_url": "https://docs.google.com/document/d/1dLOzMGcud43wZV8dqakyqd8xWIzE-pSoFESnJr8oEtc/preview",
+    "output": "arts-education--036--accomplished.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Advanced",
+    "source_url": "https://docs.google.com/document/d/1vZPnxw4K0zBDUkez1h7jq_kJvDg-p_2Gi96hEIMLSKo/preview",
+    "output": "arts-education--037--advanced.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1RMyF8KgHVnXOG-8tYiNrjhaLgM1vCwIttaAqWMXiGKs/preview",
+    "output": "arts-education--038--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - First Grade",
+    "source_url": "https://docs.google.com/document/d/1cMJRRo7bqizzpLjWRn6MA4ilmQe4wJepd9yeM0ISqRc/preview",
+    "output": "arts-education--039--first-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Second Grade",
+    "source_url": "https://docs.google.com/document/d/1e6uFSJnR904K8YNyJ3v9KkeZm1vNkHOJ77qfEWDkWfY/preview",
+    "output": "arts-education--040--second-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Third Grade",
+    "source_url": "https://docs.google.com/document/d/1Dg_mdVjJYLI8DLUG6WlMYA0hyC41PfOz_RHy-uA07Jg/preview",
+    "output": "arts-education--041--third-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fourth Grade",
+    "source_url": "https://docs.google.com/document/d/1OFR2hNmJBm-txANGqmoszF2mLwQIKpztbcLUu9qbYRw/preview",
+    "output": "arts-education--042--fourth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fifth Grade",
+    "source_url": "https://docs.google.com/document/d/1iS_eWZmkncn9pPLEKR1KZ9Pw-UR3VUIFJIy35fSPP_8/preview",
+    "output": "arts-education--043--fifth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Sixth Grade",
+    "source_url": "https://docs.google.com/document/d/1wKCMhlvFupPRq9NJscP3vsZWkH4vrfwogx7SvlT8M7w/preview",
+    "output": "arts-education--044--sixth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Seventh Grade",
+    "source_url": "https://docs.google.com/document/d/1YJedf7hayf2oQuhRuGiuLPIBPJizy6e8mFK-tN9gJmI/preview",
+    "output": "arts-education--045--seventh-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Eighth Grade",
+    "source_url": "https://docs.google.com/document/d/13xRGdybSRWnNbsDzcfW6QCcNvOZ5zymTb_u8apyy_iY/preview",
+    "output": "arts-education--046--eighth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Beginning",
+    "source_url": "https://docs.google.com/document/d/1DYrg8l9ufCUM4F9wPVfQMqGoH25_jb8iJ29RdTdOwrw/preview",
+    "output": "arts-education--047--beginning.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Intermediate",
+    "source_url": "https://docs.google.com/document/d/1_upHnqxrty-LDYzGCszbow0HYmIW3qb-8HwXzrLSSo4/preview",
+    "output": "arts-education--048--intermediate.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Accomplished",
+    "source_url": "https://docs.google.com/document/d/17iln087Zg5ItkZTaki2NYPBu-HlCuxw7MKNE8aycP5s/preview",
+    "output": "arts-education--049--accomplished.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Advanced",
+    "source_url": "https://docs.google.com/document/d/1LIc31rI4W6Fz98V5dKbDYm3gASbUdzRUrGq7vYHgziI/preview",
+    "output": "arts-education--050--advanced.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Beginning",
+    "source_url": "https://docs.google.com/document/d/1QoEYWrKn-VzRbukzcYqaitGwj-mBZNP_ZGEYy4g2AvI/preview",
+    "output": "arts-education--051--beginning.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Accomplished",
+    "source_url": "https://docs.google.com/document/d/1-oGDgGDhAjZk3qE7FZa951O1EJVE5ASzkUpZDblDeN8/preview",
+    "output": "arts-education--052--accomplished.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1YEE1ltyepBw18xLOXo4s4_TkENyk7drH-ILzNppduwM/view",
+    "output": "arts-education--053--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - First Grade",
+    "source_url": "https://docs.google.com/document/d/1hmYVXFlUDxo85Fgph5tPXJb5OqACPmU_YfGJgOd5JXY/view",
+    "output": "arts-education--054--first-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Second Grade",
+    "source_url": "https://docs.google.com/document/d/1wOw3VmZYpKdenlXH8sDwBPjf9Rv14LqzhzKx34DZzFE/preview",
+    "output": "arts-education--055--second-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Third Grade",
+    "source_url": "https://docs.google.com/document/d/1rqMsXucUayOBJkwXsmbQ2jyM12orhjM53s6Aux-HOBI/view",
+    "output": "arts-education--056--third-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fourth Grade",
+    "source_url": "https://docs.google.com/document/d/1bX0iphDlzkbQUtuw_EU5qgWx3T25KaZZVPGuihZhmwU/view",
+    "output": "arts-education--057--fourth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fifth Grade",
+    "source_url": "https://docs.google.com/document/d/1gZIklVD9DzSiDvDfM0SHcu5xEAwhToJ9BChpteUrZvM/view",
+    "output": "arts-education--058--fifth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Sixth Grade",
+    "source_url": "https://docs.google.com/document/d/1PdZ3VodawRWeiGJwnNZVJtUK23Nyj02iNyzAnar9UwI/view",
+    "output": "arts-education--059--sixth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Seventh Grade",
+    "source_url": "https://docs.google.com/document/d/1qoce4eAfsBrva7lgeKzL_jC0jzEq7U8I1v5s2z7q7bw/view",
+    "output": "arts-education--060--seventh-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Eighth Grade",
+    "source_url": "https://docs.google.com/document/d/1KM3wtBskRl87_dQP38Vs7I2i368iJfwUYJKMH7lyu9I/view",
+    "output": "arts-education--061--eighth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Beginning",
+    "source_url": "https://docs.google.com/document/d/1Bm9OYOgC3GQ6nHuetLzmtm1rBbusiUhXOCsrutwx08U/edit?usp=drive_link,%20https://docs.google.com/document/d/1HtBUVjMfs3DDz8lVJFOx3EKg1DuykRAZziOOfBfExf4/view",
+    "output": "arts-education--062--beginning.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Intermediate",
+    "source_url": "https://docs.google.com/document/d/1zrj8RXlKAWlDjsEGR8-AB3Ife5okxTwGh1ye-Gm2mZQ/view",
+    "output": "arts-education--063--intermediate.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Accomplished",
+    "source_url": "https://docs.google.com/document/d/1TRT1Mu9gaRu3rCEbWe78Okt4hjk3FBSJe6Nr9nXqK_Y/view",
+    "output": "arts-education--064--accomplished.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Advanced",
+    "source_url": "https://docs.google.com/document/d/1HtBUVjMfs3DDz8lVJFOx3EKg1DuykRAZziOOfBfExf4/view",
+    "output": "arts-education--065--advanced.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Dance Crosswalk",
+    "source_url": "https://docs.google.com/document/d/1zNnN1xEQxhvxrUGb8DizFziHeKWULMsHF6PbkKLUWJE/view",
+    "output": "arts-education--066--dance-crosswalk.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - General Music Crosswalk",
+    "source_url": "https://docs.google.com/document/d/1yBEQS7opyZ3xPV4jl4sV2E7PanTRiwRs0WFzmoVna0A/view",
+    "output": "arts-education--067--general-music-crosswalk.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - T",
+    "source_url": "https://docs.google.com/document/d/1riZBK-6TlrA0cKKKj5TmzWu2wks086py90tvAGmrzmo/edit?tab=t.0",
+    "output": "arts-education--068--t.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - heatre Arts Crosswalk",
+    "source_url": "https://docs.google.com/document/d/1riZBK-6TlrA0cKKKj5TmzWu2wks086py90tvAGmrzmo/edit?tab=t.0",
+    "output": "arts-education--069--heatre-arts-crosswalk.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Technical Theatre Crosswalk",
+    "source_url": "https://docs.google.com/document/d/1uRSxb441dHRU8-5LpGaUTDetbLxcYITHaRFGuBNjn9g/edit?tab=t.0",
+    "output": "arts-education--070--technical-theatre-crosswalk.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Visual Arts Crosswalk",
+    "source_url": "https://docs.google.com/document/d/1t7RrfyLnXO4C7MDmgAG4I6WHGetE6sZGACe4i8550O8/view",
+    "output": "arts-education--071--visual-arts-crosswalk.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Course Code Crosswalk",
+    "source_url": "https://docs.google.com/spreadsheets/d/17fIsWl1aVMVwCWSBHJSIBP61TGsYvzshvog88v-vRmM/edit?usp=sharing",
+    "output": "arts-education--072--course-code-crosswalk.md",
+    "kind": "google-sheet",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Learning Activity Crosswalk",
+    "source_url": "https://docs.google.com/document/d/1tjokhXQRSTVm3LqnAFGEFSvbfJZ9_lSzeYrcgLSEfnY/template/preview",
+    "output": "arts-education--073--learning-activity-crosswalk.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - 2024 Arts Ed SCOS Pacing Guide Planning",
+    "source_url": "https://docs.google.com/document/d/1aRo7W3003z0OZKRTleD43hX1VGk8yfEhUi2OLPgHcBQ/template/preview",
+    "output": "arts-education--074--2024-arts-ed-scos-pacing-guide-planning.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1WN_cXAdOe6gKQ6dYOHRoD50Cse0TPWVZIw7ZEmro4Mg/preview",
+    "output": "arts-education--075--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1jxZPXiCZ6Jt71kJilmEi6ml2uaXDHEbSnDDNWXMM1OM/view",
+    "output": "arts-education--076--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - First Grade",
+    "source_url": "https://docs.google.com/document/d/1E-IwCBV0lMaFxXdwcJowFkUy_U_du9xwRXShWN3tGhQ/preview",
+    "output": "arts-education--077--first-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/18JWLM-zGDnrKhTU8lp-5DWyYYIeMjjG6Ou4jnHkjPrM/view",
+    "output": "arts-education--078--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Second Grade",
+    "source_url": "https://docs.google.com/document/d/14-qo8Nipm_2AelBYSfqpj-8_FSKc9jCOk9jvI9211iU/preview",
+    "output": "arts-education--079--second-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1v1ZeHv4xLZPyii2ujZPV5DtRiHZhbJp2LLIsepIEeOo/view",
+    "output": "arts-education--080--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Third Grade",
+    "source_url": "https://docs.google.com/document/d/1rfFrl3DanlsLi05MPVlwu0oqH7aNImmpLt7xB0xdXmc/preview",
+    "output": "arts-education--081--third-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1P9omvZYlucZhk5u1Pa0UtsHFrXZEwVTsNlj08fRcWX8/view",
+    "output": "arts-education--082--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fourth Grade",
+    "source_url": "https://docs.google.com/document/d/15BLD6dICNwCb9_OQ34EAejzYuSg3D3ZzJTPeHIis0y8/preview",
+    "output": "arts-education--083--fourth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1F-0yCHGFJVm_bml6YXvVB3fBrpT2wTzcDzZF3pp7ZAk/view",
+    "output": "arts-education--084--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fifth Grade",
+    "source_url": "https://docs.google.com/document/d/1ZTxQQq6vyqE1NAB_s5B0kpnyUb5sAShYYbg4P7Q9SSs/preview",
+    "output": "arts-education--085--fifth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1TKsMcrQY9e5ZyJjQn1XuRyk7W3H5kc3vQsPT9lvLU8w/view",
+    "output": "arts-education--086--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Sixth Grade",
+    "source_url": "https://docs.google.com/document/d/1xsRydUZw62WZnTXy89uUvPMfiM9KeNd1McpUypankp0/preview",
+    "output": "arts-education--087--sixth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1f9F1WgndGtRtO8o9ndljZUOZaokerT8FT-nu3Vj0Uy4/view",
+    "output": "arts-education--088--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Seventh Grade",
+    "source_url": "https://docs.google.com/document/d/1P1aQuMEyd1gG5U-Sn0dYqTffIW2A3ema42c9dfcOTJc/preview",
+    "output": "arts-education--089--seventh-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1M77zOBW-0U-isMq46oNvNp9T5LJsDvA8yfM_8nWuv5s/view",
+    "output": "arts-education--090--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Eighth Grade",
+    "source_url": "https://docs.google.com/document/d/1LCuVMMRZbMy6-tc1ah6bsHz_l0rg751AtYDfNJQKNe0/preview",
+    "output": "arts-education--091--eighth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1poihntc_xdWkHnk-r159Y5QX4sZfVsXzx5_F8Uh1em0/view",
+    "output": "arts-education--092--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Beginning",
+    "source_url": "https://docs.google.com/document/d/1gs8CZ0UVtqjkNtbJOPfJ7heH1DFUO9CriBlteRuhnrk/preview",
+    "output": "arts-education--093--beginning.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1KvbSTy0zrTd8FgQW4giQSqwojkGSAKddEbY2ZASfDXU/view",
+    "output": "arts-education--094--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Intermediate",
+    "source_url": "https://docs.google.com/document/d/1CqFELyoDP0Ahh_hT-7M3dmZ1MQPVrHzS1lc0PFFPxJA/preview",
+    "output": "arts-education--095--intermediate.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1HkRvgUHHlmjWrvJ34vJyDRbcew8ACfBvc5-HIv9rgis/view",
+    "output": "arts-education--096--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Accomplished",
+    "source_url": "https://docs.google.com/document/d/1lTFiDi9vVI2MIWUNPCXPTsQdJ5k56P3LJmeMEHDCC6g/preview",
+    "output": "arts-education--097--accomplished.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1WCF6liano_O3T-OnHNkt0hSdsy0D1T6GjyKq-tGaFY0/view",
+    "output": "arts-education--098--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Advanced",
+    "source_url": "https://docs.google.com/document/d/1ALk2ufQwotX8N1UVXBrExuxEKsBP3TOeFz-k85eCcNQ/preview",
+    "output": "arts-education--099--advanced.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1yh1jtWifmSQ7oUrPIfiAhqGmfE2ZWFb5Y5zXZ_awFM4/view",
+    "output": "arts-education--100--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1KxjHiWyWVoxyA9VBUpr5txRVzExhJ3imKk4enctZCjs/preview",
+    "output": "arts-education--101--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1UGAmDNQPaw18kYxpiEXH-0sIP35ssEDT1lbCMhl_Ouo/view",
+    "output": "arts-education--102--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - First Grade",
+    "source_url": "https://docs.google.com/document/d/1AtN01CxWOuH8KXwou-XKruofW6kbdhCn8yWAv3-vtVI/preview",
+    "output": "arts-education--103--first-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Second Grade",
+    "source_url": "https://docs.google.com/document/d/1HnmkD9yVE6_efql6_Nm79UJXceF9r_5FWlG5zJ-UTo0/preview",
+    "output": "arts-education--104--second-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1Pe4CHi9Eq4Xaf56qtWxUN38QN5Ed7shIswBmrMziXDo/view",
+    "output": "arts-education--105--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Third Grade",
+    "source_url": "https://docs.google.com/document/d/1F076gyUb_0AZ3N34gREslsgxDx91m7IrfXfnp_i_yQ4/preview",
+    "output": "arts-education--106--third-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1OzBgxx2w9u_zo5sgpZm9cx5OlaLR0bu0NCF_vRUXJ5w/view",
+    "output": "arts-education--107--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fourth Grade",
+    "source_url": "https://docs.google.com/document/d/1sMeFtvPGyDyhCKWDgFqHbHqPcJyLPPn56VV8PgJELxg/preview",
+    "output": "arts-education--108--fourth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/17ketVoc8rW-TyqGXEgPZB_NU3F339jc09hiWDdORKwM/view",
+    "output": "arts-education--109--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fifth Grade",
+    "source_url": "https://docs.google.com/document/d/1dsIh6wge27cinkJROeXw7SckU2m7FSIdM8gHfTHFEwI/preview",
+    "output": "arts-education--110--fifth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1YrGW0RbYRhgMXvOPF9K0G8Zg3nlmHXGCcHXrDjtUChU/view",
+    "output": "arts-education--111--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Sixth Grade",
+    "source_url": "https://docs.google.com/document/d/1OmDl5oFCVGHcf7--oUNIYSwAdLLHYEOUL9Ti1mc43QE/preview",
+    "output": "arts-education--112--sixth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1R36ez4H7hHXAwQSUqMuOZpQq5FM3xGsTAH8Wbs9qtWY/view",
+    "output": "arts-education--113--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Seventh Grade",
+    "source_url": "https://docs.google.com/document/d/1kRi1tmgLFq0X8l7SVB9-lsdhxEy6mXL8vMLZ1siBhYQ/preview",
+    "output": "arts-education--114--seventh-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1gLeBYZYpLZiu9QpTGrc6vn293yIEJffASKhjuhaAMUI/view",
+    "output": "arts-education--115--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Eighth Grade",
+    "source_url": "https://docs.google.com/document/d/1HqEwA8pvy5egdatjDSL6TUlFUmLczjgI0AKQqOg1_pc/preview",
+    "output": "arts-education--116--eighth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1I1w-0GdoIw0fGIi121N1fhiDoUA9J0kfJu0PhSOPOmk/view",
+    "output": "arts-education--117--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Beginning",
+    "source_url": "https://docs.google.com/document/d/1YOHniynecEP6m2Ob3cd0vrDyCakQz-a-FMi8027D2Ro/preview",
+    "output": "arts-education--118--beginning.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1vPPt6AuVMsCIv7HXDDGVwrJL_qRf7J69U7w9INmsdCM/view",
+    "output": "arts-education--119--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Accomplished",
+    "source_url": "https://docs.google.com/document/d/1ZmwioE5nL8b1p2Fs50eX80KGGoAKuqhfIhCUDClSDgY/preview",
+    "output": "arts-education--120--accomplished.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1nH8eDuSzL1Yywxq--fPAfyWy_9AvxOh223ZXNMccyfE/view",
+    "output": "arts-education--121--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Novice",
+    "source_url": "https://docs.google.com/document/d/1ZCLew3ZQ9JWWG34-BZRo9oMzmqPqnl14wwBxEq5d5hA/preview",
+    "output": "arts-education--122--novice.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1wYh843OJYwEPnqS6aVIxITiB93eKwQoFpbTNL8_6Yus/view",
+    "output": "arts-education--123--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Developing",
+    "source_url": "https://docs.google.com/document/d/115DNNzuImg_U4QXe91Bp6bdTQCPHJPLq5c97BemcBus/preview",
+    "output": "arts-education--124--developing.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1S060ZAbhI2ODvTCtjmqnDOkh1IUPznHq_1GGHO3sTlk/view",
+    "output": "arts-education--125--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Intermediate",
+    "source_url": "https://docs.google.com/document/d/1KaR876jQ0YOVgciTFX95FDIGGBgfT9EWmxKVNtUZfMk/preview",
+    "output": "arts-education--126--intermediate.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1RO1s3rKjPrk95g3obJVXxvKcAsMHqtaF_r2lyFh_MyQ/view",
+    "output": "arts-education--127--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Accomplished",
+    "source_url": "https://docs.google.com/document/d/1-ezYucy4tS3wpaQnOyvKKZAUzU_J3j1cRrZqmk87WbU/preview",
+    "output": "arts-education--128--accomplished.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1LE__7MVpqlsu1juOUC24VhZH8ts-gK-cVBvkfCEWJ9o/view",
+    "output": "arts-education--129--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Advanced",
+    "source_url": "https://docs.google.com/document/d/1OQ82-s0gDe4DeWPjpt4WN_oLSLc7IhtegmX9sMH0z3U/preview",
+    "output": "arts-education--130--advanced.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1vbjXr8vwlgmU6_Cewb2WOGjqycejGbQXxZp41gqg-KA/view",
+    "output": "arts-education--131--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1FCLZmqAYj_9Tcjkna6mD_X2-9CdTC22MgGPXKy8i1DA/preview",
+    "output": "arts-education--132--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1td-LTPclp0h8UI9wTH8pUt08jz3p0BjU5NeVEHPKPEA/view",
+    "output": "arts-education--133--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - First Grade",
+    "source_url": "https://docs.google.com/document/d/1W0MTJsGCytbm0EFfMXLn8Onk1eqhudeGw6eQ-rTjdkA/preview",
+    "output": "arts-education--134--first-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/17iYlI3gOkLDNrw1Y-8jeuTPOae_X0D661ECJNoOBTJ4/view",
+    "output": "arts-education--135--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Second Grade",
+    "source_url": "https://docs.google.com/document/d/1FNjRCUEQ0ujSfu5dJsJ3g45TxnUu8WmF104x864DVTU/preview",
+    "output": "arts-education--136--second-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1TjQla6Y1LaruPZ3RBHsSCAksPbz2MY_zfXmDX_hfJmM/view",
+    "output": "arts-education--137--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Third Grade",
+    "source_url": "https://docs.google.com/document/d/1JufHysEYGXGc-hPJDslBg-zjNwHt7TFTbHfjtfKbago/preview",
+    "output": "arts-education--138--third-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1UZjQUKH4Fs6gjvR94aH966e9TVnTLKu8ejACscMsvAs/view",
+    "output": "arts-education--139--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fourth Grade",
+    "source_url": "https://docs.google.com/document/d/1zTaDq4YUqpR08HLtwB9NpynZUgZOWhoQhSDB0Dyn1nA/preview",
+    "output": "arts-education--140--fourth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/13XIY1lbThrVzgsUUW36i0LzMtuAIRj9mjQJrGhhWWFk/view",
+    "output": "arts-education--141--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fifth Grade",
+    "source_url": "https://docs.google.com/document/d/1geQ5gklz45FAqNaiXXh4gJ-DqoEjBryi_YiCDSwBnnw/preview",
+    "output": "arts-education--142--fifth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/13Wls_DDfyph6kwL6PjhyhyZFo91fytktaeYhdA9PkQA/view",
+    "output": "arts-education--143--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Sixth Grade",
+    "source_url": "https://docs.google.com/document/d/19JQAJAU8Bjb11lGuZJROALt2XXOrjkPu7PnFoCtRWgE/preview",
+    "output": "arts-education--144--sixth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1-rVpoKlszscRjfOeSYU8QoMA9n0ykE1YTcj8da59xEo/view",
+    "output": "arts-education--145--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Seventh Grade",
+    "source_url": "https://docs.google.com/document/d/1L7a9Jckh3QNmVI8oymOrCzGuy62-Dy5cNUP0sOch-rg/preview",
+    "output": "arts-education--146--seventh-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1q-fJDFknbMAWvQKzgHaIwrIqzrUJ2ekDUmtv3eMyy3c/view",
+    "output": "arts-education--147--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Eighth Grade",
+    "source_url": "https://docs.google.com/document/d/1XKBut2xbEHNFDeHLuR0__DzsjIIJ8mxuf5NEFdeN7_M/preview",
+    "output": "arts-education--148--eighth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1rvIkX4Joav1DSh1351_RTwM624lfA-RY4cV-h1D5q7Y/view",
+    "output": "arts-education--149--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Beginning",
+    "source_url": "https://docs.google.com/document/d/1zWegHDUVq6jWbVCMkq8BkQb5gaYEOgfEeearPZgx5TE/preview",
+    "output": "arts-education--150--beginning.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1iCi-Pw5pfiwL7JFQJqfGv1YPyuWXYUMYtYUXsrox0hU/view",
+    "output": "arts-education--151--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Intermediate",
+    "source_url": "https://docs.google.com/document/d/1p9yA-_7rJ0WxNFS2Of5oR0NcHMGjw-6aVHBy_4MHv50/preview",
+    "output": "arts-education--152--intermediate.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1rqHT-TQ3YDA0PBoaDy3oMlzXfFZVNWfLo4Sl8kSq8V8/view",
+    "output": "arts-education--153--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Accomplished",
+    "source_url": "https://docs.google.com/document/d/17u2jK1M7B65-l1WC4FWI3m210xwkGQdsYP_G174g6qI/preview",
+    "output": "arts-education--154--accomplished.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1AODLMayZV91OVZNfEzoq4d1BWABVehN9UODp96GPEiY/view",
+    "output": "arts-education--155--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Advanced",
+    "source_url": "https://docs.google.com/document/d/1a_uxX4wwjqZMcy2ExhgnCOTlLoeGSpgVkNpwjeajJCs/preview",
+    "output": "arts-education--156--advanced.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/17X66IPJRfK0K5Z9915O9b8YNw2q7MhjxfaxwibXU4ek/view",
+    "output": "arts-education--157--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Beginning",
+    "source_url": "https://docs.google.com/document/d/1QVzheo-w1idq5KOUX6Qm5U_hntrLUD-pzXyPqEJcF1Q/preview",
+    "output": "arts-education--158--beginning.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/14kMUk535Juvf9XH40o2tfpB-RMV_fPfMCM6UyCchbnE/view",
+    "output": "arts-education--159--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Accomplished",
+    "source_url": "https://docs.google.com/document/d/1huIcT0HGOMC-vz-tVrhtAR4ZLXwiQhy7jbAY3OhNXG4/preview",
+    "output": "arts-education--160--accomplished.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1OTEMcwEw37srd9GqIELBCOyHB2EDv0YqGZcs_cY4iBA/view",
+    "output": "arts-education--161--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1SIpvj46Ii4N0kp_hOVKiSdvPf32kGGH4sv9XVF1bvDU/preview",
+    "output": "arts-education--162--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1qjnUHxV7skK46wJTg1uvhrfxMU83Oo7JyQWsoiQtJog/edit?usp=drive_link",
+    "output": "arts-education--163--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - First Grade",
+    "source_url": "https://docs.google.com/document/d/1lb8hqcRn3kX0Pp5r-9aSyeefntSOT5JcqWQE8-6DZO8/preview",
+    "output": "arts-education--164--first-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1Y9DzETaa04pv8fSinAwUmz3odzrShNSnTOQlay6Adv0/edit?usp=drive_link",
+    "output": "arts-education--165--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Second Grade",
+    "source_url": "https://docs.google.com/document/d/1ytXD6Jymeah38lHOdCp04eHO_iN7DEYvxh8ehN7h8gI/preview",
+    "output": "arts-education--166--second-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1Ri3EwlufE3_9GNYGKFoLL9f_XAWPMVyOhKQFumOo7sA/edit?usp=drive_link",
+    "output": "arts-education--167--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Third Grade",
+    "source_url": "https://docs.google.com/document/d/1i_CBZRHELjp0klwTFn2k6SKteCk8SX1uPmyIkktfLss/preview",
+    "output": "arts-education--168--third-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/18k_LNYibVnvJdtRGaynSp4N3S_v0wW1tHj3rQalIqhM/edit?usp=drive_link",
+    "output": "arts-education--169--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fourth Grade",
+    "source_url": "https://docs.google.com/document/d/10oZY6cOPoFMJSOixaN4-iATVxc87D4kgU6-4a0xGvk4/preview",
+    "output": "arts-education--170--fourth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1giBchdT4NTwwbp-h49IgWPuXepLqsWu9F4OulZRV3p8/edit?usp=drive_link",
+    "output": "arts-education--171--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Fifth Grade",
+    "source_url": "https://docs.google.com/document/d/1AIZXGSDFAhWOPooUmZh5VUR61Ky6oYxjSqaKIj-AvlA/preview",
+    "output": "arts-education--172--fifth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1YzZv3x4KtsaA10ziuAmxEUJP-Y0kMNQ55krCNTr00C4/edit?usp=drive_link",
+    "output": "arts-education--173--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Sixth Grade",
+    "source_url": "https://docs.google.com/document/d/1mnqJOzu8Z3P7VG5KLmH9qd3lafKUc1-Pu5SGcIzPleo/preview",
+    "output": "arts-education--174--sixth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1etm9H_qmQ7NVSfj63YVDFN_mG2kOLubDAvtjr1XlHeM/edit?usp=drive_link",
+    "output": "arts-education--175--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Seventh Grade",
+    "source_url": "https://docs.google.com/document/d/1aEu9qRCqVw337pwbMBpURwTjgkFWjq5VB3tIahPz3aM/preview",
+    "output": "arts-education--176--seventh-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1pcLxWlFcat_uraqmZA156eGmgNalMyY51mz2LhfF3lk/edit?usp=drive_link",
+    "output": "arts-education--177--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Eighth Grade",
+    "source_url": "https://docs.google.com/document/d/1-J2Q0tVAaKlpYi3hsrxy_UyhuXcg1J2xrYsRfStgEkg/preview",
+    "output": "arts-education--178--eighth-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1aLwBrL4Ps4_FjcKaqN4aCeBKhsJqkzibx9CbWMmgqWg/edit?usp=drive_link",
+    "output": "arts-education--179--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Beginning",
+    "source_url": "https://docs.google.com/document/d/1KSXzRz-dOq5uzBvkY9h6iyhIuUmULfRC72GDn1fDups/preview",
+    "output": "arts-education--180--beginning.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1iJK_1_ECZLh2gQL8rowvOagr5oPLS0RSjL6P_JZyGs8/edit?usp=drive_link",
+    "output": "arts-education--181--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Intermediate",
+    "source_url": "https://docs.google.com/document/d/1dVfyQ9dovWSBZeSx34MOq54pINH-AZGJjOl3nID6rA4/preview",
+    "output": "arts-education--182--intermediate.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1okXMv1XXGzL00C8H-0OsKh0vSZBdFkJ8S6OlgQGzqRI/edit?usp=drive_link",
+    "output": "arts-education--183--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Accomplished",
+    "source_url": "https://docs.google.com/document/d/1W8lOu5DYmQx2pGKB0Sj9UIOMocm99WjKPSK_uNDQ9PQ/preview",
+    "output": "arts-education--184--accomplished.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1-Tu9zreMXjh5X9pYIbybkOWWGvfpBklbojRy-kdq-lk/edit?usp=drive_link",
+    "output": "arts-education--185--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Advanced",
+    "source_url": "https://docs.google.com/document/d/1fKZ-Phdt5u6Dlgcl38E2MLPXLxe-22bNsR6Yu7kB9C4/preview",
+    "output": "arts-education--186--advanced.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Versión en español",
+    "source_url": "https://docs.google.com/document/d/1_N2FBG7uuF0HRtzSoBWXLw3c7U1N1b89AT_nMPRJsTM/edit?usp=drive_link",
+    "output": "arts-education--187--version-en-espanol.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Arts Education Glossary",
+    "source_url": "https://docs.google.com/document/d/1TnnirNslrna48O8pfUriL19g8wzf1ByUCL9o4bbg00E/edit?tab=t.0",
+    "output": "arts-education--188--arts-education-glossary.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Vertical Alignment Document",
+    "source_url": "https://docs.google.com/document/d/1dnOmmma9Y38LRcH62YxmSerJ0FSoY4xNLuHKhnXC8f0/edit?tab=t.0",
+    "output": "arts-education--189--vertical-alignment-document.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Horizontal Alignment Document",
+    "source_url": "https://docs.google.com/document/d/1dHt5wxeM5sNCD-ZNoaW-RNvLznfoPKM21gztq0iDU1g/edit?tab=t.0",
+    "output": "arts-education--190--horizontal-alignment-document.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Arts Ed Administrator Guides",
+    "source_url": "https://docs.google.com/document/d/1Y3eT0q5HzpaX1rvvogI86xjGYVWV8BSj1VDqQ6sJD2Q/view",
+    "output": "arts-education--191--arts-ed-administrator-guides.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Course Codes",
+    "source_url": "https://docs.google.com/document/d/1CJS0nv2Z7uyDf6V27VRBv0rlYzit-wXOm7OrOvw7Er8/preview",
+    "output": "arts-education--192--course-codes.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Arts Education Licensure",
+    "source_url": "https://docs.google.com/document/d/1CJS0nv2Z7uyDf6V27VRBv0rlYzit-wXOm7OrOvw7Er8/preview",
+    "output": "arts-education--193--arts-education-licensure.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Suggested Course Progression",
+    "source_url": "https://docs.google.com/document/d/1CJS0nv2Z7uyDf6V27VRBv0rlYzit-wXOm7OrOvw7Er8/preview",
+    "output": "arts-education--194--suggested-course-progression.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - Arts Education Graduation Requirement",
+    "source_url": "https://docs.google.com/document/d/1CJS0nv2Z7uyDf6V27VRBv0rlYzit-wXOm7OrOvw7Er8/preview",
+    "output": "arts-education--195--arts-education-graduation-requirement.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - webinars",
+    "source_url": "https://docs.google.com/document/d/19fcQvh91jUkov0lsErThTFp4wRV1r6-FjjMjPg3smts/preview",
+    "output": "arts-education--196--webinars.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Arts Education",
+    "title": "Arts Education - MTSS for Arts Educators Webinar",
+    "source_url": "https://docs.google.com/document/d/19fcQvh91jUkov0lsErThTFp4wRV1r6-FjjMjPg3smts/preview",
+    "output": "arts-education--197--mtss-for-arts-educators-webinar.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "CTE and Career Pathways",
+    "title": "CTE and Career Pathways - Overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/academic-standards/standard-course-study/cte-and-career-pathways",
+    "output": "cte-and-career-pathways--overview.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "CTE and Career Pathways",
+    "title": "CTE and Career Pathways - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/cte-and-career-pathways/standard-course-study-supporting-resources",
+    "output": "cte-and-career-pathways--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "failed"
+  },
+  {
+    "subject": "Computer Science, IT, and Technology Education",
+    "title": "Computer Science, IT, and Technology Education - overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/computer-science-it-and-technology-education",
+    "output": "computer-science-it-and-technology-education--overview.md",
+    "kind": "dpi-page",
+    "status": "failed"
+  },
+  {
+    "subject": "Computer Science, IT, and Technology Education",
+    "title": "Computer Science, IT, and Technology Education - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/computer-science-it-and-technology-education/standard-course-study-supporting-resources",
+    "output": "computer-science-it-and-technology-education--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "failed"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/english-language-arts",
+    "output": "english-language-arts--overview.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/english-language-arts/standard-course-study-supporting-resources",
+    "output": "english-language-arts--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - 2017 ELA Standard Course of Study (English)",
+    "source_url": "https://docs.google.com/document/d/1Kk3iJDWkjS8noQVUfDiN8IjH8dpPfscc2h40_emDieg/edit?usp=sharing",
+    "output": "english-language-arts--001--2017-ela-standard-course-of-study-english.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - 2017 Curso Estándar de Carolina del Norte Artes del idioma inglés",
+    "source_url": "https://docs.google.com/document/d/1jJMhDe8YGptkHBmc46NjfgRn2r-rRX8P5JdiCqInG4o/edit?usp=sharing",
+    "output": "english-language-arts--002--2017-curso-estandar-de-carolina-del-norte-artes-del-idioma-ingles.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - 2010 and 2017 ELA Standard Course of Study Crosswalk",
+    "source_url": "https://docs.google.com/document/d/1iypmoUUz3nDbTO6f8Ao88SHnAjo_GnSblu16qfq2Kio/edit?usp=sharing",
+    "output": "english-language-arts--003--2010-and-2017-ela-standard-course-of-study-crosswalk.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1i8SgGhKGJ4xZySm3fC5oWEMoMnzQYG4hohEZw27t3ok/edit?usp=drive_link",
+    "output": "english-language-arts--004--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 1",
+    "source_url": "https://docs.google.com/document/d/1I-o9Bny9vNuOXSBm-KBNqgYnljALn5t6IeufantdNhc/edit?usp=drive_link",
+    "output": "english-language-arts--005--grade-1.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 2",
+    "source_url": "https://docs.google.com/document/d/1R6DFxyug2j0Oe6A1KNgJFRsVDTf1MyxbjndYYQmdB2Q/edit?usp=drive_link",
+    "output": "english-language-arts--006--grade-2.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 3",
+    "source_url": "https://docs.google.com/document/d/1xTTVhAvMO43d9TaalaPn_xuNkiacKYuor-_bd7q4mQ0/edit?usp=drive_link",
+    "output": "english-language-arts--007--grade-3.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 4",
+    "source_url": "https://docs.google.com/document/d/1lJ322SonopOMDyIN88Y50War3oEtCTDwcQLflXLuU9M/edit?usp=drive_link",
+    "output": "english-language-arts--008--grade-4.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 5",
+    "source_url": "https://docs.google.com/document/d/1ZH33uUpScWo-pa90IgVYZM7I1xc5luVLBYCNaU1hx4g/edit?usp=drive_link",
+    "output": "english-language-arts--009--grade-5.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 6",
+    "source_url": "https://docs.google.com/document/d/1BJm31xVwGJiLLip1cRss1mn3IoOMeGBybrsrqyuKWb8/edit?usp=drive_link",
+    "output": "english-language-arts--010--grade-6.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 7",
+    "source_url": "https://docs.google.com/document/d/1c2pvuwWDUvHwIc-n90-vcRpVJKLyVX5sZ5ukn2G-1nA/edit?usp=drive_link",
+    "output": "english-language-arts--011--grade-7.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 8",
+    "source_url": "https://docs.google.com/document/d/1GS1B81bnv0BImu0I2oXZTaYvvi6UkqoZklYDvfPFkBk/edit?usp=drive_link",
+    "output": "english-language-arts--012--grade-8.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grades 9-10",
+    "source_url": "https://docs.google.com/document/d/11h-NOOoktInaUFPF1T9qc-KMWv4orYuOFUj8TImq54E/edit?usp=drive_link",
+    "output": "english-language-arts--013--grades-9-10.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grades 11-12",
+    "source_url": "https://docs.google.com/document/d/1NhFFPu2dUUyO_l4OS-mzkuw17d9Q9qC8Y4x4IsU9IrI/edit?usp=drive_link",
+    "output": "english-language-arts--014--grades-11-12.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - 2026 ELA Standard Course of Study",
+    "source_url": "https://docs.google.com/document/d/19-aiblQPGXNt4ZDzucJ9Ajseh29TDG8xIfqQoJRKAng/edit?usp=sharing",
+    "output": "english-language-arts--015--2026-ela-standard-course-of-study.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - 2026 Curso Estándar de Carolina del Norte Artes del idioma inglés",
+    "source_url": "https://docs.google.com/document/d/1Jt4gcYa3wGSEs50ux5MDuurZFiERkmGx/edit?usp=sharing&ouid=110022711681531966586&rtpof=true&sd=true",
+    "output": "english-language-arts--016--2026-curso-estandar-de-carolina-del-norte-artes-del-idioma-ingles.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - 2017 and 2026 ELA Standard Course of Study Crosswalk",
+    "source_url": "https://docs.google.com/document/d/1a0FgEPMnkrawISVYuwsGssVakSUgEJeoGHsjToppML0/edit?usp=sharing",
+    "output": "english-language-arts--017--2017-and-2026-ela-standard-course-of-study-crosswalk.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Communications Toolkit",
+    "source_url": "https://docs.google.com/document/d/1v-n5KwUW3zGadBoAqmDoEtBdPAgsJtBv9jypOlARC2M/edit?usp=sharing",
+    "output": "english-language-arts--018--communications-toolkit.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Glossary",
+    "source_url": "https://docs.google.com/document/d/19jTsiAmwIwCeP9huDbitfUY_QS0xibZGVfzDV5Y92Mw/edit?tab=t.g091ntg8fpw",
+    "output": "english-language-arts--019--glossary.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Vertical Progression",
+    "source_url": "https://docs.google.com/document/d/19gnPLoiYg6GQrhOXXq_6a4L4xP7W3UhJRvKDBt5fZh0/edit?usp=sharing",
+    "output": "english-language-arts--020--vertical-progression.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/19BtRoac37Dhhzx8kHzK01GoRnCN7NVFGIpt93anK6xk/edit?usp=sharing",
+    "output": "english-language-arts--021--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 1",
+    "source_url": "https://docs.google.com/document/d/1vkECk2BbY450LPA8n1OxX3_6Jawo0OdW9zeGaCzjIQ4/edit?usp=sharing",
+    "output": "english-language-arts--022--grade-1.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 2",
+    "source_url": "https://docs.google.com/document/d/1VpDL5G4zJjhhOmATwZUnoCUgGWPSgXNnprSbCrWl_-Y/edit?usp=sharing",
+    "output": "english-language-arts--023--grade-2.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 3",
+    "source_url": "https://docs.google.com/document/d/1yt75u8TYiTHVVBSVpAxlT3iyBZEah80ckWkq0CwTgkQ/edit?usp=sharing",
+    "output": "english-language-arts--024--grade-3.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 4",
+    "source_url": "https://docs.google.com/document/d/1IHG0_xn0Q54mPunO6KW73kZwAvXp-HraQbbRUVHSJZs/edit?usp=sharing",
+    "output": "english-language-arts--025--grade-4.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 5",
+    "source_url": "https://docs.google.com/document/d/18CBKxw5zQG2cmIUcRY9GR7FAqWyO7DTr1vIEk81LRvo/edit?usp=sharing",
+    "output": "english-language-arts--026--grade-5.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 6",
+    "source_url": "https://docs.google.com/document/d/1-hDit613QIflBfDtA7nzc-_x3r6n-n7h_4OHw62GOjg/edit?usp=drive_link",
+    "output": "english-language-arts--027--grade-6.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 7",
+    "source_url": "https://docs.google.com/document/d/1lafQQi1wqA4488hhz-fhVPzpir_JMr-kz7a_b2KW7dU/edit?usp=drive_link",
+    "output": "english-language-arts--028--grade-7.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grade 8",
+    "source_url": "https://docs.google.com/document/d/1Gq1Cqz6dpKvbVA5sz9B5yCtWA3L6mUixTVF9HS1KKl4/edit?usp=sharing",
+    "output": "english-language-arts--029--grade-8.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grades 9-10",
+    "source_url": "https://docs.google.com/document/d/1_NdIVijjyeA-5JMmIMvzbtj3COjK3m8Dbi3_cqhbCVs/edit?usp=drive_link",
+    "output": "english-language-arts--030--grades-9-10.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Arts",
+    "title": "English Language Arts - Grades 11-12",
+    "source_url": "https://docs.google.com/document/d/1Kypcnk6lf8q9dDD3mOQYH7Bj4LV2AQ_Y0fRbGdYtNbM/edit?usp=sharing",
+    "output": "english-language-arts--031--grades-11-12.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/english-language-development",
+    "output": "english-language-development--overview.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/english-language-development/standard-course-study-supporting-resources",
+    "output": "english-language-development--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - English Language Development Standard Course of Study",
+    "source_url": "https://docs.google.com/document/d/1mvk25Pq9QGL2nWPSNu_EkjY9b1o3oF5CgJM3lAtvSUE/edit?usp=sharing",
+    "output": "english-language-development--001--english-language-development-standard-course-of-study.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - Curso estándar Desarrollo del idioma inglés (ELD) de Carolina del Norte",
+    "source_url": "https://docs.google.com/document/d/1T9OH2uNBpST5G12IjXtTWBW6FQj3b5T6Qt-ozw7SmgQ/edit?usp=sharing",
+    "output": "english-language-development--002--curso-estandar-desarrollo-del-idioma-ingles-eld-de-carolina-del-norte.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - Glossary",
+    "source_url": "https://docs.google.com/document/d/1NNtoBCNK8jJbIubrSvkhyu79A9t8JPNuKzXCl8_ZNOU/edit?usp=sharing_eil&ts=69e12c16",
+    "output": "english-language-development--003--glossary.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - Unpacking the ELD Standards for Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1NJU1xRCzwa0ICRwEGaTeNMTnmvBQpcXKE-VJU-tjqUg/edit?usp=sharing",
+    "output": "english-language-development--004--unpacking-the-eld-standards-for-kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - Unpacking the ELD Standards for Grade 1",
+    "source_url": "https://docs.google.com/document/d/12ZMQW49K0G62_6nZyqLMayqQYcbb-XJ9LuUjDf9Svc8/edit?usp=sharing",
+    "output": "english-language-development--005--unpacking-the-eld-standards-for-grade-1.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - Unpacking the ELD Standards for Grades 2-3",
+    "source_url": "https://docs.google.com/document/d/1tLPjnX7BB2BWdFsiywwvYuzOf2d3L8gO1GJaCYIESNo/edit?usp=sharing",
+    "output": "english-language-development--006--unpacking-the-eld-standards-for-grades-2-3.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - Unpacking the ELD Standards for Grades 4-5",
+    "source_url": "https://docs.google.com/document/d/1nheo9FjpYgwECh7TglM2OcZQ044xZMUm0ca-QPW5AlQ/edit?usp=sharing",
+    "output": "english-language-development--007--unpacking-the-eld-standards-for-grades-4-5.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - Unpacking the ELD Standards for Grades 6-8",
+    "source_url": "https://docs.google.com/document/d/1Qf_-QK31ex2meg0h5BGyAkarEgFXQPFCHrWzdfOXZFQ/edit?usp=sharing",
+    "output": "english-language-development--008--unpacking-the-eld-standards-for-grades-6-8.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - Unpacking the ELD Standards for Grades 9-12",
+    "source_url": "https://docs.google.com/document/d/1q6LX0aVjQ72YrWxpkFQI9ytC6Inm37rrNDPEcXyMLF0/edit?usp=sharing",
+    "output": "english-language-development--009--unpacking-the-eld-standards-for-grades-9-12.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - Parent/Caregiver Guide",
+    "source_url": "https://docs.google.com/document/d/1vVdB_1ZaxRhP-uk2aPem-TxyfMd3k85X4ZpYPFyfFD4/edit?usp=sharing",
+    "output": "english-language-development--010--parent-caregiver-guide.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "English Language Development",
+    "title": "English Language Development - Guía para Padres/Cuidadores sobre el Desarrollo del Idioma Inglés",
+    "source_url": "https://docs.google.com/document/d/1OSwZIvlbM57C0n5hDbhu54LGFWyzQBD6ANQE1RVbPZs/edit?usp=sharing",
+    "output": "english-language-development--011--guia-para-padres-cuidadores-sobre-el-desarrollo-del-idioma-ingles.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "NC Student Success",
+    "title": "NC Student Success - overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/guidance",
+    "output": "guidance--overview.md",
+    "kind": "dpi-page",
+    "status": "failed"
+  },
+  {
+    "subject": "NC Student Success",
+    "title": "NC Student Success - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/guidance/standard-course-study-supporting-resources",
+    "output": "guidance--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "failed"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/healthful-living",
+    "output": "healthful-living--overview.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/healthful-living/standard-course-study-supporting-resources",
+    "output": "healthful-living--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - K-12 Health Education Standards",
+    "source_url": "https://docs.google.com/document/d/1-HmcNGonC9HO9OxpNwXn0TYdLz0wGoYR5s4mo3qs_RE/edit?usp=sharing",
+    "output": "healthful-living--001--k-12-health-education-standards.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - K-12 Health Education Standards",
+    "source_url": "https://docs.google.com/document/d/19i6YXmd83EpLELT0tT_NrxCfaCv2_Qy0FAutAlmC6io/edit?usp=sharing",
+    "output": "healthful-living--002--k-12-health-education-standards.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Health Education Crosswalk",
+    "source_url": "https://docs.google.com/document/d/17kJz_HQDlwDSpH40xmGukb7Qc_TPYTBa7mZsK1zN0tA/edit?usp=sharing",
+    "output": "healthful-living--003--health-education-crosswalk.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Health Education Glossary",
+    "source_url": "https://docs.google.com/document/d/11O43hLxHGoGf4a1WJrZrbJX6lZAhmrzCpYQYlLvAii8/edit?usp=sharing",
+    "output": "healthful-living--004--health-education-glossary.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1VhOA9r166L8aKHFcZJH4Xsd0rLWUfoImVYbkKo_J228/edit?usp=drive_link",
+    "output": "healthful-living--005--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - 1st Grade",
+    "source_url": "https://docs.google.com/document/d/1O6COCCkA7vTgdXoxoClbZC41EUZAtrgzOCp7NmzcKbo/edit?usp=drive_link",
+    "output": "healthful-living--006--1st-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - 2nd Grade",
+    "source_url": "https://docs.google.com/document/d/1FLsINwIaTYvT8KSqoa5TapHFm4CCF55FAeb5dM0ewW4/edit?usp=drive_link",
+    "output": "healthful-living--007--2nd-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - 3rd Grade",
+    "source_url": "https://docs.google.com/document/d/1QC7_bAqduO6_BQJJEcuuFs1r2M1mDnu0zgEbgIgPWnQ/edit?usp=drive_link",
+    "output": "healthful-living--008--3rd-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - 4th Grade",
+    "source_url": "https://docs.google.com/document/d/1ATjBCAkSh5RMJwSbrEH_Z-dtrNVKh0gxuGw4HxYnzmk/edit?usp=drive_link",
+    "output": "healthful-living--009--4th-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - 5th Grade",
+    "source_url": "https://docs.google.com/document/d/1cdPv9R8OHKmMkwVEKhtEYjiaNBCv6OJOBImjST0fQUM/edit?usp=drive_link",
+    "output": "healthful-living--010--5th-grade.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Middle School",
+    "source_url": "https://docs.google.com/document/d/16fphAVYhP2rl7FiIwA2F0VPSPr6CAYNiMyTiXbxnGVw/edit?usp=drive_link",
+    "output": "healthful-living--011--middle-school.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - High School",
+    "source_url": "https://docs.google.com/document/d/12tKK2DlfdfM0sxJtAbmmqdgKOcmnri_cyjvIuKQSsDY/edit?usp=drive_link",
+    "output": "healthful-living--012--high-school.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Parent Guides",
+    "source_url": "https://docs.google.com/document/d/1e4VEYfuVxAB3SfyCMALExyLdVrgCK9lQy9AvEhHIqg0/edit?usp=drive_link",
+    "output": "healthful-living--013--parent-guides.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Parent Guides",
+    "source_url": "https://docs.google.com/document/d/1a8cuZZYcteecVvjOqchdVjHE3gdl2_mVhfWhh6rey2Y/edit?usp=drive_link",
+    "output": "healthful-living--014--parent-guides.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Checklist 1 to be used in instruction",
+    "source_url": "https://docs.google.com/document/d/1u44yVGuSgYB0E8PmPr6kEC5eA_eCv2tXgEQ5j9fev58/edit?usp=sharing",
+    "output": "healthful-living--015--checklist-1-to-be-used-in-instruction.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Checklist 2 for use in cumulative folder",
+    "source_url": "https://docs.google.com/document/d/171n6UJ0YFDfgdxfX_j-sMYMNroFe9RacWbuILo3d_zs/edit?usp=sharing",
+    "output": "healthful-living--016--checklist-2-for-use-in-cumulative-folder.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - CPR Frequently Asked Questions",
+    "source_url": "https://docs.google.com/document/d/1DU7QpZVPXwgAIY4G_QHrcNNpxav3OhAg1gzEO2uknpM/edit?usp=sharing",
+    "output": "healthful-living--017--cpr-frequently-asked-questions.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - K-12 Physical Education Standards",
+    "source_url": "https://docs.google.com/document/d/10wlNvL63_hAGDdjiuQ5J5mvT3YNUsyBHW7UBxsJWjHE/edit?usp=sharing",
+    "output": "healthful-living--018--k-12-physical-education-standards.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - K-12 Physical Education Standards",
+    "source_url": "https://docs.google.com/document/d/1Xm_Gd642lyIDVYRN2Gf-uZbn2X5jW0X2W0TY1Ok1pq0/edit?usp=drive_link",
+    "output": "healthful-living--019--k-12-physical-education-standards.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Physical Education Crosswalk",
+    "source_url": "https://docs.google.com/document/d/1Fwrg9mG4wuosrVk_IIIV13ypIjjxjGDJay8vL0FcBa4/edit?usp=drive_link",
+    "output": "healthful-living--020--physical-education-crosswalk.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Physical Education Glossary",
+    "source_url": "https://docs.google.com/document/d/1SrD0K68dPocbq_7q4luxo4pfd0p98vFZ_A9ar-aWafE/edit?usp=drive_link",
+    "output": "healthful-living--021--physical-education-glossary.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Elementary School",
+    "source_url": "https://docs.google.com/document/d/1epIlLfNfcne4yWSNdTR94j-GVejrDYHatS9Yj9QMQJU/edit?usp=drive_link",
+    "output": "healthful-living--022--elementary-school.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Middle School",
+    "source_url": "https://docs.google.com/document/d/1Mep3k3TWFLpKUWu3GbrvoIAewN2s6nXmq18NYOFfFFA/edit?usp=drive_link",
+    "output": "healthful-living--023--middle-school.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - High School",
+    "source_url": "https://docs.google.com/document/d/1kj2HCHued_z3pdfSCHnmkgRP3SGi5hKa0LqRL5pq5H4/edit?usp=drive_link",
+    "output": "healthful-living--024--high-school.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Parent Guides",
+    "source_url": "https://docs.google.com/document/d/16YQJSSfhQ6hY9AwdUqrq5Ba6YyI63LYVWornc0QoeiM/edit?usp=drive_link",
+    "output": "healthful-living--025--parent-guides.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Healthful Living",
+    "title": "Healthful Living - Parent Guides",
+    "source_url": "https://docs.google.com/document/d/1J4-rPUL1fTJwt6bynhTyQVtTzgq1aGD-D1SHc5GFjFI/edit?usp=drive_link",
+    "output": "healthful-living--026--parent-guides.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Information and Technology",
+    "title": "Information and Technology - Overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/academic-standards/standard-course-study/information-and-technology",
+    "output": "information-and-technology--overview.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "Information and Technology",
+    "title": "Information and Technology - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/information-and-technology/standard-course-study-supporting-resources",
+    "output": "information-and-technology--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "failed"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/mathematics",
+    "output": "mathematics--overview.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/mathematics/standard-course-study-supporting-resources",
+    "output": "mathematics--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - K-12 Mathematics Standard Course of Study (English)",
+    "source_url": "https://docs.google.com/document/d/1ZCt83aTtuev58rHlZkakK989vziGI3eLk2xNXi8u_4o/edit?tab=t.0",
+    "output": "mathematics--001--k-12-mathematics-standard-course-of-study-english.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - K-12 Mathematics Standard Course of Study (Spanish)",
+    "source_url": "https://docs.google.com/document/d/1EdfOtGC12q_pttgUlQKKDxJ_IHuFcVygeB3HUNdryd4/edit?tab=t.0",
+    "output": "mathematics--002--k-12-mathematics-standard-course-of-study-spanish.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - NC Math 4",
+    "source_url": "https://docs.google.com/document/d/1_Bhqg0b3cu67dnjzQnV4UDme0Yn3S2lNWbgq7DYq9Ic/edit?usp=drive_link",
+    "output": "mathematics--003--nc-math-4.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - Discrete Mathematics for Computer Science",
+    "source_url": "https://docs.google.com/document/d/1SUspBdXjdZt34AHCPvsSMTM-qOp4L6h9eWIG4ZN65tU/edit?usp=drive_link",
+    "output": "mathematics--004--discrete-mathematics-for-computer-science.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - Precalculus",
+    "source_url": "https://docs.google.com/document/d/12AWe7wMI8VHmTthJZiKKOcOoTE6h4x9-oJZ3z8eFUXY/edit?usp=drive_link",
+    "output": "mathematics--005--precalculus.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - NC Math Options Chart for students who entered HS prior 2020-21 (Updated 4/2026)",
+    "source_url": "https://docs.google.com/document/d/1Fh3N3vzjYfFqULja4YjBHwexAXZQ97MKiNo45ynPl4I/edit?usp=drive_link",
+    "output": "mathematics--006--nc-math-options-chart-for-students-who-entered-hs-prior-2020-21-updated-4-2026.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - NC Math Options Chart for students who entered HS during 2020-21 (Updated 4/2026)",
+    "source_url": "https://docs.google.com/document/d/17_hGd8ZiI-D54bFumRhdZNI-y1H7tmOkfnQLQcxLCcI/edit?usp=drive_link",
+    "output": "mathematics--007--nc-math-options-chart-for-students-who-entered-hs-during-2020-21-updated-4-2026.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - NC Math Options Chart for students who entered HS during 2021-22 (Updated 4/2026)",
+    "source_url": "https://docs.google.com/document/d/1kNsqb3gXifSzkU1noXglMGgYRDV9nvf-ndoivlIcNeE/edit?usp=drive_link",
+    "output": "mathematics--008--nc-math-options-chart-for-students-who-entered-hs-during-2021-22-updated-4-2026.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - NC Math Options Chart for students who entered HS during 2022-23 (Updated 4/2026)",
+    "source_url": "https://docs.google.com/document/d/1zSYDLWG19l_yHPYFo0Jh017ulguRcN0ED3_lvoOpCJA/edit?usp=drive_link",
+    "output": "mathematics--009--nc-math-options-chart-for-students-who-entered-hs-during-2022-23-updated-4-2026.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - NC Math Options Chart for students who entered HS during 2023-24 (Updated 4/2026)",
+    "source_url": "https://docs.google.com/document/d/1j7xYKRRGMS45yCun4lFraMo9TfI0IJLxs8RbGiCrPvQ/edit?usp=drive_link",
+    "output": "mathematics--010--nc-math-options-chart-for-students-who-entered-hs-during-2023-24-updated-4-2026.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - NC Math Options Chart for students who entered HS during 2024-25 (Updated 4/2026)",
+    "source_url": "https://docs.google.com/document/d/1JPKMbIYJaL_rGkdiQwxvnfGhJ1jpG0i_2Lm1Hpyeh38/edit?usp=drive_link",
+    "output": "mathematics--011--nc-math-options-chart-for-students-who-entered-hs-during-2024-25-updated-4-2026.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - NC Math Options Chart for students who entered HS during 2025-26 (Updated 4/2026)",
+    "source_url": "https://docs.google.com/document/d/17Cp3R0O-n1Flo9mu9q6XZEGVTc-BLo2jiM4hV0FVYbg/edit?usp=drive_link",
+    "output": "mathematics--012--nc-math-options-chart-for-students-who-entered-hs-during-2025-26-updated-4-2026.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Mathematics",
+    "title": "Mathematics - NC Math Options Chart for students who entered HS during 2026-27 (Updated 4/2026)",
+    "source_url": "https://docs.google.com/document/d/1D6sTWX1LlIxQv7ATiJgLiM7n601ikxYKXw9WundXMA0/edit?usp=drive_link",
+    "output": "mathematics--013--nc-math-options-chart-for-students-who-entered-hs-during-2026-27-updated-4-2026.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/science",
+    "output": "science--overview.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/science/standard-course-study-supporting-resources",
+    "output": "science--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - 2023 K-12 Science Standards",
+    "source_url": "https://docs.google.com/document/d/1zdEt2pw3-au5PYoM2svrNfx7ibsxrJpAUwxUpRoK-fA/edit?usp=sharing",
+    "output": "science--001--2023-k-12-science-standards.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - 2023 K-12 Science Standards",
+    "source_url": "https://docs.google.com/document/d/1yx_4eRcUttG0iTvWWlEG8IxmeQcZBHwxpKudTOduH74/edit?usp=sharing",
+    "output": "science--002--2023-k-12-science-standards.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1cd24kv9NqjN0rC2dcJLN5LnkC_DHrHMYhr-CXaBKIys/edit?usp=sharing",
+    "output": "science--003--kindergarten.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 1",
+    "source_url": "https://docs.google.com/document/d/1otZdz8QE0pR-coRMmTUjlvB7tTrjabFD3qneObmXxWQ/edit?usp=drive_link",
+    "output": "science--004--grade-1.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 2",
+    "source_url": "https://docs.google.com/document/d/1NlyzHstG_TAopfu7mES5mKcT-zYXIpPyVbyLVaPqj2o/edit?usp=drive_link",
+    "output": "science--005--grade-2.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 3",
+    "source_url": "https://docs.google.com/document/d/13C5Fzn97r-H-FjnKq9VEZ6ctjV8TJEerzb31KDDzhrs/edit?usp=drive_link",
+    "output": "science--006--grade-3.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 4",
+    "source_url": "https://docs.google.com/document/d/1PhpC1ZqWdmXdfunhZZiFIWoJPO95RM6tP5sijNfDe9U/edit?usp=drive_link",
+    "output": "science--007--grade-4.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 5",
+    "source_url": "https://docs.google.com/document/d/1R2Jk62uu-2d_FJ6oM5nkHfON2ruKRyqx1zPzYoHsqoE/edit?usp=drive_link",
+    "output": "science--008--grade-5.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 6",
+    "source_url": "https://docs.google.com/document/d/1oJb7A30EZe_RIQQNcfS-xr7pRAPV8fEWqfUFb6pt1KY/edit?usp=drive_link",
+    "output": "science--009--grade-6.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 7",
+    "source_url": "https://docs.google.com/document/d/1allZPy2gXZj2Ik91yM-dPewLelYdABYXFm-VaQtN4ho/edit?usp=drive_link",
+    "output": "science--010--grade-7.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 8",
+    "source_url": "https://docs.google.com/document/d/1Ybg0dOblDXwTGV6sugmiEDxtjVrP014aBJbghe1h4LY/edit?usp=drive_link",
+    "output": "science--011--grade-8.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Biology",
+    "source_url": "https://docs.google.com/document/d/1XvewwCYQnyNCYRHbFvZY4qf6-qJd-3wTamtxEmpLfUE/edit?usp=drive_link",
+    "output": "science--012--biology.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Chemistry",
+    "source_url": "https://docs.google.com/document/d/1G4lyPm_LeJPLIXczAHiyMtQtu_wyfX6LLfLfSKMjHAo/edit?usp=drive_link",
+    "output": "science--013--chemistry.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Earth/Environmental Science",
+    "source_url": "https://docs.google.com/document/d/1T3V4Tl29bXCZS-DgF0R1_77yg0e7L7upo3ABRoNpPAc/edit?usp=drive_link",
+    "output": "science--014--earth-environmental-science.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Physical Science",
+    "source_url": "https://docs.google.com/document/d/19YL63rPrVwpXusxco2bAqmMaGS7jNXrZL6JvCnuMjPg/edit?usp=drive_link",
+    "output": "science--015--physical-science.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Physics",
+    "source_url": "https://docs.google.com/document/d/1VeW-EFjiX0kxC_XPMAXzqJuKzMxxqJsy26axwkK_Y4g/edit?usp=drive_link",
+    "output": "science--016--physics.md",
+    "kind": "google-doc",
+    "status": "failed"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - 2023 K-12 Science Standards Strands",
+    "source_url": "https://docs.google.com/spreadsheets/d/1_SXaWieeSShnsNmqp0ds1WxtS2iVMJjNndfZ5o0ilgQ/edit?usp=sharing",
+    "output": "science--017--2023-k-12-science-standards-strands.md",
+    "kind": "google-sheet",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1BSZaiGYuL7EaZjt9SV2WtT2GfgQizg94fGuAeS6IdpA/edit?usp=sharing",
+    "output": "science--018--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 1",
+    "source_url": "https://docs.google.com/document/d/1ZfizFQPzFlMTr2a2Z5RdBwyfzv8FghyY0RlQ4ARGvMk/edit?usp=drive_link",
+    "output": "science--019--grade-1.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 2",
+    "source_url": "https://docs.google.com/document/d/1_Nwk-WHSUZ8ev04bbTqB8H_gCDlsYYNhmEOgtZ-giEg/edit?usp=drive_link",
+    "output": "science--020--grade-2.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 3",
+    "source_url": "https://docs.google.com/document/d/14Yuz7RkrSs_jAgMbZt3lt-4ZJ53xVkT6N_atB4yIvQw/edit?usp=drive_link",
+    "output": "science--021--grade-3.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 4",
+    "source_url": "https://docs.google.com/document/d/1pe6aPH5HWBXyc9Z4u8dO_esYDYS34ILXuGhlwtTxMSI/edit?usp=drive_link",
+    "output": "science--022--grade-4.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 5",
+    "source_url": "https://docs.google.com/document/d/1OG1zLnP076d603hkV6ffg8wIVmwpIU84s6edZ0I8DzU/edit?usp=drive_link",
+    "output": "science--023--grade-5.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 6",
+    "source_url": "https://docs.google.com/document/d/1NX3lu8rE0UDjjd4YRyMhnj-iq4Nm1sW8nyRB-xLjWOY/edit?usp=drive_link",
+    "output": "science--024--grade-6.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 7",
+    "source_url": "https://docs.google.com/document/d/1RkqluxESVTjYCsGBw4_Rurl5y_oHcSJIWxJN9MF7ohw/edit?usp=drive_link",
+    "output": "science--025--grade-7.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Grade 8",
+    "source_url": "https://docs.google.com/document/d/1B7dhJfASGfVYlMX9fjy2g23YJOpVFNwGYIiNcm-CnUs/edit?usp=drive_link",
+    "output": "science--026--grade-8.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Biology",
+    "source_url": "https://docs.google.com/document/d/1ajR35OwDseJXT_2EXtRh4e2HWP2MB4GG2QmLdAs2Kao/edit?usp=drive_link",
+    "output": "science--027--biology.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Chemistry",
+    "source_url": "https://docs.google.com/document/d/1qC9wh9S2kGfsWUGHOop0ASIx3BWGyiQgc-id3bCMJl8/edit?usp=drive_link",
+    "output": "science--028--chemistry.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Earth/Environmental Science",
+    "source_url": "https://docs.google.com/document/d/1ZLB-CoXuePrisqbWKlq5qkLrE5hGSkN7WyLuMEsKk6Y/edit?usp=sharing",
+    "output": "science--029--earth-environmental-science.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Physical Science",
+    "source_url": "https://docs.google.com/document/d/1Gayiu2OZIssIiK6WUbDEX5p1GBHPnQKpAdwUtYJZ4j0/edit?usp=drive_link",
+    "output": "science--030--physical-science.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Physics",
+    "source_url": "https://docs.google.com/document/d/1MRc1ja1BxEIwJd7p-BgEVA7tSEtMAZL57RvGXfN9m2U/edit?usp=drive_link",
+    "output": "science--031--physics.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - Formative Assessment Probe Alignment Guide",
+    "source_url": "https://docs.google.com/spreadsheets/d/1r7ya8KFFgxvMe2zObCIuZhkNxCKq88w2YQqlPsR0MTk/edit?usp=sharing",
+    "output": "science--032--formative-assessment-probe-alignment-guide.md",
+    "kind": "google-sheet",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - K-12 Parent/Caregiver Guides",
+    "source_url": "https://docs.google.com/document/d/1zfu354us28B9F9rm0GgPm0W1d3gf-9SVViss3CFbVw8/edit?usp=sharing",
+    "output": "science--033--k-12-parent-caregiver-guides.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Science",
+    "title": "Science - K-12 Parent/Caregiver Guides",
+    "source_url": "https://docs.google.com/document/d/1O3y-MS9bAAzeCVWv6kDhMQ7ONmYWLn7NTwTkmRm1w_o/edit?usp=sharing",
+    "output": "science--034--k-12-parent-caregiver-guides.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/social-studies",
+    "output": "social-studies--overview.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/social-studies/standard-course-study-supporting-resources",
+    "output": "social-studies--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1JLvf2jiT07OBWCb4rOKCK-YRUS66FWqTyD_J71kV0lk/edit?usp=sharing",
+    "output": "social-studies--001--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 1",
+    "source_url": "https://docs.google.com/document/d/1NIPRgOAywgOSoBThlZXhOyGAI-e66Xx49YUmDrLOy8k/edit?usp=sharing",
+    "output": "social-studies--002--grade-1.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 2",
+    "source_url": "https://docs.google.com/document/d/1LL0DBlj7Dws8gntoYdrhuQULweEcVrAdNpZWHnQ5pIc/edit?usp=sharing",
+    "output": "social-studies--003--grade-2.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 3",
+    "source_url": "https://docs.google.com/document/d/1czRPx2zsIoXZkGPfyWOkKPzOPSzm0JDt_XP4pn_SDmw/edit?usp=sharing",
+    "output": "social-studies--004--grade-3.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 4",
+    "source_url": "https://docs.google.com/document/d/1MOh9iSc-PaTY5Sq9p5qkJ-jNsba-LBa_bkpVNHJCwjs/edit?usp=sharing",
+    "output": "social-studies--005--grade-4.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 5",
+    "source_url": "https://docs.google.com/document/d/1FT109PrHIgA9erGpL1YPNoY4ZZTDfWYUTJ1R4auJPis/edit?usp=sharing",
+    "output": "social-studies--006--grade-5.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 6",
+    "source_url": "https://docs.google.com/document/d/1SZ-y8aq5uO1PkLl19AmRHSkRmaJJjAn3naOTWSQCo4Y/edit?usp=sharing",
+    "output": "social-studies--007--grade-6.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 7",
+    "source_url": "https://docs.google.com/document/d/1j1obTvTxvPV6TI9WcWSNZN7j_Oy3ce45xAtqr2CjHe0/edit?usp=sharing",
+    "output": "social-studies--008--grade-7.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 8",
+    "source_url": "https://docs.google.com/document/d/1vFQYnicddNAgxi1mm2IHnbIP36-DcMgfo-oy3jBJkGE/edit?usp=sharing",
+    "output": "social-studies--009--grade-8.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - American History",
+    "source_url": "https://docs.google.com/document/d/1BEJ9GXdV51KV8Wez2q3AJyue3hslaBfR1v1slrNVtaI/edit?usp=sharing",
+    "output": "social-studies--010--american-history.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Economics and Personal Finance",
+    "source_url": "https://docs.google.com/document/d/1kyJEzK65V2vlaJyoOBWAYLzTUUSOk16f7Z955thcKy0/edit?usp=sharing",
+    "output": "social-studies--011--economics-and-personal-finance.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - The Founding Principles of the United States of America and North Carolina: Civic Literacy",
+    "source_url": "https://docs.google.com/document/d/1ceI2tvuJ1By-KFf0N1ENKHOSxtrFxZSLwLnSO1if3yg/edit?usp=sharing",
+    "output": "social-studies--012--the-founding-principles-of-the-united-states-of-america-and-north-carolina-civic-literacy.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - World History",
+    "source_url": "https://docs.google.com/document/d/1kOoMhKRTQ6OWsdCShUuCV2fSkFUOuPD3P0PcLXuxYrc/edit?usp=sharing",
+    "output": "social-studies--013--world-history.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1LXg185Jlff1ndUEyHcMlPV0lfdW0iyEGBT7WPni9JBI/edit?tab=t.0",
+    "output": "social-studies--014--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 1",
+    "source_url": "https://docs.google.com/document/d/1yiXgD-LjWnxjKGGwlM3qXO0VES6NaVsbAKSGbjG_uuY/edit?tab=t.0",
+    "output": "social-studies--015--grade-1.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 2",
+    "source_url": "https://docs.google.com/document/d/1kHfdDmmYxrFM6B8CYFyp2bxdt4rlwNsxKeuAXaeUbBM/edit?tab=t.0",
+    "output": "social-studies--016--grade-2.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 3",
+    "source_url": "https://docs.google.com/document/d/1XsKu7flrWIang7oWWIapu_YMJMnSkWwKMrNkCpWG86Y/edit?tab=t.0",
+    "output": "social-studies--017--grade-3.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 4",
+    "source_url": "https://docs.google.com/document/d/1OAVqeoOU1ii1vWxQnKuIdQ7w9Ct52FxWgLELaydZDOM/edit?tab=t.0",
+    "output": "social-studies--018--grade-4.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 5",
+    "source_url": "https://docs.google.com/document/d/1Hm3CoNvFlqKfMZ3yysIeTvW8-dEG9Ae9okvvnvIYLTo/edit?tab=t.0",
+    "output": "social-studies--019--grade-5.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 6",
+    "source_url": "https://docs.google.com/document/d/1pE2Cxgq5KcgKyRifyv9GYU2O3MqnnAWSQYjyPhkfXv0/edit?tab=t.0",
+    "output": "social-studies--020--grade-6.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 7",
+    "source_url": "https://docs.google.com/document/d/1IQ_KYBtMMklF4HEE3cD4cls8CLARcNRcxUgwO6sDGzs/edit?tab=t.0",
+    "output": "social-studies--021--grade-7.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 8",
+    "source_url": "https://docs.google.com/document/d/1AqGoH9RRwc5AEixubUIeR6H0vSMjZxDtPoRZQqGTtFM/edit?tab=t.0",
+    "output": "social-studies--022--grade-8.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - American History",
+    "source_url": "https://docs.google.com/document/d/1mDoIg1FG3gXd6eG9fijtMCikyJcPBt0hOFSjPP9wx7E/edit?tab=t.0",
+    "output": "social-studies--023--american-history.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Economics and Personal Finance",
+    "source_url": "https://docs.google.com/document/d/1gZsZ07METZmPNYtEoKGhfiCmDNj-Bww3TKBgwMKdW9s/edit?tab=t.0",
+    "output": "social-studies--024--economics-and-personal-finance.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - The Founding Principles of the United States of America and North Carolina: Civic Literacy",
+    "source_url": "https://docs.google.com/document/d/1IWDGZfZnIfnaIg26Ey5NltPQj_tyBfNNnGrCxZ-WpgM/edit?tab=t.0",
+    "output": "social-studies--025--the-founding-principles-of-the-united-states-of-america-and-north-carolina-civic-literacy.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - World History",
+    "source_url": "https://docs.google.com/document/d/1Qq6z9VNJlJ29OQjhc6SVFYiCvjgYxAJgBWHlputSBCQ/edit?tab=t.0",
+    "output": "social-studies--026--world-history.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/104z_-tcsLxemzKHz02IDZVB5O40aVOaIvvU7YGpGciI/edit?usp=sharing",
+    "output": "social-studies--027--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 1",
+    "source_url": "https://docs.google.com/document/d/1DucXv-WIwfMjGZp3E-4pm-tLdvc6qcped2Ik1rtD5vc/edit?usp=drive_link",
+    "output": "social-studies--028--grade-1.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 2",
+    "source_url": "https://docs.google.com/document/d/1dPrC_WvS8bIQzl-4HhnP2n7wbx6_Y6mOt6c44FtOdv4/edit?usp=sharing",
+    "output": "social-studies--029--grade-2.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 3",
+    "source_url": "https://docs.google.com/document/d/1CzPUgLs8Sf_MPMqsam9DyowKkuMnpc3HC7pTKghFsiU/edit?usp=sharing",
+    "output": "social-studies--030--grade-3.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 4",
+    "source_url": "https://docs.google.com/document/d/17E_7f1udYS_auWTwxlu4YH3ozjE7FrftVfwO8S-GtEQ/edit?tab=t.0",
+    "output": "social-studies--031--grade-4.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 5",
+    "source_url": "https://docs.google.com/document/d/1ntJinM5lc0O2VGKaZJUQ4N1d1STwYKJCbnxpDtq8T-Y/edit?tab=t.0",
+    "output": "social-studies--032--grade-5.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 6",
+    "source_url": "https://docs.google.com/document/d/180d9EX-GTTHV3diSdcevqtqyQuiUviSzVXnOuZosCJE/edit?usp=sharing",
+    "output": "social-studies--033--grade-6.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 7",
+    "source_url": "https://docs.google.com/document/d/1F40Ot9i7BrkErrP27UdsKvF9FuGLQEYdDQGPBEdF7hI/edit?usp=sharing",
+    "output": "social-studies--034--grade-7.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 8",
+    "source_url": "https://docs.google.com/document/d/1RZfY8wH9cp_dGSVqQG0J1oTvQUp0AeEBSnkysozq8Vc/edit?tab=t.0",
+    "output": "social-studies--035--grade-8.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - American History",
+    "source_url": "https://docs.google.com/document/d/1G87Jfuqv6ygokDzQwJG903UooOFw7cZnzq6auZwHrEQ/edit?usp=sharing",
+    "output": "social-studies--036--american-history.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Economics and Personal Finance",
+    "source_url": "https://docs.google.com/document/d/1jx_x-pMzFmhmLXX1JW4hH1YaEM6gzhIdgkcqv23YQ60/edit?usp=sharing",
+    "output": "social-studies--037--economics-and-personal-finance.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - The Founding Principles of the United States of America and North Carolina: Civic Literacy",
+    "source_url": "https://docs.google.com/document/d/1lbaFLM6xWJ00YNUNUEY3B_xcD5wAwZ4T83mVnKSmusQ/edit?tab=t.0",
+    "output": "social-studies--038--the-founding-principles-of-the-united-states-of-america-and-north-carolina-civic-literacy.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - World History",
+    "source_url": "https://docs.google.com/document/d/1SPlprYRzsrV6K7dLhyJfQEkptRd6mamWWjG46WqOtjw/edit?usp=sharing",
+    "output": "social-studies--039--world-history.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Kindergarten",
+    "source_url": "https://docs.google.com/document/d/1SGmey3iKH2jvu3MLLsnY2SfqeW1UnR35YLF4HdauKF4/edit?tab=t.0",
+    "output": "social-studies--040--kindergarten.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 1",
+    "source_url": "https://docs.google.com/document/d/1Nf5jk_lXieHM_2GWdJiCwPXxmz0t4JxWQ_l69iVGPRw/edit?tab=t.0",
+    "output": "social-studies--041--grade-1.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 2",
+    "source_url": "https://docs.google.com/document/d/1ooMMIl8LR26lqE0_C8E8ZmCEHdJraZ8B3hp3mud9Qy4/edit?tab=t.0",
+    "output": "social-studies--042--grade-2.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 3",
+    "source_url": "https://docs.google.com/document/d/12vHFyknJIgE89_vsxrEUEDDAkFJ6TEWDZE1uATHWkME/edit?tab=t.0",
+    "output": "social-studies--043--grade-3.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 4",
+    "source_url": "https://docs.google.com/document/d/1lCqr93jBdnn3NtHxLbiqeUKCbacUWBZe0oITgcWq6jM/edit?tab=t.0",
+    "output": "social-studies--044--grade-4.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 5",
+    "source_url": "https://docs.google.com/document/d/1nXfpeTeyCh1_kWQ5MaS_lhJdmdiaUNqjMNTr7MMBGAQ/edit?tab=t.0",
+    "output": "social-studies--045--grade-5.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 6",
+    "source_url": "https://docs.google.com/document/d/1my_Jj0DadJTldPrcbbnmTAtAH0w3Ha3-2EsE-aez5Lc/edit?tab=t.0",
+    "output": "social-studies--046--grade-6.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 7",
+    "source_url": "https://docs.google.com/document/d/1o4ObOCEtfQvS-e8chyUZQwq3nCqyTMjhk9OdaA6OmqE/edit?tab=t.0",
+    "output": "social-studies--047--grade-7.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Grade 8",
+    "source_url": "https://docs.google.com/document/d/1f1jZfdN3DIp_byl-TzdGlhPeQkkTDLbJCq0RZM3bY44/edit?tab=t.0",
+    "output": "social-studies--048--grade-8.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - American History",
+    "source_url": "https://docs.google.com/document/d/1whmFSz3DAYakjBmfMd6Skc9hg7KkA-W2YjdOARPEfFg/edit?tab=t.0",
+    "output": "social-studies--049--american-history.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - The Founding Principles of the United States of America and North Carolina: Civic Literacy",
+    "source_url": "https://docs.google.com/document/d/1RP9Rbc3GNHaM0aCL-ipXiFE7rHLGyHuVpXARVBvX3VE/edit?tab=t.0",
+    "output": "social-studies--050--the-founding-principles-of-the-united-states-of-america-and-north-carolina-civic-literacy.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - World History",
+    "source_url": "https://docs.google.com/document/d/1gGJAkYlLxjzDcN5C18Gc79uxdYFb7HoRRmOUa81AisI/edit?tab=t.0",
+    "output": "social-studies--051--world-history.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - K-8 Parent Guides",
+    "source_url": "https://docs.google.com/document/d/10-zlFtg6y1iwACSrmpxvyY7YWAEF2x2kH7EI76gmq4o/edit?usp=sharing",
+    "output": "social-studies--052--k-8-parent-guides.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - 9-12 Parent Guides",
+    "source_url": "https://docs.google.com/document/d/1uhV9b48YfZh8lgGT_cTI0iZkO6xv0Di-5ekEdR8DuiA/edit?usp=sharing",
+    "output": "social-studies--053--9-12-parent-guides.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - K-8 Parent Guides",
+    "source_url": "https://docs.google.com/document/d/1EaxABTuqYsa1t-zTmfeLn-2NPQYWbRYC6jY9tHpCuAo/edit?usp=sharing",
+    "output": "social-studies--054--k-8-parent-guides.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - 9-12 Parent Guides",
+    "source_url": "https://docs.google.com/document/d/1KIHdYZNMXODy9EgwrrwUEgyRYlNyG3Bke4X6oZfGRXc/edit?usp=sharing",
+    "output": "social-studies--055--9-12-parent-guides.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "Social Studies",
+    "title": "Social Studies - Social Studies Glossary",
+    "source_url": "https://docs.google.com/document/d/1idiuaaohoXta9KhXHVHDp89X4XQoSDUSqsM2jNmry1I/edit?usp=sharing",
+    "output": "social-studies--056--social-studies-glossary.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "World Languages",
+    "title": "World Languages - overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/world-languages",
+    "output": "world-languages--overview.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "World Languages",
+    "title": "World Languages - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/world-languages/standard-course-study-supporting-resources",
+    "output": "world-languages--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "NC Student Success Standards",
+    "title": "NC Student Success Standards - overview",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/nc-student-success-standards",
+    "output": "nc-student-success-standards--overview.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "NC Student Success Standards",
+    "title": "NC Student Success Standards - supporting-resources",
+    "source_url": "https://www.dpi.nc.gov/districts-schools/classroom-resources/office-teaching-and-learning/standard-course-study/student-success-standards/standard-course-study-supporting-resources",
+    "output": "nc-student-success-standards--supporting-resources.md",
+    "kind": "dpi-page",
+    "status": "success"
+  },
+  {
+    "subject": "NC Student Success Standards",
+    "title": "NC Student Success Standards - K-12 Student Success Standards",
+    "source_url": "https://docs.google.com/document/d/1hqufk5AMsYJl4qF98rV1Nk7PnVIcPVJFWk8dVu1Wvcs/edit?usp=sharing",
+    "output": "nc-student-success-standards--001--k-12-student-success-standards.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "NC Student Success Standards",
+    "title": "NC Student Success Standards - Crosswalk Document",
+    "source_url": "https://docs.google.com/document/d/1luRk4SWY0-Lp5elv3pD-8Xh-CO2679KrTUv3AMj2OUo/edit?usp=sharing",
+    "output": "nc-student-success-standards--002--crosswalk-document.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "NC Student Success Standards",
+    "title": "NC Student Success Standards - Glossary",
+    "source_url": "https://docs.google.com/document/d/10y2FwQfCpcBS3x3vyXiGVoKoDSKxyaI_a1owFBmUccc/edit?usp=sharing",
+    "output": "nc-student-success-standards--003--glossary.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "NC Student Success Standards",
+    "title": "NC Student Success Standards - Parent Guide",
+    "source_url": "https://docs.google.com/document/d/1LIVJSttwCABEPpsHOBI0Lznp2zAQiy5PE1RF6bR5Hr4/edit?usp=sharing",
+    "output": "nc-student-success-standards--004--parent-guide.md",
+    "kind": "google-doc",
+    "status": "success"
+  },
+  {
+    "subject": "NC Student Success Standards",
+    "title": "NC Student Success Standards - Parent Guide",
+    "source_url": "https://docs.google.com/document/d/1r11FXnoME7jM3hLSmeUcaNSzcX6UoJYT/edit?usp=sharing&ouid=104002156078072494781&rtpof=true&sd=true",
+    "output": "nc-student-success-standards--005--parent-guide.md",
+    "kind": "google-doc",
+    "status": "success"
+  }
+]

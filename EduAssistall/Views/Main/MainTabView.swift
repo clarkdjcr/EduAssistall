@@ -422,6 +422,14 @@ private struct ProfileSettingsView: View {
                         }
                     }
 
+                    if let profile = authVM.currentProfile, profile.role == .admin {
+                        NavigationLink {
+                            StandardsUpdateReviewView()
+                        } label: {
+                            Label("Standards Updates", systemImage: "arrow.triangle.2.circlepath.doc.on.clipboard")
+                        }
+                    }
+
                     // FR-G5: AI usage dashboard — admins and teachers only
                     if let profile = authVM.currentProfile,
                        profile.role == .teacher || profile.role == .admin {

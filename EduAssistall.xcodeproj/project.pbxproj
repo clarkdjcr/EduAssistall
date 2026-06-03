@@ -42,7 +42,15 @@
 		92443D202F9320BC00009983 /* Exceptions for "EduAssistall" folder in "EduAssistall" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				CONTEXT.md,
 				Info.plist,
+				LOG.md,
+				Services/CONTEXT.md,
+				Services/LOG.md,
+				Views/Main/CONTEXT.md,
+				Views/Main/LOG.md,
+				Views/Settings/CONTEXT.md,
+				Views/Settings/LOG.md,
 			);
 			target = 92B2FAE52F8EE96500EDC823 /* EduAssistall */;
 		};

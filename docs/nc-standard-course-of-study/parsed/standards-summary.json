@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-06-03T19:10:47.972Z",
+  "sourceManifest": "docs/nc-standard-course-of-study/crawl_manifest.json",
+  "recordCount": 12665,
+  "standardRecordCount": 12572,
+  "documentFallbackCount": 93,
+  "bySubject": {
+    "General": 1,
+    "Arts Education": 5707,
+    "CTE and Career Pathways": 1,
+    "English Language Arts": 2873,
+    "English Language Development": 13,
+    "Healthful Living": 456,
+    "Information and Technology": 1,
+    "Mathematics": 925,
+    "Science": 1534,
+    "Social Studies": 1145,
+    "World Languages": 2,
+    "NC Student Success Standards": 7
+  },
+  "byGrade": {
+    "1": 2030,
+    "2": 1599,
+    "3": 496,
+    "4": 483,
+    "5": 453,
+    "6": 380,
+    "7": 369,
+    "8": 410,
+    "Unspecified": 2221,
+    "K": 3743,
+    "9-10": 226,
+    "11-12": 220,
+    "9-12": 18,
+    "6-8": 17
+  },
+  "byType": {
+    "document": 93,
+    "standard": 12572
+  }
+}

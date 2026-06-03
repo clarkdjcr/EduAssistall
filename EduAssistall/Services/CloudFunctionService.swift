@@ -117,7 +117,12 @@ final class CloudFunctionService {
         subject: String,
         topic: String,
         durationMinutes: Int = 45,
-        standard: String = ""
+        standard: String = "",
+        startDate: Date? = nil,
+        endDate: Date? = nil,
+        teachingDays: [String] = [],
+        supplementalResources: String = "",
+        teacherNotes: String = ""
     ) async throws -> LessonPlanResult {
         var data: [String: Any] = [
             "grade": grade,
@@ -126,6 +131,11 @@ final class CloudFunctionService {
             "durationMinutes": durationMinutes,
         ]
         if !standard.isEmpty { data["standard"] = standard }
+        if let startDate { data["startDate"] = Self.lessonDateFormatter.string(from: startDate) }
+        if let endDate { data["endDate"] = Self.lessonDateFormatter.string(from: endDate) }
+        if !teachingDays.isEmpty { data["teachingDays"] = teachingDays }
+        if !supplementalResources.isEmpty { data["supplementalResources"] = supplementalResources }
+        if !teacherNotes.isEmpty { data["teacherNotes"] = teacherNotes }
         let result = try await functions.httpsCallable("generateLessonPlan").call(data)
         guard let dict = result.data as? [String: Any],
               let plan = dict["lessonPlan"] as? String else {
@@ -136,6 +146,14 @@ final class CloudFunctionService {
             documentId: dict["documentId"] as? String
         )
     }
+
+    private static let lessonDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
 
     func generateParentLetter(
         studentId: String,
@@ -466,6 +484,18 @@ final class CloudFunctionService {
         ])
         guard let dict = result.data as? [String: Any],
               dict["success"] as? Bool == true else {
+            throw URLError(.badServerResponse)
+        }
+    }
+
+    func approveStandardsUpdate(alertId: String, decision: String, notes: String = "") async throws {
+        let result = try await functions.httpsCallable("approveStandardsUpdate").call([
+            "alertId": alertId,
+            "decision": decision,
+            "notes": notes,
+        ])
+        guard let dict = result.data as? [String: Any],
+              dict["ok"] as? Bool == true else {
             throw URLError(.badServerResponse)
         }
     }
