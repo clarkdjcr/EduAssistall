@@ -4,6 +4,7 @@ struct TeacherLearningPathView: View {
     let teacherProfile: UserProfile
 
     @State private var paths: [LearningPath] = []
+    @State private var studentNames: [String: String] = [:]
     @State private var isLoading = true
     @State private var showCreate = false
 
@@ -24,7 +25,7 @@ struct TeacherLearningPathView: View {
                                 showAnswerModeToggle: true   // FR-006: teachers can toggle answer mode
                             )
                         } label: {
-                            TeacherPathRow(path: path)
+                            TeacherPathRow(path: path, studentName: studentNames[path.studentId])
                         }
                     }
                     .onDelete(perform: deletePaths)
@@ -87,6 +88,22 @@ struct TeacherLearningPathView: View {
         paths = (try? await FirestoreService.shared
             .fetchLearningPathsCreatedBy(teacherId: teacherProfile.id)) ?? []
         paths.sort { $0.createdAt > $1.createdAt }
+
+        // Load display names for all students referenced by these paths
+        let uniqueStudentIds = Array(Set(paths.map(\.studentId)))
+        var names: [String: String] = [:]
+        await withTaskGroup(of: (String, String?).self) { group in
+            for sid in uniqueStudentIds {
+                group.addTask {
+                    let profile = try? await FirestoreService.shared.fetchUserProfile(uid: sid)
+                    return (sid, profile?.displayName)
+                }
+            }
+            for await (sid, name) in group {
+                if let name { names[sid] = name }
+            }
+        }
+        studentNames = names
         isLoading = false
     }
 
@@ -105,11 +122,17 @@ struct TeacherLearningPathView: View {
 
 private struct TeacherPathRow: View {
     let path: LearningPath
+    let studentName: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(path.title)
                 .font(.headline)
+            if let name = studentName {
+                Label(name, systemImage: "person.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.blue)
+            }
             HStack(spacing: 8) {
                 Label("\(path.items.count) items", systemImage: "list.bullet")
                     .font(.caption)

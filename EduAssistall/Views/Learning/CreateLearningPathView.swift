@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CreateLearningPathView: View {
     let teacherProfile: UserProfile
+    var preselectedLink: StudentAdultLink? = nil
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -10,6 +11,7 @@ struct CreateLearningPathView: View {
     @State private var description = ""
     @State private var selectedStudentLink: StudentAdultLink?
     @State private var linkedStudents: [StudentAdultLink] = []
+    @State private var studentNames: [String: String] = [:]
     @State private var pendingItems: [ContentItem] = []
     @State private var showAddItem = false
     @State private var isSaving = false
@@ -26,13 +28,21 @@ struct CreateLearningPathView: View {
 
                 Section("Assign To Student") {
                     if linkedStudents.isEmpty {
-                        Text("No linked students found. Link students from your dashboard first.")
+                        Text("No confirmed students found. Students must accept your invite before you can assign paths.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(linkedStudents) { link in
                             HStack {
-                                Text(link.studentEmail)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(studentNames[link.studentId] ?? link.studentEmail)
+                                        .font(.subheadline)
+                                    if studentNames[link.studentId] != nil {
+                                        Text(link.studentEmail)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
                                 Spacer()
                                 if selectedStudentLink?.id == link.id {
                                     Image(systemName: "checkmark")
@@ -101,8 +111,30 @@ struct CreateLearningPathView: View {
     }
 
     private func loadStudents() async {
-        linkedStudents = (try? await FirestoreService.shared
-            .fetchLinkedStudents(adultId: teacherProfile.id)) ?? []
+        let all = (try? await FirestoreService.shared.fetchLinkedStudents(adultId: teacherProfile.id)) ?? []
+        linkedStudents = all.filter(\.confirmed)
+
+        // Pre-select the provided link, or auto-select when there's only one student
+        if let pre = preselectedLink {
+            selectedStudentLink = linkedStudents.first { $0.id == pre.id }
+        } else if linkedStudents.count == 1 {
+            selectedStudentLink = linkedStudents.first
+        }
+
+        // Load display names in parallel
+        var names: [String: String] = [:]
+        await withTaskGroup(of: (String, String?).self) { group in
+            for link in linkedStudents {
+                group.addTask {
+                    let profile = try? await FirestoreService.shared.fetchUserProfile(uid: link.studentId)
+                    return (link.studentId, profile?.displayName)
+                }
+            }
+            for await (sid, name) in group {
+                if let name { names[sid] = name }
+            }
+        }
+        studentNames = names
     }
 
     private func save() async {

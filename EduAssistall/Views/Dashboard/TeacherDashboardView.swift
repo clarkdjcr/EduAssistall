@@ -14,6 +14,8 @@ struct TeacherDashboardView: View {
     @State private var showManageRoster = false
     @State private var showAddStudent = false
     @State private var showLessonPlan = false
+    @State private var assignPathStudent: StudentAdultLink? = nil
+    @State private var activePathCount = 0
 
     private var confirmedStudents: [StudentAdultLink] {
         linkedStudents.filter(\.confirmed)
@@ -80,6 +82,11 @@ struct TeacherDashboardView: View {
             .sheet(isPresented: $showLessonPlan) {
                 GenerateLessonPlanView(teacherProfile: profile)
             }
+            .sheet(item: $assignPathStudent) { link in
+                CreateLearningPathView(teacherProfile: profile, preselectedLink: link) {
+                    Task { await loadStudents() }
+                }
+            }
             .navigationDestination(isPresented: $showManageRoster) {
                 RosterManagementView(teacherProfile: profile)
             }
@@ -118,7 +125,7 @@ struct TeacherDashboardView: View {
                                   highlight: totalPending > 0)
             }
             .buttonStyle(.plain)
-            DashboardStatCard(value: "\(confirmedStudents.count)",
+            DashboardStatCard(value: "\(activePathCount)",
                               label: "Active Paths",
                               icon: "book.fill",
                               color: .purple)
@@ -166,6 +173,13 @@ struct TeacherDashboardView: View {
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 20)
+                    .contextMenu {
+                        Button {
+                            assignPathStudent = link
+                        } label: {
+                            Label("Assign Learning Path", systemImage: "list.bullet.clipboard.fill")
+                        }
+                    }
                 }
             }
         }
@@ -248,8 +262,10 @@ struct TeacherDashboardView: View {
             let confirmed = linkedStudents.filter(\.confirmed)
             let ids = confirmed.map(\.studentId)
 
-            // Load names and pending recs in parallel
+            // Load names, pending recs, and active path count in parallel
             async let pendingFetch = FirestoreService.shared.fetchPendingRecommendations(studentIds: ids)
+            async let pathsFetch = FirestoreService.shared.fetchLearningPathsCreatedBy(teacherId: profile.id)
+
             var names: [String: String] = [:]
             await withTaskGroup(of: (String, String?).self) { group in
                 for link in confirmed {
@@ -268,6 +284,9 @@ struct TeacherDashboardView: View {
             var map: [String: Int] = [:]
             for rec in pending { map[rec.studentId, default: 0] += 1 }
             pendingByStudent = map
+
+            let paths = (try? await pathsFetch) ?? []
+            activePathCount = paths.filter(\.isActive).count
         } catch {
             loadError = error
         }
@@ -301,6 +320,7 @@ private struct AllStudentsSheet: View {
     let pendingByStudent: [String: Int]
     let teacherProfile: UserProfile
     @Environment(\.dismiss) private var dismiss
+    @State private var assignPathStudent: StudentAdultLink? = nil
 
     var body: some View {
         NavigationStack {
@@ -316,6 +336,14 @@ private struct AllStudentsSheet: View {
                     )
                     .padding(.vertical, 4)
                 }
+                .swipeActions(edge: .trailing) {
+                    Button {
+                        assignPathStudent = link
+                    } label: {
+                        Label("Assign Path", systemImage: "list.bullet.clipboard.fill")
+                    }
+                    .tint(.purple)
+                }
             }
             #if os(iOS)
             .listStyle(.insetGrouped)
@@ -327,6 +355,11 @@ private struct AllStudentsSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
+            }
+        }
+        .sheet(item: $assignPathStudent) { link in
+            CreateLearningPathView(teacherProfile: teacherProfile, preselectedLink: link) {
+                assignPathStudent = nil
             }
         }
     }
