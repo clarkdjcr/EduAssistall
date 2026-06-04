@@ -29,3 +29,9 @@
 **Outcome:** Success
 **Summary:** Widened learning path and content catalog sheets on macOS.
 **Details:** Updated `TeacherLearningPathView.swift`, `CreateLearningPathView.swift`, and `AddContentItemView.swift` so assign-path and content browsing modals use desktop-sized frames on macOS.
+
+## 2026-06-04T16:12:33 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added a quiz retry plan that frames missed answers as useful feedback.
+**Details:** Updated `EduAssistall/Views/Learning/QuizView.swift` so non-passing results prompt students to review explanations, write a correction, and retry after practicing the missed idea.

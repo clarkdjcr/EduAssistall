@@ -35,3 +35,9 @@
 **Outcome:** Success
 **Summary:** Improved macOS sizing for teacher workflow modals.
 **Details:** Updated `GenerateLessonPlanView.swift`, `GenerateParentLetterView.swift`, and `RosterManagementView.swift` so lesson planning, parent-letter review, roster import, and transfer sheets open wider on macOS.
+
+## 2026-06-04T15:56:54 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added two-stage lesson-plan and daily recommendation approval before assignment.
+**Details:** Updated `GenerateLessonPlanView.swift` so teachers approve the AI lesson plan, review AI-parsed teaching days, approve those days, and only then assign to selected students.

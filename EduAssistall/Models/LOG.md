@@ -17,3 +17,15 @@
 **Outcome:** Success
 **Summary:** Added cleaned display fields for learning journal entries.
 **Details:** Updated `EduAssistall/Models/LearningJournalEntry.swift` to parse JSON-shaped summaries into plain summary text and topic tags.
+
+## 2026-06-04T15:56:54 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Extended recommendation models for lesson-plan and daily teaching-day approvals.
+**Details:** Updated `EduAssistall/Models/Recommendation.swift` with lesson plan/day recommendation types and optional metadata fields.
+
+## 2026-06-04T16:04:56 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added private reflection metadata to learning journal entries.
+**Details:** Updated `EduAssistall/Models/LearningJournalEntry.swift` with student reflection text, teacher/parent share flags, and reflection safety status fields.

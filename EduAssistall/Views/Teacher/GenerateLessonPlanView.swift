@@ -36,15 +36,19 @@ struct GenerateLessonPlanView: View {
 
     @State private var result: CloudFunctionService.LessonPlanResult?
     @State private var generatedPlan = ""
+    @State private var dailyRecommendations: [CloudFunctionService.LessonDayRecommendation] = []
+    @State private var approvedDayIds = Set<String>()
     @State private var assignmentTitle = ""
     @State private var assignmentDescription = ""
     @State private var assignedCount: Int?
     @State private var isLoadingWorkspace = true
     @State private var isLoadingVendorResources = false
     @State private var isGenerating = false
+    @State private var isParsingDays = false
     @State private var isAssigning = false
     @State private var errorMessage: String?
     @State private var assignmentMessage: String?
+    @State private var dailyRecommendationMessage: String?
     @State private var vendorResourceMessage: String?
 
     var body: some View {
@@ -59,6 +63,13 @@ struct GenerateLessonPlanView: View {
 
                     if !generatedPlan.isEmpty {
                         reviewSection
+                    }
+
+                    if !dailyRecommendations.isEmpty {
+                        dailyRecommendationsSection
+                    }
+
+                    if canShowAssignment {
                         assignmentSection
                     }
 
@@ -107,8 +118,9 @@ struct GenerateLessonPlanView: View {
         LessonWorkspaceSection {
             HStack(spacing: 12) {
                 WorkspaceStep(number: 1, title: "Plan", isActive: generatedPlan.isEmpty)
-                WorkspaceStep(number: 2, title: "Review", isActive: !generatedPlan.isEmpty && assignedCount == nil)
-                WorkspaceStep(number: 3, title: "Assign", isActive: assignedCount != nil)
+                WorkspaceStep(number: 2, title: "Approve", isActive: !generatedPlan.isEmpty && dailyRecommendations.isEmpty)
+                WorkspaceStep(number: 3, title: "Days", isActive: !dailyRecommendations.isEmpty && !allDaysApproved)
+                WorkspaceStep(number: 4, title: "Assign", isActive: allDaysApproved || assignedCount != nil)
             }
             .padding(.vertical, 6)
         }
@@ -270,7 +282,7 @@ struct GenerateLessonPlanView: View {
     private var reviewSection: some View {
         LessonWorkspaceSection(
             "Teacher Review",
-            footer: "Edit the plan here before assigning. Assignment uses the reviewed text currently shown above."
+            footer: "Edit the AI recommendation here. Approving the plan asks AI to parse it into teaching-day recommendations for a second review."
         ) {
             if result?.documentId != nil {
                 Label("Saved as a draft document for review", systemImage: "checkmark.circle.fill")
@@ -284,6 +296,83 @@ struct GenerateLessonPlanView: View {
                 subject: Text(assignmentTitle.isEmpty ? "EduAssist Lesson Plan" : assignmentTitle),
                 message: Text("Draft lesson plan from EduAssist")
             )
+
+            if let dailyRecommendationMessage {
+                Label(dailyRecommendationMessage, systemImage: "checkmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.green)
+            }
+
+            Button(action: approvePlanAndBuildDays) {
+                if isParsingDays {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text("Building Daily Recommendations...")
+                    }
+                    .frame(maxWidth: .infinity)
+                } else {
+                    Label(dailyRecommendations.isEmpty ? "Approve Plan and Build Days" : "Rebuild Daily Recommendations", systemImage: "calendar.badge.plus")
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!canApprovePlan)
+        }
+    }
+
+    private var dailyRecommendationsSection: some View {
+        LessonWorkspaceSection(
+            "Daily AI Recommendations",
+            footer: "Review each AI-parsed teaching day. Assignment is available only after every day is approved."
+        ) {
+            ForEach(dailyRecommendations) { day in
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Label("Day \(day.dayNumber)", systemImage: "calendar")
+                            .font(.caption.bold())
+                            .foregroundStyle(.blue)
+                        Spacer()
+                        if approvedDayIds.contains(day.id) {
+                            Label("Approved", systemImage: "checkmark.circle.fill")
+                                .font(.caption.bold())
+                                .foregroundStyle(.green)
+                        }
+                    }
+
+                    Text(day.title)
+                        .font(.subheadline.bold())
+                    if !day.rationale.isEmpty {
+                        Text(day.rationale)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    TextEditor(text: dailyPlanTextBinding(for: day.id))
+                        .frame(minHeight: 160)
+                        .font(.body)
+
+                    Button {
+                        approvedDayIds.insert(day.id)
+                    } label: {
+                        Label(approvedDayIds.contains(day.id) ? "Day Approved" : "Approve Day", systemImage: "checkmark.circle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(approvedDayIds.contains(day.id))
+                }
+                .padding(12)
+                .background(Color.appSecondaryGroupedBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            Button {
+                approvedDayIds = Set(dailyRecommendations.map(\.id))
+            } label: {
+                Label("Approve All Days", systemImage: "checkmark.seal.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(allDaysApproved)
         }
     }
 
@@ -349,7 +438,21 @@ struct GenerateLessonPlanView: View {
         !generatedPlan.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !assignmentTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !selectedStudentIds.isEmpty &&
+        allDaysApproved &&
         !isAssigning
+    }
+
+    private var canApprovePlan: Bool {
+        !generatedPlan.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !isParsingDays
+    }
+
+    private var allDaysApproved: Bool {
+        !dailyRecommendations.isEmpty && approvedDayIds.count == dailyRecommendations.count
+    }
+
+    private var canShowAssignment: Bool {
+        allDaysApproved || assignedCount != nil
     }
 
     private var matchingCurriculumDocs: [CurriculumDocEntry] {
@@ -432,9 +535,38 @@ struct GenerateLessonPlanView: View {
                 )
                 result = planResult
                 generatedPlan = planResult.lessonPlan
+                dailyRecommendations = []
+                approvedDayIds.removeAll()
                 assignmentTitle = "\(subject) - \(trimmedTopic)"
                 assignmentDescription = "Complete the reviewed lesson plan activities for \(trimmedTopic)."
                 assignedCount = nil
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func approvePlanAndBuildDays() {
+        errorMessage = nil
+        dailyRecommendationMessage = nil
+        isParsingDays = true
+        Task {
+            defer { isParsingDays = false }
+            do {
+                let days = try await CloudFunctionService.shared.approveLessonPlanAndGenerateDays(
+                    recommendationId: result?.recommendationId,
+                    title: assignmentTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "\(subject) - \(topic)" : assignmentTitle,
+                    grade: grade,
+                    subject: subject,
+                    standard: standard.trimmingCharacters(in: .whitespacesAndNewlines),
+                    lessonPlan: generatedPlan.trimmingCharacters(in: .whitespacesAndNewlines),
+                    startDate: startDate,
+                    endDate: endDate,
+                    teachingDays: Self.weekdays.filter { selectedWeekdays.contains($0) }
+                )
+                dailyRecommendations = days.sorted { $0.dayNumber < $1.dayNumber }
+                approvedDayIds.removeAll()
+                dailyRecommendationMessage = "Created \(days.count) daily recommendation\(days.count == 1 ? "" : "s") for review."
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -478,6 +610,7 @@ struct GenerateLessonPlanView: View {
                     standard: standard.trimmingCharacters(in: .whitespacesAndNewlines),
                     lessonPlan: generatedPlan.trimmingCharacters(in: .whitespacesAndNewlines),
                     documentId: result?.documentId,
+                    dailyPlans: approvedDailyRecommendations,
                     studentIds: Array(selectedStudentIds)
                 )
                 assignedCount = response.assignedCount
@@ -486,6 +619,26 @@ struct GenerateLessonPlanView: View {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+
+    private var approvedDailyRecommendations: [CloudFunctionService.LessonDayRecommendation] {
+        dailyRecommendations
+            .filter { approvedDayIds.contains($0.id) }
+            .sorted { $0.dayNumber < $1.dayNumber }
+    }
+
+    private func dailyPlanTextBinding(for id: String) -> Binding<String> {
+        Binding(
+            get: {
+                dailyRecommendations.first(where: { $0.id == id })?.lessonPlanText ?? ""
+            },
+            set: { newValue in
+                if let index = dailyRecommendations.firstIndex(where: { $0.id == id }) {
+                    dailyRecommendations[index].lessonPlanText = newValue
+                    approvedDayIds.remove(id)
+                }
+            }
+        )
     }
 
     private var availableTeachingDays: Int {

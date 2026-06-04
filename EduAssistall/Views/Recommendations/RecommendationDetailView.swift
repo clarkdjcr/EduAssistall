@@ -149,6 +149,8 @@ struct RecommendationDetailView: View {
         case .learningPath: return "Learning Path"
         case .contentItem:  return "Content Item"
         case .quiz:         return "Quiz"
+        case .lessonPlan:   return "Lesson Plan"
+        case .lessonDay:    return "Teaching Day"
         }
     }
 

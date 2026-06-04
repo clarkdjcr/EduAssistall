@@ -152,6 +152,8 @@ struct QuizView: View {
                 Label("Marked as complete", systemImage: "checkmark.circle.fill")
                     .font(.subheadline.bold())
                     .foregroundStyle(.green)
+            } else {
+                retryPlan
             }
 
             VStack(spacing: 12) {
@@ -187,6 +189,27 @@ struct QuizView: View {
         }
         .background(Color.appGroupedBackground)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var retryPlan: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("This attempt is useful feedback", systemImage: "arrow.triangle.2.circlepath.circle.fill")
+                .font(.subheadline.bold())
+                .foregroundStyle(.orange)
+            Text("Use the missed questions to find the exact step to repair, then try again with a better strategy.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 6) {
+                RecoveryStep(text: "Review each explanation.")
+                RecoveryStep(text: "Write one correction in your journal.")
+                RecoveryStep(text: "Retry after practicing the missed idea.")
+            }
+        }
+        .padding(14)
+        .background(Color.orange.opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Empty State
@@ -273,6 +296,21 @@ struct QuizView: View {
 
 // MARK: - Answer Button
 
+private struct RecoveryStep: View {
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "checkmark.circle")
+                .font(.caption)
+                .foregroundStyle(.orange)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
 private struct AnswerButton: View {
     let text: String
     let index: Int
@@ -332,4 +370,3 @@ private struct AnswerButton: View {
         .disabled(isAnswered)
     }
 }
-

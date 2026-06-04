@@ -1375,6 +1375,10 @@ exports.askCompanion = onCall(
       "carefully about this', 'That was a great strategy', 'You kept trying even when it was " +
       "tricky — that matters', 'The effort you put in is what leads to improvement', " +
       "'Making mistakes is part of learning — what matters is that you tried'. " +
+      "FAILURE-AS-FEEDBACK RULE: If the student's attempt is incorrect, incomplete, or shows a misconception, " +
+      "treat that miss as useful learning data. Do not call it failure as a final label. Briefly name the specific " +
+      "step that broke down, give one corrective scaffold, and invite a retry or reflection. This correction loop " +
+      "should reinforce conceptual understanding beyond memorizing facts. " +
       "PROHIBITED phrases (never use these or anything similar): 'You're so smart', " +
       "'You're a natural', 'You're talented', 'You're gifted', 'That was easy for you', " +
       "'You're the best'. " +
@@ -2008,6 +2012,32 @@ exports.generateLessonPlan = onCall(
       : writeToOfficialDocuments({ filename, content: lessonPlanText, metadata: docMeta })
     );
 
+    const recommendationRef = db.collection("recommendations").doc();
+    await recommendationRef.set({
+      id: recommendationRef.id,
+      studentId: request.auth.uid,
+      teacherId: request.auth.uid,
+      targetStudentIds: [],
+      type: "lessonPlan",
+      title: `${subject} - ${topic}`,
+      rationale: "AI-generated lesson plan grounded in approved curriculum and awaiting teacher review.",
+      suggestedBy: "ai",
+      status: "pending",
+      reviewedBy: null,
+      reviewedAt: null,
+      createdAt: FieldValue.serverTimestamp(),
+      grade,
+      subject,
+      standard,
+      startDate: startDate || null,
+      endDate: endDate || null,
+      teachingDays: normalizedTeachingDays,
+      teachingDayCount,
+      documentId: documentId ?? null,
+      lessonPlanText: lessonPlanText.slice(0, 20000),
+      workflowStatus: "PlanRecommendation",
+    });
+
     // FR-G6: audit log (fire-and-forget).
     writeAiAuditLog(db, {
       uid:            request.auth.uid,
@@ -2020,6 +2050,7 @@ exports.generateLessonPlan = onCall(
     return {
       lessonPlan:  lessonPlanText,
       documentId:  documentId ?? null,
+      recommendationId: recommendationRef.id,
       learningEnhancementProvider: learningEnhancement.provider,
       learningEnhancementStatus: learningEnhancement.status,
       curriculumSources: curriculumItems.slice(0, 2).map((i) => {
@@ -2027,6 +2058,168 @@ exports.generateLessonPlan = onCall(
         return { id: i.id, title: f.Title || f.title || "Untitled", subject: f.Subject || f.subject, standard: f.Standard || f.standard };
       }),
     };
+  }
+);
+
+function parseJsonArrayFromModel(text) {
+  const raw = String(text || "").trim();
+  const candidates = [
+    raw,
+    raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim(),
+  ];
+  const first = raw.indexOf("[");
+  const last = raw.lastIndexOf("]");
+  if (first >= 0 && last > first) candidates.push(raw.slice(first, last + 1));
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // Try the next candidate.
+    }
+  }
+  throw new Error("AI response did not contain a JSON array.");
+}
+
+exports.approveLessonPlanAndGenerateDays = onCall(
+  {
+    secrets: ["ANTHROPIC_API_KEY"],
+    region: "us-central1",
+    timeoutSeconds: 120,
+  },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const caller = callerSnap.data() || {};
+    if (!["teacher", "admin"].includes(caller.role)) {
+      throw new HttpsError("permission-denied", "Only teachers and admins may approve lesson plans.");
+    }
+
+    const {
+      recommendationId = "",
+      title = "",
+      grade = "",
+      subject = "",
+      standard = "",
+      lessonPlan = "",
+      startDate = "",
+      endDate = "",
+      teachingDays = [],
+    } = request.data || {};
+
+    const cleanPlan = String(lessonPlan).trim();
+    const cleanTitle = String(title || subject || "Lesson Plan").trim();
+    if (!cleanPlan || !cleanTitle) {
+      throw new HttpsError("invalid-argument", "title and lessonPlan are required.");
+    }
+
+    let parentRef = null;
+    if (recommendationId) {
+      parentRef = db.collection("recommendations").doc(String(recommendationId));
+      const parentSnap = await parentRef.get();
+      if (!parentSnap.exists) throw new HttpsError("not-found", "Lesson plan recommendation not found.");
+      const parent = parentSnap.data() || {};
+      if (caller.role !== "admin" && parent.teacherId !== request.auth.uid) {
+        throw new HttpsError("permission-denied", "You can approve only your own lesson plan recommendations.");
+      }
+      await parentRef.update({
+        status: "approved",
+        reviewedBy: request.auth.uid,
+        reviewedAt: FieldValue.serverTimestamp(),
+        lessonPlanText: cleanPlan.slice(0, 20000),
+        workflowStatus: "PlanApproved",
+      });
+    }
+
+    const normalizedTeachingDays = Array.isArray(teachingDays)
+      ? teachingDays.filter((day) => typeof day === "string" && day.trim()).slice(0, 7)
+      : [];
+    const teachingDayCount = countTeachingDays(startDate, endDate, normalizedTeachingDays);
+    const dayTarget = Math.max(1, Math.min(teachingDayCount || normalizedTeachingDays.length || 1, 30));
+
+    const prompt =
+      "You are an instructional planning assistant. A teacher has approved the overall lesson plan. " +
+      "Split it into day-by-day teaching recommendations that the teacher will review again before assignment.\n\n" +
+      `Title: ${cleanTitle}\nGrade: ${grade || "Unknown"}\nSubject: ${subject || "General"}\n` +
+      (standard ? `Standard: ${standard}\n` : "") +
+      (startDate || endDate ? `Date window: ${startDate || "unspecified"} to ${endDate || "unspecified"}\n` : "") +
+      (normalizedTeachingDays.length ? `Class meeting days: ${normalizedTeachingDays.join(", ")}\n` : "") +
+      `Number of teaching days to create: ${dayTarget}\n\n` +
+      "Approved lesson plan:\n" +
+      cleanPlan.slice(0, 16000) +
+      "\n\nReturn ONLY a JSON array. Each object must have: " +
+      "\"dayNumber\" (number), \"title\" (short string), \"rationale\" (one sentence), " +
+      "and \"lessonPlanText\" (student-facing daily assignment with objective, warm-up, core activity, practice, formative check, and carry-over note).";
+
+    const anthropic = await getAnthropicClientForDistrict(caller.districtId, db);
+    let response;
+    try {
+      response = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 3000,
+        messages: [{ role: "user", content: prompt }],
+      });
+    } catch (err) {
+      console.error("approveLessonPlanAndGenerateDays Claude error:", err.message);
+      throw new HttpsError("unavailable", "AI is temporarily unavailable. Please try again.");
+    }
+
+    let parsedDays;
+    try {
+      parsedDays = parseJsonArrayFromModel(response.content[0].text).slice(0, dayTarget);
+    } catch (err) {
+      console.error("approveLessonPlanAndGenerateDays parse error:", err.message);
+      throw new HttpsError("internal", "Failed to parse daily lesson recommendations.");
+    }
+
+    const batch = db.batch();
+    const days = [];
+    parsedDays.forEach((day, index) => {
+      const docRef = db.collection("recommendations").doc();
+      const dayNumber = Number.isInteger(day.dayNumber) ? day.dayNumber : index + 1;
+      const dayTitle = String(day.title || `Day ${dayNumber}: ${cleanTitle}`).slice(0, 80);
+      const dayText = String(day.lessonPlanText || "").trim();
+      const rationale = String(day.rationale || "AI-generated daily pacing recommendation for teacher review.").slice(0, 300);
+      if (!dayText) return;
+      const payload = {
+        id: docRef.id,
+        studentId: request.auth.uid,
+        teacherId: request.auth.uid,
+        targetStudentIds: [],
+        type: "lessonDay",
+        title: dayTitle,
+        rationale,
+        suggestedBy: "ai",
+        status: "pending",
+        reviewedBy: null,
+        reviewedAt: null,
+        createdAt: FieldValue.serverTimestamp(),
+        parentRecommendationId: recommendationId || null,
+        dayNumber,
+        grade: grade || "",
+        subject: subject || "",
+        standard: standard || "",
+        lessonPlanText: dayText.slice(0, 10000),
+        workflowStatus: "DayRecommendation",
+      };
+      batch.set(docRef, payload);
+      days.push({
+        id: docRef.id,
+        dayNumber,
+        title: dayTitle,
+        rationale,
+        lessonPlanText: payload.lessonPlanText,
+      });
+    });
+
+    if (days.length === 0) {
+      throw new HttpsError("internal", "AI did not return usable daily recommendations.");
+    }
+
+    await batch.commit();
+    return { ok: true, count: days.length, days };
   }
 );
 
@@ -2049,6 +2242,7 @@ exports.assignLessonPlan = onCall(
       standard = "",
       lessonPlan = "",
       documentId = "",
+      dailyPlans = [],
       studentIds = [],
     } = request.data || {};
 
@@ -2083,26 +2277,64 @@ exports.assignLessonPlan = onCall(
       lessonPlan: cleanPlan,
     });
 
-    const contentId = crypto.randomUUID();
+    const cleanDailyPlans = Array.isArray(dailyPlans)
+      ? dailyPlans
+          .map((day, index) => ({
+            recommendationId: typeof day.recommendationId === "string" ? day.recommendationId : "",
+            dayNumber: Number.isInteger(day.dayNumber) ? day.dayNumber : index + 1,
+            title: String(day.title || `Day ${index + 1}: ${cleanTitle}`).trim().slice(0, 100),
+            rationale: String(day.rationale || "").trim().slice(0, 300),
+            lessonPlanText: String(day.lessonPlanText || "").trim().slice(0, 10000),
+          }))
+          .filter((day) => day.lessonPlanText)
+          .slice(0, 30)
+      : [];
+
+    const contentPlans = cleanDailyPlans.length > 0
+      ? cleanDailyPlans
+      : [{
+        recommendationId: "",
+        dayNumber: 1,
+        title: cleanTitle,
+        rationale: "",
+        lessonPlanText: studentLessonText,
+      }];
+
     const batch = db.batch();
-    batch.set(db.collection("contentItems").doc(contentId), {
-      id: contentId,
-      title: cleanTitle,
-      description: String(description || "").trim() || `Lesson plan assignment for ${subject || "class"}.`,
-      contentType: "article",
-      url: documentId ? `eduassist://officialDocuments/${documentId}` : `eduassist://lessonPlans/${contentId}`,
-      subject: String(subject || ""),
-      gradeLevel: String(grade || ""),
-      estimatedMinutes: 45,
-      createdBy: request.auth.uid,
-      createdAt: FieldValue.serverTimestamp(),
-      source: "eduassist-lesson-plan",
-      externalId: documentId || null,
-      alignedStandards: standard ? [String(standard)] : [],
-      lessonPlanText: studentLessonText.slice(0, 8000),
-      teacherLessonPlanText: cleanPlan.slice(0, 20000),
-      documentId: documentId || null,
-      workflowStatus: "Assigned",
+    const contentIds = [];
+    contentPlans.forEach((day, index) => {
+      const contentId = crypto.randomUUID();
+      contentIds.push(contentId);
+      batch.set(db.collection("contentItems").doc(contentId), {
+        id: contentId,
+        title: contentPlans.length > 1 ? `${cleanTitle}: ${day.title}` : cleanTitle,
+        description: String(description || "").trim() || `Lesson plan assignment for ${subject || "class"}.`,
+        contentType: "article",
+        url: documentId ? `eduassist://officialDocuments/${documentId}/day/${day.dayNumber}` : `eduassist://lessonPlans/${contentId}`,
+        subject: String(subject || ""),
+        gradeLevel: String(grade || ""),
+        estimatedMinutes: 45,
+        createdBy: request.auth.uid,
+        createdAt: FieldValue.serverTimestamp(),
+        source: contentPlans.length > 1 ? "eduassist-lesson-day" : "eduassist-lesson-plan",
+        externalId: day.recommendationId || documentId || null,
+        alignedStandards: standard ? [String(standard)] : [],
+        lessonPlanText: day.lessonPlanText.slice(0, 8000),
+        teacherLessonPlanText: cleanPlan.slice(0, 20000),
+        documentId: documentId || null,
+        dayNumber: day.dayNumber,
+        dayRationale: day.rationale,
+        workflowStatus: "Assigned",
+      });
+      if (day.recommendationId) {
+        batch.update(db.collection("recommendations").doc(day.recommendationId), {
+          status: "approved",
+          reviewedBy: request.auth.uid,
+          reviewedAt: FieldValue.serverTimestamp(),
+          lessonPlanText: day.lessonPlanText.slice(0, 10000),
+          workflowStatus: "DayApproved",
+        });
+      }
     });
 
     const pathIds = [];
@@ -2115,11 +2347,11 @@ exports.assignLessonPlan = onCall(
         description: String(description || "").trim() || `Lesson plan assignment for ${subject || "class"}.`,
         studentId,
         createdBy: request.auth.uid,
-        items: [{
+        items: contentIds.map((contentId, index) => ({
           id: crypto.randomUUID(),
           contentItemId: contentId,
-          order: 0,
-        }],
+          order: index,
+        })),
         isActive: true,
         createdAt: FieldValue.serverTimestamp(),
         answerModeEnabled: false,
@@ -2134,7 +2366,8 @@ exports.assignLessonPlan = onCall(
     await batch.commit();
     return {
       ok: true,
-      contentItemId: contentId,
+      contentItemId: contentIds[0] || "",
+      contentItemIds: contentIds,
       learningPathIds: pathIds,
       assignedCount: pathIds.length,
     };
@@ -2836,7 +3069,9 @@ exports.generateJournalEntry = onCall(
       max_tokens: 300,
       system:
         "You are a learning journal assistant. Given a conversation transcript between a student and an AI tutor, " +
-        "produce a concise learning summary in 2-3 sentences describing what the student explored or learned. " +
+        "produce a concise learning summary in 2-3 sentences describing what the student accomplished, explored, or learned. " +
+        "If the transcript includes an incorrect attempt, confusion, or retry, frame it as productive learning evidence: " +
+        "name the correction step or strategy the student practiced without shaming the student. " +
         "Also extract 3-5 short key topic tags (single words or short phrases). " +
         "Respond in JSON only: { \"summary\": \"...\", \"keyTopics\": [\"...\"] }",
       messages: [{ role: "user", content: transcript }],
@@ -2856,9 +3091,121 @@ exports.generateJournalEntry = onCall(
       keyTopics,
       sessionDate: FieldValue.serverTimestamp(),
       messageCount: messages.length,
+      privateReflection: "",
+      shareWithTeacher: false,
+      shareWithParent: false,
+      reflectionSafetyStatus: "not_submitted",
+      reflectionSafetyReason: null,
+      reflectionUpdatedAt: null,
     });
 
     return { success: true, entryId: entryRef.id };
+  }
+);
+
+exports.saveJournalReflection = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+
+    const {
+      studentId,
+      entryId,
+      reflection = "",
+      shareWithTeacher = false,
+      shareWithParent = false,
+    } = request.data || {};
+
+    if (!studentId || !entryId) {
+      throw new HttpsError("invalid-argument", "studentId and entryId are required.");
+    }
+    if (request.auth.uid !== studentId) {
+      throw new HttpsError("permission-denied", "Students can update only their own journal reflections.");
+    }
+
+    const db = getFirestore();
+    const messaging = getMessaging();
+    const studentSnap = await db.collection("users").doc(studentId).get();
+    const student = studentSnap.data() || {};
+    const entryRef = db.collection("learningJournal").doc(studentId).collection("entries").doc(entryId);
+    const entrySnap = await entryRef.get();
+    if (!entrySnap.exists) throw new HttpsError("not-found", "Journal entry not found.");
+
+    const rawReflection = String(reflection || "").trim().slice(0, 4000);
+    const inputResult = classifyInput(rawReflection);
+    logClassification(db, {
+      userId: request.auth.uid,
+      studentId,
+      direction: "journal_reflection",
+      text: rawReflection,
+      result: inputResult,
+    });
+
+    if (inputResult.verdict === "BLOCKED") {
+      writeSessionFlag(db, {
+        studentId,
+        type: "safety",
+        reason: inputResult.reason,
+        messagePreview: rawReflection,
+      });
+      throw new HttpsError("invalid-argument", "This reflection includes content that cannot be saved. Please revise it or talk with a trusted adult.");
+    }
+
+    const distress = detectDistress(rawReflection);
+    const pii = detectAndRedactPII(rawReflection);
+    const storedReflection = pii.redactedText;
+    let safetyStatus = inputResult.verdict === "NEEDS_REVIEW" ? "needs_review" : "safe";
+    let safetyReason = inputResult.reason ?? null;
+
+    if (distress.detected) {
+      safetyStatus = "needs_review";
+      safetyReason = distress.category;
+      logCriticalSafetyEvent(db, {
+        userId: request.auth.uid,
+        studentId,
+        conversationId: `journal:${entryId}`,
+        textPreview: storedReflection,
+        category: distress.category,
+        counselorIds: [],
+      });
+      alertCounselors(db, messaging, {
+        districtId: student.districtId,
+        studentId,
+        category: distress.category,
+      });
+    }
+
+    if (pii.hasPII) {
+      logClassification(db, {
+        userId: request.auth.uid,
+        studentId,
+        direction: "journal_reflection_pii",
+        text: storedReflection,
+        result: {
+          verdict: "NEEDS_REVIEW",
+          reason: `pii:${pii.detectedTypes.join(",")}`,
+          latencyMs: 0,
+          classifierVersion: "pii-v1.0",
+        },
+      });
+    }
+
+    await entryRef.update({
+      privateReflection: storedReflection,
+      shareWithTeacher: Boolean(shareWithTeacher),
+      shareWithParent: Boolean(shareWithParent),
+      reflectionSafetyStatus: safetyStatus,
+      reflectionSafetyReason: safetyReason,
+      reflectionUpdatedAt: FieldValue.serverTimestamp(),
+    });
+
+    return {
+      success: true,
+      reflection: storedReflection,
+      safetyStatus,
+      safetyReason,
+      piiRedacted: pii.hasPII,
+    };
   }
 );
 

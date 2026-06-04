@@ -104,6 +104,15 @@ final class CloudFunctionService {
     struct LessonPlanResult {
         let lessonPlan: String
         let documentId: String?
+        let recommendationId: String?
+    }
+
+    struct LessonDayRecommendation: Identifiable {
+        let id: String
+        let dayNumber: Int
+        let title: String
+        let rationale: String
+        var lessonPlanText: String
     }
 
     struct LessonPlanAssignmentResult {
@@ -149,8 +158,50 @@ final class CloudFunctionService {
         }
         return LessonPlanResult(
             lessonPlan: plan,
-            documentId: dict["documentId"] as? String
+            documentId: dict["documentId"] as? String,
+            recommendationId: dict["recommendationId"] as? String
         )
+    }
+
+    func approveLessonPlanAndGenerateDays(
+        recommendationId: String?,
+        title: String,
+        grade: String,
+        subject: String,
+        standard: String,
+        lessonPlan: String,
+        startDate: Date?,
+        endDate: Date?,
+        teachingDays: [String]
+    ) async throws -> [LessonDayRecommendation] {
+        var data: [String: Any] = [
+            "title": title,
+            "grade": grade,
+            "subject": subject,
+            "standard": standard,
+            "lessonPlan": lessonPlan,
+            "teachingDays": teachingDays,
+        ]
+        if let recommendationId { data["recommendationId"] = recommendationId }
+        if let startDate { data["startDate"] = Self.lessonDateFormatter.string(from: startDate) }
+        if let endDate { data["endDate"] = Self.lessonDateFormatter.string(from: endDate) }
+        let result = try await functions.httpsCallable("approveLessonPlanAndGenerateDays").call(data)
+        guard let dict = result.data as? [String: Any],
+              let rawDays = dict["days"] as? [[String: Any]] else {
+            throw URLError(.badServerResponse)
+        }
+        return rawDays.compactMap { raw in
+            guard let id = raw["id"] as? String,
+                  let title = raw["title"] as? String,
+                  let lessonPlanText = raw["lessonPlanText"] as? String else { return nil }
+            return LessonDayRecommendation(
+                id: id,
+                dayNumber: raw["dayNumber"] as? Int ?? 0,
+                title: title,
+                rationale: raw["rationale"] as? String ?? "",
+                lessonPlanText: lessonPlanText
+            )
+        }
     }
 
     func assignLessonPlan(
@@ -161,6 +212,7 @@ final class CloudFunctionService {
         standard: String,
         lessonPlan: String,
         documentId: String?,
+        dailyPlans: [LessonDayRecommendation] = [],
         studentIds: [String]
     ) async throws -> LessonPlanAssignmentResult {
         var data: [String: Any] = [
@@ -173,6 +225,17 @@ final class CloudFunctionService {
             "studentIds": studentIds,
         ]
         if let documentId { data["documentId"] = documentId }
+        if !dailyPlans.isEmpty {
+            data["dailyPlans"] = dailyPlans.map { day in
+                [
+                    "recommendationId": day.id,
+                    "dayNumber": day.dayNumber,
+                    "title": day.title,
+                    "rationale": day.rationale,
+                    "lessonPlanText": day.lessonPlanText,
+                ] as [String: Any]
+            }
+        }
         let result = try await functions.httpsCallable("assignLessonPlan").call(data)
         guard let dict = result.data as? [String: Any],
               dict["ok"] as? Bool == true else {
@@ -343,6 +406,31 @@ final class CloudFunctionService {
                 "conversationId": conversationId,
             ])
         }
+    }
+
+    func saveJournalReflection(
+        studentId: String,
+        entryId: String,
+        reflection: String,
+        shareWithTeacher: Bool,
+        shareWithParent: Bool
+    ) async throws -> (reflection: String, safetyStatus: String, safetyReason: String?) {
+        let result = try await functions.httpsCallable("saveJournalReflection").call([
+            "studentId": studentId,
+            "entryId": entryId,
+            "reflection": reflection,
+            "shareWithTeacher": shareWithTeacher,
+            "shareWithParent": shareWithParent,
+        ])
+        guard let dict = result.data as? [String: Any],
+              dict["success"] as? Bool == true else {
+            throw URLError(.badServerResponse)
+        }
+        return (
+            reflection: dict["reflection"] as? String ?? reflection,
+            safetyStatus: dict["safetyStatus"] as? String ?? "safe",
+            safetyReason: dict["safetyReason"] as? String
+        )
     }
 
     func askCompanion(

@@ -23,3 +23,15 @@
 **Outcome:** Success
 **Summary:** Exposed OpenAI learning enhancement readiness in setup verification.
 **Details:** Updated `EduAssistall/Services/CloudFunctionService.swift` to parse `OPENAI_API_KEY` status from `verifySharePointSetup`.
+
+## 2026-06-04T15:56:54 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added Cloud Function clients for lesson-plan approval, daily parsing, and multi-day assignment.
+**Details:** Updated `EduAssistall/Services/CloudFunctionService.swift` to return recommendation IDs, fetch daily lesson recommendations, and send approved daily plans during assignment.
+
+## 2026-06-04T16:04:56 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added a Cloud Function client for saving private journal reflections.
+**Details:** Updated `EduAssistall/Services/CloudFunctionService.swift` with `saveJournalReflection(...)` so student comments save through the backend safety pipeline.
