@@ -128,6 +128,15 @@ extension View {
         self.sheet(item: item, onDismiss: onDismiss, content: content)
         #endif
     }
+
+    /// Gives macOS sheets enough room to feel like the iPad workflow instead of a narrow popover.
+    func macSheetFrame(width: CGFloat = 900, height: CGFloat = 680) -> some View {
+        #if os(macOS)
+        self.frame(minWidth: width, idealWidth: width, minHeight: height, idealHeight: height)
+        #else
+        self
+        #endif
+    }
 }
 
 /// Cross-platform clipboard write.

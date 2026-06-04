@@ -43,6 +43,7 @@ struct CurriculumLibraryView: View {
             CurriculumUploadView(profile: profile) {
                 Task { await load() }
             }
+            .macSheetFrame(width: 880, height: 700)
         }
         .task { await load() }
         .refreshable { await load() }

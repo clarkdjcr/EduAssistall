@@ -63,6 +63,7 @@ struct TestPrepView: View {
                 PracticeTestView(test: test, studentId: profile.id) {
                     Task { await load() }
                 }
+                .macSheetFrame(width: 900, height: 740)
             }
         }
     }

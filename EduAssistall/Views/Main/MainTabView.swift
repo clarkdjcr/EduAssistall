@@ -183,9 +183,11 @@ private struct TeacherDocumentsTabView: View {
             .inlineNavigationTitle()
             .sheet(isPresented: $showLessonPlan) {
                 GenerateLessonPlanView(teacherProfile: profile)
+                    .macSheetFrame(width: 1100, height: 780)
             }
             .sheet(isPresented: $showParentLetter) {
                 GenerateParentLetterView(teacherProfile: profile)
+                    .macSheetFrame(width: 860, height: 700)
             }
         }
         .task {

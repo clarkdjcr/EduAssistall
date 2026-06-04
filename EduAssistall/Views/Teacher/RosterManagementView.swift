@@ -77,6 +77,7 @@ struct RosterManagementView: View {
         }
         .sheet(isPresented: $showImport, onDismiss: { Task { await load() } }) {
             BulkImportView(teacherProfile: teacherProfile)
+                .macSheetFrame(width: 820, height: 680)
         }
         .sheet(item: $transferTarget) { link in
             TransferStudentView(
@@ -86,6 +87,7 @@ struct RosterManagementView: View {
                     links.removeAll { $0.id == link.id }
                 }
             )
+            .macSheetFrame(width: 680, height: 520)
         }
         .confirmationDialog(
             "Remove \(removeTarget.map { studentNames[$0.studentId] ?? $0.studentEmail } ?? "student") from your class?",

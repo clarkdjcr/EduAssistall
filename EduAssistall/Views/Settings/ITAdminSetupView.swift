@@ -312,6 +312,11 @@ struct ITAdminSetupView: View {
                       purpose: "Powers the student AI companion, lesson plan generator, and parent letter generator.",
                       command: "firebase functions:secrets:set ANTHROPIC_API_KEY --project \(projectId)")
 
+            SecretRow(name: "OPENAI_API_KEY",
+                      configured: v.secrets.openAIKey,
+                      purpose: "Enables optional OpenAI learning enhancement modules for lesson-plan scaffolds, retrieval practice, formative checks, and source-use cautions.",
+                      command: "firebase functions:secrets:set OPENAI_API_KEY --project \(projectId)")
+
             SecretRow(name: "SENDGRID_API_KEY",
                       configured: v.secrets.sendgridKey,
                       purpose: "Sends counselor distress alerts, daily teacher digests, bulk student invitations, and parental consent emails.",

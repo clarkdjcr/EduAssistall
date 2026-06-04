@@ -43,14 +43,32 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CONTEXT.md,
+				Extensions/CONTEXT.md,
+				Extensions/LOG.md,
 				Info.plist,
 				LOG.md,
+				Models/CONTEXT.md,
+				Models/LOG.md,
 				Services/CONTEXT.md,
 				Services/LOG.md,
+				Views/Curriculum/CONTEXT.md,
+				Views/Curriculum/LOG.md,
+				Views/Dashboard/CONTEXT.md,
+				Views/Dashboard/LOG.md,
+				Views/Learning/CONTEXT.md,
+				Views/Learning/LOG.md,
 				Views/Main/CONTEXT.md,
 				Views/Main/LOG.md,
+				Views/Messages/CONTEXT.md,
+				Views/Messages/LOG.md,
 				Views/Settings/CONTEXT.md,
 				Views/Settings/LOG.md,
+				Views/Student/CONTEXT.md,
+				Views/Student/LOG.md,
+				Views/Teacher/CONTEXT.md,
+				Views/Teacher/LOG.md,
+				Views/TestPrep/CONTEXT.md,
+				Views/TestPrep/LOG.md,
 			);
 			target = 92B2FAE52F8EE96500EDC823 /* EduAssistall */;
 		};

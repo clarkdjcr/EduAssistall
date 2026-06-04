@@ -101,6 +101,7 @@ struct CreateLearningPathView: View {
                 AddContentItemView(teacherId: teacherProfile.id) { newItem in
                     pendingItems.append(newItem)
                 }
+                .macSheetFrame(width: 860, height: 700)
             }
             .task { await loadStudents() }
         }

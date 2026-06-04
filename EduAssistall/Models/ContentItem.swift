@@ -36,6 +36,7 @@ struct ContentItem: Codable, Identifiable {
     var source: String?             // "khanacademy", "edx", nil = manual entry
     var externalId: String?         // original platform content ID
     var alignedStandards: [String]  // CCSS/NGSS standard codes
+    var lessonPlanText: String?     // In-app lesson assignment body created by teachers
 
     init(title: String, description: String, contentType: ContentType,
          url: String, subject: String, gradeLevel: String,
@@ -51,5 +52,6 @@ struct ContentItem: Codable, Identifiable {
         self.createdBy = createdBy
         self.createdAt = Date()
         self.alignedStandards = []
+        self.lessonPlanText = nil
     }
 }

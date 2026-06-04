@@ -106,6 +106,12 @@ final class CloudFunctionService {
         let documentId: String?
     }
 
+    struct LessonPlanAssignmentResult {
+        let contentItemId: String
+        let learningPathIds: [String]
+        let assignedCount: Int
+    }
+
     struct ParentLetterResult {
         let letter: String
         let documentId: String?
@@ -144,6 +150,38 @@ final class CloudFunctionService {
         return LessonPlanResult(
             lessonPlan: plan,
             documentId: dict["documentId"] as? String
+        )
+    }
+
+    func assignLessonPlan(
+        title: String,
+        description: String,
+        grade: String,
+        subject: String,
+        standard: String,
+        lessonPlan: String,
+        documentId: String?,
+        studentIds: [String]
+    ) async throws -> LessonPlanAssignmentResult {
+        var data: [String: Any] = [
+            "title": title,
+            "description": description,
+            "grade": grade,
+            "subject": subject,
+            "standard": standard,
+            "lessonPlan": lessonPlan,
+            "studentIds": studentIds,
+        ]
+        if let documentId { data["documentId"] = documentId }
+        let result = try await functions.httpsCallable("assignLessonPlan").call(data)
+        guard let dict = result.data as? [String: Any],
+              dict["ok"] as? Bool == true else {
+            throw URLError(.badServerResponse)
+        }
+        return LessonPlanAssignmentResult(
+            contentItemId: dict["contentItemId"] as? String ?? "",
+            learningPathIds: dict["learningPathIds"] as? [String] ?? [],
+            assignedCount: dict["assignedCount"] as? Int ?? 0
         )
     }
 
@@ -348,6 +386,7 @@ final class CloudFunctionService {
     struct SetupVerificationResult {
         struct SecretsStatus {
             let anthropicKey: Bool
+            let openAIKey: Bool
             let sendgridKey: Bool
             let azureTenantId: Bool
             let azureClientId: Bool
@@ -361,6 +400,7 @@ final class CloudFunctionService {
 
             /// True when at least one Anthropic key is usable (district key preferred).
             var coreAIReady: Bool { districtApiKeyConfigured || anthropicKey }
+            var learningEnhancementReady: Bool { openAIKey }
             var emailReady: Bool { sendgridKey }
             var azureCredsReady: Bool { azureTenantId && azureClientId && azureClientSecret }
             var sharepointCoreReady: Bool { sharepointSiteId }
@@ -406,6 +446,7 @@ final class CloudFunctionService {
         return SetupVerificationResult(
             secrets: SetupVerificationResult.SecretsStatus(
                 anthropicKey:             s["ANTHROPIC_API_KEY"]                ?? false,
+                openAIKey:                s["OPENAI_API_KEY"]                   ?? false,
                 sendgridKey:              s["SENDGRID_API_KEY"]                 ?? false,
                 azureTenantId:            s["AZURE_TENANT_ID"]                  ?? false,
                 azureClientId:            s["AZURE_CLIENT_ID"]                  ?? false,

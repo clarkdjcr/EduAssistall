@@ -52,11 +52,15 @@ struct ContentItemView: View {
                 }
 
                 // Content display
-                switch item.contentType {
-                case .video, .article:
-                    contentLinkCard
-                case .quiz:
-                    quizLaunchCard
+                if isEduAssistAssignment {
+                    lessonAssignmentCard
+                } else {
+                    switch item.contentType {
+                    case .video, .article:
+                        contentLinkCard
+                    case .quiz:
+                        quizLaunchCard
+                    }
                 }
 
                 Spacer(minLength: 20)
@@ -91,7 +95,7 @@ struct ContentItemView: View {
                 Spacer()
             }
 
-            if let url = URL(string: item.url), !item.url.isEmpty {
+            if let url = webURL {
                 Link(destination: url) {
                     HStack {
                         Image(systemName: "arrow.up.right.square.fill")
@@ -105,9 +109,57 @@ struct ContentItemView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             } else {
-                Text("No URL provided for this content item.")
+                Text("No web link is available for this content item.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+        .background(Color.appSecondaryGroupedBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    // MARK: - Lesson Assignment Card
+
+    private var lessonAssignmentCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Image(systemName: "doc.text.fill")
+                    .font(.title2)
+                    .foregroundStyle(.blue)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Student Assignment")
+                        .font(.headline)
+                    Text("Teacher-guided classwork, practice, and quiz prep")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+
+            Divider()
+
+            if let text = item.lessonPlanText?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !text.isEmpty {
+                Text(text)
+                    .font(.body)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                ShareLink(
+                    item: shareableLessonText,
+                    subject: Text(item.title),
+                    message: Text("EduAssist student assignment")
+                ) {
+                    Label("Share Assignment", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            } else {
+                Text("This assignment is saved in EduAssist, but its lesson text was not included with the content item.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(16)
@@ -193,5 +245,30 @@ struct ContentItemView: View {
             // Silently fail — UI stays in original state
         }
         isSaving = false
+    }
+
+    private var isEduAssistAssignment: Bool {
+        item.source == "eduassist-lesson-plan" ||
+        item.url.hasPrefix("eduassist://lessonPlans/") ||
+        item.url.hasPrefix("eduassist://officialDocuments/")
+    }
+
+    private var webURL: URL? {
+        guard let url = URL(string: item.url),
+              let scheme = url.scheme?.lowercased(),
+              ["http", "https"].contains(scheme) else {
+            return nil
+        }
+        return url
+    }
+
+    private var shareableLessonText: String {
+        let text = item.lessonPlanText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        var parts = [item.title]
+        if !item.description.isEmpty {
+            parts.append(item.description)
+        }
+        parts.append(text)
+        return parts.joined(separator: "\n\n")
     }
 }

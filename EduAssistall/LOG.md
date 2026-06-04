@@ -11,3 +11,45 @@
 **Outcome:** Success
 **Summary:** Added an admin standards update review screen to the app.
 **Details:** Created `EduAssistall/Views/Settings/StandardsUpdateReviewView.swift` and wired it into Settings for admin users.
+
+## 2026-06-03T21:48:24 — [FILE_CREATE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added required context and activity log files for model and learning view directories.
+**Details:** Created `EduAssistall/Models/CONTEXT.md`, `EduAssistall/Models/LOG.md`, `EduAssistall/Views/Learning/CONTEXT.md`, and `EduAssistall/Views/Learning/LOG.md`.
+
+## 2026-06-03T21:48:24 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Fixed student lesson assignments so they open inside EduAssist.
+**Details:** Updated `EduAssistall/Models/ContentItem.swift` and `EduAssistall/Views/Learning/ContentItemView.swift` to decode and render `lessonPlanText` for EduAssist-native assignments.
+
+## 2026-06-03T21:53:34 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added share-sheet support for student lesson assignments.
+**Details:** Updated `EduAssistall/Views/Learning/ContentItemView.swift` so assignment text can be shared to local apps through `ShareLink`.
+
+## 2026-06-03T21:55:00 — [FILE_CREATE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added required context and activity log files for student views.
+**Details:** Created `EduAssistall/Views/Student/CONTEXT.md` and `EduAssistall/Views/Student/LOG.md`.
+
+## 2026-06-03T21:55:00 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Fixed learning journal entries that displayed raw JSON.
+**Details:** Updated `EduAssistall/Models/LearningJournalEntry.swift` and `EduAssistall/Views/Student/LearningJournalView.swift` so JSON-shaped summaries render as plain student-facing text.
+
+## 2026-06-04T15:04:05 — [FILE_CREATE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added required context and activity logs for additional app source directories.
+**Details:** Created convention files for `EduAssistall/Extensions`, `EduAssistall/Views/Curriculum`, `EduAssistall/Views/Messages`, and `EduAssistall/Views/TestPrep`.
+
+## 2026-06-04T15:04:05 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Improved macOS modal sizing across teacher, curriculum, messaging, and test-prep workflows.
+**Details:** Added a reusable macOS sheet sizing helper and applied it to high-use sheets so desktop popups better match the roomy iOS/iPad workflows.

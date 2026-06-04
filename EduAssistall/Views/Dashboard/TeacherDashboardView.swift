@@ -51,7 +51,7 @@ struct TeacherDashboardView: View {
                             Label("Add Student", systemImage: "person.badge.plus")
                         }
                         Button { showImport = true } label: {
-                            Label("Import Roster (CSV)", systemImage: "arrow.down.doc")
+                            Label("Import Roster (CSV)", systemImage: "square.and.arrow.down")
                         }
                         Divider()
                         Button(role: .destructive) {
@@ -72,20 +72,25 @@ struct TeacherDashboardView: View {
                                  studentNames: studentNames,
                                  pendingByStudent: pendingByStudent,
                                  teacherProfile: profile)
+                    .macSheetFrame(width: 820, height: 700)
             }
             .sheet(isPresented: $showImport, onDismiss: { Task { await loadStudents() } }) {
                 BulkImportView(teacherProfile: profile)
+                    .macSheetFrame(width: 820, height: 680)
             }
             .sheet(isPresented: $showAddStudent, onDismiss: { Task { await loadStudents() } }) {
                 AddStudentView(teacherProfile: profile)
+                    .macSheetFrame(width: 720, height: 620)
             }
             .sheet(isPresented: $showLessonPlan) {
                 GenerateLessonPlanView(teacherProfile: profile)
+                    .macSheetFrame(width: 1100, height: 780)
             }
             .sheet(item: $assignPathStudent) { link in
                 CreateLearningPathView(teacherProfile: profile, preselectedLink: link) {
                     Task { await loadStudents() }
                 }
+                .macSheetFrame(width: 940, height: 720)
             }
             .navigationDestination(isPresented: $showManageRoster) {
                 RosterManagementView(teacherProfile: profile)
@@ -120,14 +125,14 @@ struct TeacherDashboardView: View {
             } label: {
                 DashboardStatCard(value: "\(totalPending)",
                                   label: "Pending Reviews",
-                                  icon: "checkmark.shield.fill",
+                                  icon: "checkmark.seal.fill",
                                   color: totalPending > 0 ? .orange : .green,
                                   highlight: totalPending > 0)
             }
             .buttonStyle(.plain)
             DashboardStatCard(value: "\(activePathCount)",
                               label: "Active Paths",
-                              icon: "book.fill",
+                              icon: "list.clipboard.fill",
                               color: .purple)
         }
         .padding(.horizontal, 20)
@@ -177,7 +182,7 @@ struct TeacherDashboardView: View {
                         Button {
                             assignPathStudent = link
                         } label: {
-                            Label("Assign Learning Path", systemImage: "list.bullet.clipboard.fill")
+                            Label("Assign Learning Path", systemImage: "paperplane.fill")
                         }
                     }
                 }
@@ -197,28 +202,28 @@ struct TeacherDashboardView: View {
                 Button {
                     showLessonPlan = true
                 } label: {
-                    QuickActionCard(icon: "doc.text.fill", label: "Plan Lesson", color: .blue)
+                    QuickActionCard(icon: "calendar.badge.checkmark", label: "Plan Lesson", color: .blue)
                 }
                 .buttonStyle(.plain)
 
                 NavigationLink {
                     TeacherLearningPathView(teacherProfile: profile)
                 } label: {
-                    QuickActionCard(icon: "list.bullet.clipboard.fill", label: "Assign Path", color: .purple)
+                    QuickActionCard(icon: "paperplane.fill", label: "Assign Path", color: .purple)
                 }
                 .buttonStyle(.plain)
 
                 NavigationLink {
                     TeacherAssistView(teacherProfile: profile)
                 } label: {
-                    QuickActionCard(icon: "wand.and.stars", label: "Teacher Assist", color: .mint)
+                    QuickActionCard(icon: "lightbulb.fill", label: "Teacher Assist", color: .mint)
                 }
                 .buttonStyle(.plain)
 
                 NavigationLink {
                     PendingRecommendationsView(reviewerProfile: profile, studentIds: confirmedIds)
                 } label: {
-                    QuickActionCard(icon: "checkmark.shield.fill", label: "Review AI Recs",
+                    QuickActionCard(icon: "checkmark.seal.fill", label: "Review AI Recs",
                                     color: .orange, badge: totalPending > 0 ? "\(totalPending)" : nil)
                 }
                 .buttonStyle(.plain)
@@ -226,7 +231,7 @@ struct TeacherDashboardView: View {
                 NavigationLink {
                     TeacherReportsDestination(confirmedStudents: confirmedStudents)
                 } label: {
-                    QuickActionCard(icon: "chart.bar.fill", label: "Reports", color: .teal)
+                    QuickActionCard(icon: "doc.text.magnifyingglass", label: "Reports", color: .teal)
                 }
                 .buttonStyle(.plain)
                 .disabled(confirmedStudents.isEmpty)
@@ -234,7 +239,7 @@ struct TeacherDashboardView: View {
                 NavigationLink {
                     MessagesListView(profile: profile)
                 } label: {
-                    QuickActionCard(icon: "message.fill", label: "Messages", color: .cyan)
+                    QuickActionCard(icon: "bubble.left.and.bubble.right.fill", label: "Messages", color: .cyan)
                 }
                 .buttonStyle(.plain)
 
@@ -244,7 +249,7 @@ struct TeacherDashboardView: View {
                 .buttonStyle(.plain)
 
                 Button { showManageRoster = true } label: {
-                    QuickActionCard(icon: "person.fill.badge.minus", label: "Manage Roster", color: .gray)
+                    QuickActionCard(icon: "list.bullet.rectangle", label: "Manage Roster", color: .gray)
                 }
                 .buttonStyle(.plain)
             }
@@ -340,7 +345,7 @@ private struct AllStudentsSheet: View {
                     Button {
                         assignPathStudent = link
                     } label: {
-                        Label("Assign Path", systemImage: "list.bullet.clipboard.fill")
+                        Label("Assign Path", systemImage: "paperplane.fill")
                     }
                     .tint(.purple)
                 }
@@ -361,6 +366,7 @@ private struct AllStudentsSheet: View {
             CreateLearningPathView(teacherProfile: teacherProfile, preselectedLink: link) {
                 assignPathStudent = nil
             }
+            .macSheetFrame(width: 940, height: 720)
         }
     }
 }

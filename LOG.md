@@ -29,3 +29,39 @@
 **Outcome:** Success
 **Summary:** Deployed Firestore rules and Cloud Functions for standards update monitoring.
 **Details:** Ran `firebase deploy --only firestore:rules,functions`; Firestore rules released, `monitorPublicStandardsSources` and `approveStandardsUpdate` were created, and existing functions were updated successfully.
+
+## 2026-06-03T19:47:28 — [CONFIG_CHANGE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Excluded teacher view convention files from the app target bundle.
+**Details:** Updated `EduAssistall.xcodeproj/project.pbxproj` so `EduAssistall/Views/Teacher/CONTEXT.md` and `LOG.md` are not copied as app resources.
+
+## 2026-06-03T19:53:06 — [CONFIG_CHANGE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Deployed the lesson plan assignment Cloud Function.
+**Details:** Ran `firebase deploy --only functions`; `assignLessonPlan(us-central1)` was created and the existing function bundle updated successfully.
+
+## 2026-06-03T21:20:40 — [CONFIG_CHANGE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Excluded dashboard convention files from the app target bundle.
+**Details:** Updated `EduAssistall.xcodeproj/project.pbxproj` so `EduAssistall/Views/Dashboard/CONTEXT.md` and `LOG.md` are not copied as app resources.
+
+## 2026-06-03T21:48:24 — [CONFIG_CHANGE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Excluded model and learning view convention files from the app target bundle.
+**Details:** Updated `EduAssistall.xcodeproj/project.pbxproj` so `EduAssistall/Models/CONTEXT.md`, `EduAssistall/Models/LOG.md`, `EduAssistall/Views/Learning/CONTEXT.md`, and `EduAssistall/Views/Learning/LOG.md` are not copied as app resources.
+
+## 2026-06-03T21:55:00 — [CONFIG_CHANGE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Excluded student view convention files from the app target bundle.
+**Details:** Updated `EduAssistall.xcodeproj/project.pbxproj` so `EduAssistall/Views/Student/CONTEXT.md` and `EduAssistall/Views/Student/LOG.md` are not copied as app resources.
+
+## 2026-06-04T15:04:05 — [CONFIG_CHANGE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Excluded additional app-source convention files from the app target bundle.
+**Details:** Updated `EduAssistall.xcodeproj/project.pbxproj` so convention files in Extensions, Curriculum, Messages, Student, and TestPrep directories do not collide as copied app resources.

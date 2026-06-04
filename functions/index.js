@@ -12,6 +12,8 @@ const crypto = require("crypto");
 
 initializeApp();
 
+const OPENAI_LEARNING_MODEL = "gpt-4.1-mini";
+
 // Lazy singleton — instantiated on first use so the secret is available at call time.
 let _anthropic = null;
 function getAnthropicClient() {
@@ -32,6 +34,130 @@ async function getAnthropicClientForDistrict(districtId, db) {
     console.warn(`districtSecrets lookup failed for ${districtId}:`, e.message);
   }
   return getAnthropicClient();
+}
+
+function extractOpenAIText(data) {
+  if (typeof data?.output_text === "string") return data.output_text;
+  const parts = [];
+  for (const item of data?.output || []) {
+    for (const content of item.content || []) {
+      if (typeof content.text === "string") parts.push(content.text);
+    }
+  }
+  return parts.join("\n").trim();
+}
+
+function parseLearningJournalResponse(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return { summary: "", keyTopics: [] };
+
+  const candidates = [
+    raw,
+    raw.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim(),
+  ];
+
+  const firstBrace = raw.indexOf("{");
+  const lastBrace = raw.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    candidates.push(raw.slice(firstBrace, lastBrace + 1));
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      const summary = typeof parsed.summary === "string" ? parsed.summary.trim() : "";
+      const keyTopics = Array.isArray(parsed.keyTopics)
+        ? parsed.keyTopics
+            .filter((topic) => typeof topic === "string")
+            .map((topic) => topic.trim())
+            .filter(Boolean)
+            .slice(0, 5)
+        : [];
+      if (summary) return { summary, keyTopics };
+    } catch {
+      // Try the next candidate.
+    }
+  }
+
+  return { summary: raw.slice(0, 400), keyTopics: [] };
+}
+
+async function buildOpenAILearningEnhancement({
+  grade,
+  subject,
+  topic,
+  standard,
+  curriculumItems,
+  contentSnippets,
+  supplementalResources,
+}) {
+  if (!process.env.OPENAI_API_KEY) {
+    return { text: "", provider: null, status: "not_configured" };
+  }
+
+  const curriculumSummary = curriculumItems.slice(0, 2).map((item, index) => {
+    const f = item.fields || item;
+    const snippet = String(contentSnippets[index] || "").slice(0, 2500);
+    return [
+      `Title: ${f.Title || f.title || "Untitled"}`,
+      `Subject: ${f.Subject || f.subject || subject}`,
+      `Standard: ${f.Standard || f.standard || standard || "Not specified"}`,
+      snippet ? `Excerpt:\n${snippet}` : null,
+    ].filter(Boolean).join("\n");
+  }).join("\n\n---\n\n");
+
+  const input = [
+    `Grade: ${grade}`,
+    `Subject: ${subject}`,
+    `Topic: ${topic}`,
+    standard ? `Standard: ${standard}` : null,
+    curriculumSummary ? `Approved curriculum context:\n${curriculumSummary}` : "Approved curriculum context: none found",
+    supplementalResources ? `Teacher-approved supplemental resources:\n${String(supplementalResources).slice(0, 3000)}` : null,
+  ].filter(Boolean).join("\n\n");
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: OPENAI_LEARNING_MODEL,
+        max_output_tokens: 700,
+        temperature: 0.2,
+        input: [
+          {
+            role: "system",
+            content:
+              "You are an instructional design reviewer for a K-12 education app. " +
+              "Return concise enhancements only. Do not replace district standards or curriculum. " +
+              "Focus on misconceptions, scaffolds, retrieval practice, formative checks, and safe source-use cautions.",
+          },
+          {
+            role: "user",
+            content:
+              `${input}\n\n` +
+              "Create an instructional enhancement block with these exact headings:\n" +
+              "MISCONCEPTIONS TO WATCH\nSCAFFOLDS\nRETRIEVAL PRACTICE\nFORMATIVE CHECKS\nSOURCE USE CAUTIONS",
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      console.warn(`OpenAI learning enhancement skipped (${response.status}): ${errorText.slice(0, 300)}`);
+      return { text: "", provider: "openai", status: "failed" };
+    }
+
+    const data = await response.json();
+    const text = extractOpenAIText(data).slice(0, 5000);
+    return { text, provider: "openai", status: text ? "success" : "empty" };
+  } catch (err) {
+    console.warn("OpenAI learning enhancement skipped:", err.message);
+    return { text: "", provider: "openai", status: "failed" };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1710,7 +1836,7 @@ function buildPacingInputBlock({
 exports.generateLessonPlan = onCall(
   {
     secrets: [
-      "ANTHROPIC_API_KEY",
+      "ANTHROPIC_API_KEY", "OPENAI_API_KEY",
       "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
       "SHAREPOINT_SITE_ID", "SHAREPOINT_CURRICULUM_LIST_ID", "SHAREPOINT_OFFICIAL_DOCS_LIST_ID",
     ],
@@ -1786,9 +1912,25 @@ exports.generateLessonPlan = onCall(
         }
       });
       groundingBlock +=
-        "\nBase the lesson plan structure and vocabulary on the above district materials. " +
+      "\nBase the lesson plan structure and vocabulary on the above district materials. " +
         "Quote or reference specific content where it strengthens the plan.\n";
     }
+
+    const learningEnhancement = await buildOpenAILearningEnhancement({
+      grade,
+      subject,
+      topic,
+      standard,
+      curriculumItems,
+      contentSnippets,
+      supplementalResources,
+    });
+
+    const learningEnhancementBlock = learningEnhancement.text
+      ? "\n\nOPENAI LEARNING ENHANCEMENT MODULE:\n" +
+        learningEnhancement.text +
+        "\nUse this as instructional design guidance only. The approved district curriculum remains authoritative.\n"
+      : "";
 
     const systemPrompt =
       "You are an experienced K-12 curriculum designer. Generate clear, practical lesson plans " +
@@ -1803,6 +1945,7 @@ exports.generateLessonPlan = onCall(
       (standard ? `Standard: ${standard}\n` : "") +
       pacingBlock +
       groundingBlock +
+      learningEnhancementBlock +
       `\nFormat the lesson plan exactly as follows (use these headings verbatim):\n\n` +
       `LESSON PLAN: ${topic}\n` +
       `Grade: ${grade} | Subject: ${subject} | Duration: ${durationMinutes} min\n` +
@@ -1857,6 +2000,8 @@ exports.generateLessonPlan = onCall(
       documentType: "LessonPlan",
       districtId:   callerData.districtId || null,
       workflowStatus: "Draft",
+      learningEnhancementProvider: learningEnhancement.provider,
+      learningEnhancementStatus: learningEnhancement.status,
     };
     const documentId = await (backendLP === "firebase"
       ? writeToFirebaseOfficialDocs({ filename, content: lessonPlanText, metadata: docMeta, teacherUid: request.auth.uid, db })
@@ -1875,6 +2020,8 @@ exports.generateLessonPlan = onCall(
     return {
       lessonPlan:  lessonPlanText,
       documentId:  documentId ?? null,
+      learningEnhancementProvider: learningEnhancement.provider,
+      learningEnhancementStatus: learningEnhancement.status,
       curriculumSources: curriculumItems.slice(0, 2).map((i) => {
         const f = i.fields || i;
         return { id: i.id, title: f.Title || f.title || "Untitled", subject: f.Subject || f.subject, standard: f.Standard || f.standard };
@@ -1882,6 +2029,211 @@ exports.generateLessonPlan = onCall(
     };
   }
 );
+
+exports.assignLessonPlan = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const caller = callerSnap.data() || {};
+    if (!["teacher", "admin"].includes(caller.role)) {
+      throw new HttpsError("permission-denied", "Only teachers and admins may assign lesson plans.");
+    }
+
+    const {
+      title = "",
+      description = "",
+      grade = "",
+      subject = "",
+      standard = "",
+      lessonPlan = "",
+      documentId = "",
+      studentIds = [],
+    } = request.data || {};
+
+    const cleanTitle = String(title).trim();
+    const cleanPlan = String(lessonPlan).trim();
+    const cleanStudentIds = Array.isArray(studentIds)
+      ? studentIds.filter((id) => typeof id === "string" && id.trim()).slice(0, 100)
+      : [];
+
+    if (!cleanTitle || !cleanPlan || cleanStudentIds.length === 0) {
+      throw new HttpsError("invalid-argument", "title, lessonPlan, and at least one studentId are required.");
+    }
+
+    if (caller.role !== "admin") {
+      const linkChecks = await Promise.all(cleanStudentIds.map(async (studentId) => {
+        const linkId = `${request.auth.uid}_${studentId}`;
+        const snap = await db.collection("studentAdultLinks").doc(linkId).get();
+        const link = snap.data() || {};
+        return snap.exists && link.confirmed === true && link.adultRole === "teacher";
+      }));
+      if (linkChecks.some((allowed) => !allowed)) {
+        throw new HttpsError("permission-denied", "Teachers may assign only to confirmed students on their roster.");
+      }
+    }
+
+    const studentLessonText = buildStudentLessonAssignment({
+      title: cleanTitle,
+      description,
+      grade,
+      subject,
+      standard,
+      lessonPlan: cleanPlan,
+    });
+
+    const contentId = crypto.randomUUID();
+    const batch = db.batch();
+    batch.set(db.collection("contentItems").doc(contentId), {
+      id: contentId,
+      title: cleanTitle,
+      description: String(description || "").trim() || `Lesson plan assignment for ${subject || "class"}.`,
+      contentType: "article",
+      url: documentId ? `eduassist://officialDocuments/${documentId}` : `eduassist://lessonPlans/${contentId}`,
+      subject: String(subject || ""),
+      gradeLevel: String(grade || ""),
+      estimatedMinutes: 45,
+      createdBy: request.auth.uid,
+      createdAt: FieldValue.serverTimestamp(),
+      source: "eduassist-lesson-plan",
+      externalId: documentId || null,
+      alignedStandards: standard ? [String(standard)] : [],
+      lessonPlanText: studentLessonText.slice(0, 8000),
+      teacherLessonPlanText: cleanPlan.slice(0, 20000),
+      documentId: documentId || null,
+      workflowStatus: "Assigned",
+    });
+
+    const pathIds = [];
+    for (const studentId of cleanStudentIds) {
+      const pathId = crypto.randomUUID();
+      pathIds.push(pathId);
+      batch.set(db.collection("learningPaths").doc(pathId), {
+        id: pathId,
+        title: cleanTitle,
+        description: String(description || "").trim() || `Lesson plan assignment for ${subject || "class"}.`,
+        studentId,
+        createdBy: request.auth.uid,
+        items: [{
+          id: crypto.randomUUID(),
+          contentItemId: contentId,
+          order: 0,
+        }],
+        isActive: true,
+        createdAt: FieldValue.serverTimestamp(),
+        answerModeEnabled: false,
+        sourceDocumentId: documentId || null,
+        workflowStatus: "Assigned",
+        subject: String(subject || ""),
+        gradeLevel: String(grade || ""),
+        standard: String(standard || ""),
+      });
+    }
+
+    await batch.commit();
+    return {
+      ok: true,
+      contentItemId: contentId,
+      learningPathIds: pathIds,
+      assignedCount: pathIds.length,
+    };
+  }
+);
+
+function buildStudentLessonAssignment({ title, description, grade, subject, standard, lessonPlan }) {
+  const cleanGrade = String(grade || "").trim();
+  const isElementary = cleanGrade === "K" || /^[1-5]$/.test(cleanGrade);
+  const objectiveText = extractLessonSection(lessonPlan, "LEARNING OBJECTIVES", [
+    "MATERIALS NEEDED",
+    "LESSON STRUCTURE",
+  ]);
+  const pacingText = extractLessonSection(lessonPlan, "DAILY PACING PLAN", [
+    "STANDARDS ALIGNMENT",
+    "TEACHER REVIEW NOTES",
+  ]);
+  const assessmentText = extractLessonSection(lessonPlan, "ASSESSMENT", [
+    "DAILY PACING PLAN",
+    "STANDARDS ALIGNMENT",
+  ]);
+  const studentObjectives = simplifyLessonBullets(objectiveText, isElementary).slice(0, 3);
+  const classWork = summarizeStudentFacingText(pacingText || objectiveText, isElementary);
+  const assessmentHint = summarizeStudentFacingText(assessmentText, isElementary);
+  const homeworkPrompt = isElementary
+    ? "Practice the main idea from class for 10-15 minutes. Try one example on your own, then explain your thinking to an adult."
+    : "Review the class notes, finish any assigned practice, and write down one question to bring back to class.";
+  const quizPrompt = isElementary
+    ? "Before a quiz, practice vocabulary, retell the big idea in your own words, and try a short example without help."
+    : "For quiz prep, review vocabulary, key examples, and the formative checks from class before attempting new problems.";
+
+  const parts = [
+    `STUDENT ASSIGNMENT: ${title}`,
+    `Subject: ${subject || "Class"}${cleanGrade ? ` | Grade: ${cleanGrade}` : ""}${standard ? ` | Standard: ${standard}` : ""}`,
+  ];
+
+  const cleanDescription = String(description || "").trim();
+  if (cleanDescription) parts.push(`\nTeacher note:\n${cleanDescription}`);
+
+  parts.push(`\nWhat you will learn:\n${studentObjectives.length > 0
+    ? studentObjectives.map((item) => `- ${item}`).join("\n")
+    : `- Work with your teacher on the main idea for this ${subject || "lesson"} topic.`}`);
+
+  parts.push(`\nDuring class:\n${classWork || `Your teacher will introduce this lesson step by step during the scheduled class time. Follow along, ask questions, and complete the practice your teacher gives you.`}`);
+  parts.push(`\nHomework or practice:\n${homeworkPrompt}`);
+  parts.push(`\nQuiz prep:\n${assessmentHint ? `${quizPrompt} Your teacher may check learning with: ${assessmentHint}` : quizPrompt}`);
+  parts.push(`\nRemember:\nThis is your student copy. Your teacher has the full lesson plan and will guide the class through it.`);
+
+  return parts.join("\n");
+}
+
+function extractLessonSection(text, heading, stopHeadings) {
+  const source = String(text || "");
+  const start = source.toUpperCase().indexOf(heading.toUpperCase());
+  if (start < 0) return "";
+  const bodyStart = start + heading.length;
+  const remaining = source.slice(bodyStart);
+  let end = remaining.length;
+  for (const stop of stopHeadings) {
+    const index = remaining.toUpperCase().indexOf(stop.toUpperCase());
+    if (index >= 0 && index < end) end = index;
+  }
+  return remaining.slice(0, end).replace(/^[:\s-]+/, "").trim();
+}
+
+function simplifyLessonBullets(text, isElementary) {
+  return String(text || "")
+    .split(/\n|•|-/)
+    .map((line) => line.replace(/^\d+[.)]\s*/, "").trim())
+    .filter(Boolean)
+    .map((line) => {
+      const cleaned = line
+        .replace(/\[[^\]]+\]/g, "")
+        .replace(/\b(students will be able to|students will|learners will|swbat)\b[:\s]*/ig, "")
+        .trim();
+      if (!isElementary) return cleaned;
+      return cleaned
+        .replace(/\bdemonstrate\b/ig, "show")
+        .replace(/\banalyze\b/ig, "study")
+        .replace(/\bidentify\b/ig, "find")
+        .replace(/\bconstruct\b/ig, "make")
+        .replace(/\bevaluate\b/ig, "think about");
+    })
+    .filter(Boolean);
+}
+
+function summarizeStudentFacingText(text, isElementary) {
+  const compact = String(text || "")
+    .replace(/\[[^\]]+\]/g, "")
+    .replace(/\bteacher\b[^.\n]*\./ig, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!compact) return "";
+  const maxLength = isElementary ? 520 : 700;
+  if (compact.length <= maxLength) return compact;
+  const clipped = compact.slice(0, maxLength);
+  const sentenceEnd = Math.max(clipped.lastIndexOf("."), clipped.lastIndexOf("!"), clipped.lastIndexOf("?"));
+  return sentenceEnd > 160 ? clipped.slice(0, sentenceEnd + 1) : `${clipped.trim()}...`;
+}
 
 // MARK: - Generate Parent Letter (FR-T6)
 // Teacher-facing. Drafts a parent communication from structured student data,
@@ -2069,13 +2421,14 @@ exports.curateContent = onCall(
     }
 
     const { subject = "Math", gradeLevel = "6", source = "khanacademy" } = request.data;
+    const normalizedSubject = normalizeResourceSubject(subject);
 
     if (source === "edx") {
-      return { items: await fetchEdxItems(subject) };
+      return { items: await fetchEdxItems(normalizedSubject.label) };
     }
 
     if (source === "nasa") {
-      return { items: await fetchNasaItems(subject) };
+      return { items: await fetchNasaItems(normalizedSubject.label) };
     }
 
     const slugMap = {
@@ -2084,13 +2437,13 @@ exports.curateContent = onCall(
       science: "science", biology: "biology",
       chemistry: "chemistry", physics: "physics",
       computing: "computing", "computer science": "computing", programming: "computing",
-      history: "us-history", "world history": "world-history",
-      english: "grammar", grammar: "grammar", writing: "grammar",
+      history: "us-history", "world history": "world-history", "social studies": "us-history",
+      english: "grammar", ela: "grammar", "language arts": "grammar", grammar: "grammar", writing: "grammar",
       economics: "economics-finance-domain", finance: "economics-finance-domain",
       art: "art-history", music: "music",
     };
 
-    const key = subject.toLowerCase().trim();
+    const key = normalizedSubject.key;
     const slug = slugMap[key] || slugMap[key.split(" ")[0]] || "math";
 
     try {
@@ -2112,7 +2465,7 @@ exports.curateContent = onCall(
             contentType: "video",
             url: `https://www.khanacademy.org${v.url || v.ka_url || ""}`,
             source: "khanacademy",
-            subject,
+            subject: normalizedSubject.label,
             estimatedMinutes: Math.max(1, Math.round((v.duration || 300) / 60)),
           }))
           .filter((v) => v.url && v.url !== "https://www.khanacademy.org");
@@ -2130,7 +2483,7 @@ exports.curateContent = onCall(
             contentType: "article",
             url: `https://www.khanacademy.org${a.url || a.ka_url || ""}`,
             source: "khanacademy",
-            subject,
+            subject: normalizedSubject.label,
             estimatedMinutes: 8,
           }))
           .filter((a) => a.url && a.url !== "https://www.khanacademy.org");
@@ -2138,16 +2491,37 @@ exports.curateContent = onCall(
       }
 
       if (items.length === 0) {
-        items = getFallbackItems(subject);
+        items = getFallbackItems(normalizedSubject.label);
       }
 
       return { items };
     } catch (error) {
       console.error("curateContent error:", error.message);
-      return { items: getFallbackItems(subject) };
+      return { items: getFallbackItems(normalizedSubject.label) };
     }
   }
 );
+
+function normalizeResourceSubject(subject) {
+  const raw = String(subject || "Math").trim();
+  const key = raw.toLowerCase();
+  if (key === "ela" || key.includes("language arts") || key.includes("english")) {
+    return { key: "english", label: "English" };
+  }
+  if (key.includes("social") || key.includes("history") || key.includes("civics")) {
+    return { key: "social studies", label: "Social Studies" };
+  }
+  if (key.includes("technology") || key.includes("comput")) {
+    return { key: "computing", label: "Technology" };
+  }
+  if (key.includes("math")) {
+    return { key: "math", label: "Math" };
+  }
+  if (key.includes("science")) {
+    return { key: "science", label: "Science" };
+  }
+  return { key, label: raw };
+}
 
 async function fetchEdxItems(subject) {
   try {
@@ -2181,6 +2555,7 @@ async function fetchEdxItems(subject) {
 
 function getFallbackEdxItems(subject) {
   const key = (subject || "math").toLowerCase();
+  const lookupKey = key.includes("social") || key.includes("history") ? "history" : key;
   const catalog = {
     math: [
       { externalId: "edx-math-1", title: "Introduction to Algebra", description: "Foundational algebra concepts for beginners", contentType: "article", url: "https://www.edx.org/learn/algebra", source: "edx", subject: "Math", estimatedMinutes: 30 },
@@ -2208,7 +2583,7 @@ function getFallbackEdxItems(subject) {
     ],
   };
   for (const [k, items] of Object.entries(catalog)) {
-    if (key.includes(k) || k.includes(key)) return items;
+    if (lookupKey.includes(k) || k.includes(lookupKey)) return items;
   }
   return catalog.math;
 }
@@ -2265,6 +2640,7 @@ async function fetchNasaItems(subject) {
 
 function getFallbackNasaItems(subject) {
   const key = (subject || "science").toLowerCase();
+  const lookupKey = key.includes("social") || key.includes("history") ? "history" : key;
   const catalog = {
     science: [
       { externalId: "nasa-sci-1", title: "NASA Science: Earth from Space", description: "Explore Earth systems, climate, and natural phenomena from a NASA perspective.", contentType: "video", url: "https://www.nasa.gov/stem-ed-resources/earth-science.html", source: "nasa", subject: "Science", estimatedMinutes: 12 },
@@ -2295,7 +2671,7 @@ function getFallbackNasaItems(subject) {
     ],
   };
   for (const [k, items] of Object.entries(catalog)) {
-    if (key.includes(k) || k.includes(key)) return items;
+    if (lookupKey.includes(k) || k.includes(lookupKey)) return items;
   }
   return catalog.science;
 }
@@ -2376,6 +2752,7 @@ exports.importClassroomRoster = onCall(
 
 function getFallbackItems(subject) {
   const key = (subject || "math").toLowerCase();
+  const lookupKey = key.includes("social") || key.includes("history") ? "history" : key;
   const catalog = {
     math: [
       { externalId: "ka-var-1", title: "What is a Variable?", description: "Introduction to variables in algebra", contentType: "video", url: "https://www.khanacademy.org/math/algebra/x2f8bb11595b61c86:foundation-algebra/x2f8bb11595b61c86:intro-variables/v/what-is-a-variable", source: "khanacademy", subject: "Math", estimatedMinutes: 5 },
@@ -2413,7 +2790,7 @@ function getFallbackItems(subject) {
   };
 
   for (const [k, items] of Object.entries(catalog)) {
-    if (key.includes(k) || k.includes(key)) return items;
+    if (lookupKey.includes(k) || k.includes(lookupKey)) return items;
   }
   return catalog.math;
 }
@@ -2465,16 +2842,9 @@ exports.generateJournalEntry = onCall(
       messages: [{ role: "user", content: transcript }],
     });
 
-    let summary = "";
-    let keyTopics = [];
-    try {
-      const parsed = JSON.parse(response.content[0].text);
-      summary = parsed.summary || "";
-      keyTopics = Array.isArray(parsed.keyTopics) ? parsed.keyTopics.slice(0, 5) : [];
-    } catch {
-      // If Claude didn't return valid JSON, use the raw text as the summary.
-      summary = response.content[0].text.slice(0, 400);
-    }
+    const journal = parseLearningJournalResponse(response.content[0].text);
+    const summary = journal.summary;
+    const keyTopics = journal.keyTopics;
 
     if (!summary) return { success: false, reason: "empty_summary" };
 
@@ -4336,7 +4706,7 @@ exports.getAIUsageStats = onCall(
 exports.verifySharePointSetup = onCall(
   {
     secrets: [
-      "ANTHROPIC_API_KEY", "SENDGRID_API_KEY",
+      "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "SENDGRID_API_KEY",
       "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
       "SHAREPOINT_SITE_ID", "SHAREPOINT_CURRICULUM_LIST_ID",
       "SHAREPOINT_OFFICIAL_DOCS_LIST_ID", "SHAREPOINT_STUDENT_CONTENT_LIST_ID",
@@ -4365,6 +4735,7 @@ exports.verifySharePointSetup = onCall(
 
     const secretsConfigured = {
       ANTHROPIC_API_KEY:               !!process.env.ANTHROPIC_API_KEY,
+      OPENAI_API_KEY:                  !!process.env.OPENAI_API_KEY,
       SENDGRID_API_KEY:                !!process.env.SENDGRID_API_KEY,
       AZURE_TENANT_ID:                 !!process.env.AZURE_TENANT_ID,
       AZURE_CLIENT_ID:                 !!process.env.AZURE_CLIENT_ID,

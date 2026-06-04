@@ -74,14 +74,14 @@ private struct JournalEntryRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Text(entry.summary)
+            Text(entry.displaySummary)
                 .font(.subheadline)
                 .lineLimit(2)
 
-            if !entry.keyTopics.isEmpty {
+            if !entry.displayKeyTopics.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
-                        ForEach(entry.keyTopics, id: \.self) { topic in
+                        ForEach(entry.displayKeyTopics, id: \.self) { topic in
                             Text(topic)
                                 .font(.caption2.bold())
                                 .padding(.horizontal, 8)
@@ -118,16 +118,16 @@ private struct JournalEntryDetailView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("What you learned")
                         .font(.headline)
-                    Text(entry.summary)
+                    Text(entry.displaySummary)
                         .font(.body)
                 }
 
-                if !entry.keyTopics.isEmpty {
+                if !entry.displayKeyTopics.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Topics covered")
                             .font(.headline)
                         FlowLayout(spacing: 8) {
-                            ForEach(entry.keyTopics, id: \.self) { topic in
+                            ForEach(entry.displayKeyTopics, id: \.self) { topic in
                                 Text(topic)
                                     .font(.subheadline)
                                     .padding(.horizontal, 12)

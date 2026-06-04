@@ -3,136 +3,485 @@ import SwiftUI
 struct GenerateLessonPlanView: View {
     let teacherProfile: UserProfile
 
-    private static let grades   = ["K","1","2","3","4","5","6","7","8","9","10","11","12"]
-    private static let subjects = ["ELA","Math","Science","Social Studies","Art","Music","PE","Technology","Other"]
+    private static let grades = ["K", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
+    private static let subjects = ["ELA", "Math", "Science", "Social Studies", "Art", "Music", "PE", "Technology", "Other"]
     private static let weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+    private static let resourceProviders = [
+        VendorResourceProvider(id: "khanacademy", name: "Khan Academy", detail: "Videos and articles"),
+        VendorResourceProvider(id: "edx", name: "edX", detail: "Introductory courses"),
+        VendorResourceProvider(id: "nasa", name: "NASA STEM", detail: "STEM activities and articles"),
+    ]
 
-    @State private var grade           = "5"
-    @State private var subject         = "Math"
-    @State private var topic           = ""
-    @State private var standard        = ""
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var grade = "5"
+    @State private var subject = "Math"
+    @State private var topic = ""
+    @State private var standard = ""
     @State private var durationMinutes = 45
-    @State private var startDate       = Date()
-    @State private var endDate         = Calendar.current.date(byAdding: .day, value: 4, to: Date()) ?? Date()
+    @State private var startDate = Date()
+    @State private var endDate = Calendar.current.date(byAdding: .day, value: 4, to: Date()) ?? Date()
     @State private var selectedWeekdays = Set(Self.weekdays)
     @State private var supplementalResources = ""
-    @State private var teacherNotes    = ""
-    @State private var isGenerating    = false
+    @State private var selectedResourceProvider = "khanacademy"
+    @State private var vendorResources: [CatalogItem] = []
+    @State private var selectedVendorResourceIds = Set<String>()
+    @State private var teacherNotes = ""
+
+    @State private var curriculumDocs: [CurriculumDocEntry] = []
+    @State private var selectedCurriculumId: String?
+    @State private var linkedStudents: [StudentAdultLink] = []
+    @State private var studentNames: [String: String] = [:]
+    @State private var selectedStudentIds = Set<String>()
+
     @State private var result: CloudFunctionService.LessonPlanResult?
+    @State private var generatedPlan = ""
+    @State private var assignmentTitle = ""
+    @State private var assignmentDescription = ""
+    @State private var assignedCount: Int?
+    @State private var isLoadingWorkspace = true
+    @State private var isLoadingVendorResources = false
+    @State private var isGenerating = false
+    @State private var isAssigning = false
     @State private var errorMessage: String?
-    @State private var showResult      = false
-    @Environment(\.dismiss) private var dismiss
+    @State private var assignmentMessage: String?
+    @State private var vendorResourceMessage: String?
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Lesson Details") {
-                    Picker("Grade", selection: $grade) {
-                        ForEach(Self.grades, id: \.self) { Text("Grade \($0)").tag($0) }
+            ScrollView {
+                VStack(spacing: 16) {
+                    workspaceProgressSection
+                    lessonDetailsSection
+                    teachingWindowSection
+                    amplifyingSourcesSection
+                    generateSection
+
+                    if !generatedPlan.isEmpty {
+                        reviewSection
+                        assignmentSection
                     }
-                    Picker("Subject", selection: $subject) {
-                        ForEach(Self.subjects, id: \.self) { Text($0).tag($0) }
-                    }
-                    TextField("Topic (e.g. Place Value, Cell Division)", text: $topic)
-                        .nameInput()
-                    TextField("Standard (optional, e.g. 5.NBT.A.1)", text: $standard)
-                        .nameInput()
-                }
 
-                Section("Duration") {
-                    Stepper("\(durationMinutes) minutes", value: $durationMinutes, in: 30...90, step: 5)
-                }
-
-                Section("Teaching Window") {
-                    DatePicker("Start", selection: $startDate, displayedComponents: .date)
-                    DatePicker("End", selection: $endDate, in: startDate..., displayedComponents: .date)
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Class Meets")
-                            .font(.subheadline)
-                        WeekdaySelector(selectedWeekdays: $selectedWeekdays, weekdays: Self.weekdays)
-                        Text("\(availableTeachingDays) teaching day\(availableTeachingDays == 1 ? "" : "s") available")
-                            .font(.caption)
-                            .foregroundStyle(availableTeachingDays == 0 ? .red : .secondary)
-                    }
-                    .padding(.vertical, 4)
-                }
-
-                Section {
-                    TextField("Videos, articles, current events, or links", text: $supplementalResources, axis: .vertical)
-                        .lineLimit(3...6)
-                    TextField("Teacher notes, pacing constraints, or class context", text: $teacherNotes, axis: .vertical)
-                        .lineLimit(3...6)
-                } header: {
-                    Text("Amplifying Sources")
-                } footer: {
-                    Text("EduAssist will ground the plan in approved curriculum first, then use these teacher-approved sources only as supporting material.")
-                }
-
-                if let msg = errorMessage {
-                    Section {
-                        Text(msg)
-                            .foregroundStyle(.red)
-                            .font(.subheadline)
-                    }
-                }
-
-                Section {
-                    Button(action: generate) {
-                        if isGenerating {
-                            HStack(spacing: 8) {
-                                ProgressView().tint(.white)
-                                Text("Generating…")
-                            }
-                            .frame(maxWidth: .infinity)
-                        } else {
-                            Label("Generate Lesson Plan", systemImage: "sparkles")
-                                .frame(maxWidth: .infinity)
+                    if let errorMessage {
+                        LessonWorkspaceSection {
+                            Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.red)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(topic.trimmingCharacters(in: .whitespaces).isEmpty || isGenerating || availableTeachingDays == 0)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
+                .padding(20)
+                .frame(maxWidth: 1040)
+                .frame(maxWidth: .infinity)
             }
-            .navigationTitle("Lesson Plan")
+            .background(Color.appGroupedBackground)
+            .navigationTitle("Lesson Workspace")
             .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Done") { dismiss() }
                 }
             }
-            .sheet(isPresented: $showResult) {
-                if let result {
-                    DocumentResultView(
-                        title: "Lesson Plan — \(subject) Grade \(grade)",
-                        content: result.lessonPlan,
-                        documentId: result.documentId,
-                        documentType: "lesson plan"
-                    )
+            .onChange(of: startDate) { _, newValue in
+                if endDate < newValue {
+                    endDate = newValue
                 }
+            }
+            .onChange(of: endDate) { _, newValue in
+                if newValue < startDate {
+                    startDate = newValue
+                }
+            }
+            .onChange(of: subject) { _, _ in
+                resetVendorResourcesAfterLessonChange()
+            }
+            .onChange(of: grade) { _, _ in
+                resetVendorResourcesAfterLessonChange()
+            }
+            .task { await loadWorkspaceData() }
+        }
+    }
+
+    private var workspaceProgressSection: some View {
+        LessonWorkspaceSection {
+            HStack(spacing: 12) {
+                WorkspaceStep(number: 1, title: "Plan", isActive: generatedPlan.isEmpty)
+                WorkspaceStep(number: 2, title: "Review", isActive: !generatedPlan.isEmpty && assignedCount == nil)
+                WorkspaceStep(number: 3, title: "Assign", isActive: assignedCount != nil)
+            }
+            .padding(.vertical, 6)
+        }
+    }
+
+    private var lessonDetailsSection: some View {
+        LessonWorkspaceSection("Approved Curriculum") {
+            LessonField("Grade") {
+                Picker("Grade", selection: $grade) {
+                    ForEach(Self.grades, id: \.self) { Text("Grade \($0)").tag($0) }
+                }
+                .labelsHidden()
+            }
+            LessonField("Subject") {
+                Picker("Subject", selection: $subject) {
+                    ForEach(Self.subjects, id: \.self) { Text($0).tag($0) }
+                }
+                .labelsHidden()
+            }
+
+            if isLoadingWorkspace {
+                ProgressView("Loading curriculum and roster...")
+            } else if matchingCurriculumDocs.isEmpty {
+                Label("No matching curriculum source found. The plan can still use the typed standard and district library search.", systemImage: "doc.text.magnifyingglass")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Picker("Source", selection: $selectedCurriculumId) {
+                    Text("Auto-match best source").tag(String?.none)
+                    ForEach(matchingCurriculumDocs) { doc in
+                        Text(sourceTitle(doc)).tag(Optional(doc.id))
+                    }
+                }
+                .onChange(of: selectedCurriculumId) { _, newValue in
+                    applyCurriculumSelection(newValue)
+                }
+            }
+
+            LessonField("Topic") {
+                TextField("e.g. Place Value, Cell Division", text: $topic)
+                    .nameInput()
+            }
+            LessonField("Standard") {
+                TextField("Optional, e.g. 5.NBT.A.1", text: $standard)
+                    .nameInput()
+            }
+            Stepper("\(durationMinutes) minutes per class period", value: $durationMinutes, in: 30...90, step: 5)
+        }
+    }
+
+    private var teachingWindowSection: some View {
+        LessonWorkspaceSection("Teaching Window") {
+            DatePicker("Start", selection: $startDate, displayedComponents: .date)
+            DatePicker("End", selection: $endDate, displayedComponents: .date)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Class Meets")
+                    .font(.subheadline)
+                WeekdaySelector(selectedWeekdays: $selectedWeekdays, weekdays: Self.weekdays)
+                Text("\(availableTeachingDays) teaching day\(availableTeachingDays == 1 ? "" : "s") available")
+                    .font(.caption)
+                    .foregroundStyle(availableTeachingDays == 0 ? .red : .secondary)
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
+    private var amplifyingSourcesSection: some View {
+        LessonWorkspaceSection(
+            "Amplifying Sources",
+            footer: "The plan is grounded in approved curriculum first. Selected provider resources and teacher notes amplify the lesson but do not replace standards."
+        ) {
+            LessonField("Provider resources") {
+                Picker("Provider", selection: $selectedResourceProvider) {
+                    ForEach(Self.resourceProviders) { provider in
+                        Text(provider.name).tag(provider.id)
+                    }
+                }
+                .labelsHidden()
+                .onChange(of: selectedResourceProvider) { _, _ in
+                    vendorResources = []
+                    selectedVendorResourceIds.removeAll()
+                    vendorResourceMessage = nil
+                }
+
+                Button(action: loadVendorResources) {
+                    if isLoadingVendorResources {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("Searching Resources...")
+                        }
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        Label("Find \(selectedProviderName) Resources for \(subject)", systemImage: "magnifyingglass")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isLoadingVendorResources)
+
+                Text(selectedProviderDetail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if !vendorResources.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Select Resources")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    ForEach(vendorResources) { item in
+                        VendorResourceToggle(
+                            item: item,
+                            isSelected: selectedVendorResourceIds.contains(item.id)
+                        ) {
+                            toggleVendorResource(item.id)
+                        }
+                    }
+                }
+            }
+
+            if let vendorResourceMessage {
+                Label(vendorResourceMessage, systemImage: "info.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            LessonField("Videos, articles, current events, or links") {
+                TextField("Add links or resource notes", text: $supplementalResources, axis: .vertical)
+                    .lineLimit(3...6)
+            }
+            LessonField("Teacher notes, pacing constraints, or class context") {
+                TextField("Add notes for pacing, grouping, accommodations, or context", text: $teacherNotes, axis: .vertical)
+                    .lineLimit(3...6)
             }
         }
     }
 
+    private var generateSection: some View {
+        LessonWorkspaceSection {
+            Button(action: generate) {
+                if isGenerating {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text("Generating Plan...")
+                    }
+                    .frame(maxWidth: .infinity)
+                } else {
+                    Label(generatedPlan.isEmpty ? "Generate Lesson Plan" : "Regenerate Lesson Plan", systemImage: "sparkles")
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!canGenerate)
+        }
+    }
+
+    private var reviewSection: some View {
+        LessonWorkspaceSection(
+            "Teacher Review",
+            footer: "Edit the plan here before assigning. Assignment uses the reviewed text currently shown above."
+        ) {
+            if result?.documentId != nil {
+                Label("Saved as a draft document for review", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            }
+            TextEditor(text: $generatedPlan)
+                .frame(minHeight: 260)
+                .font(.body)
+            ShareLink(
+                item: generatedPlan,
+                subject: Text(assignmentTitle.isEmpty ? "EduAssist Lesson Plan" : assignmentTitle),
+                message: Text("Draft lesson plan from EduAssist")
+            )
+        }
+    }
+
+    private var assignmentSection: some View {
+        LessonWorkspaceSection(
+            "Assign",
+            footer: "EduAssist creates one reviewed lesson content item and an active learning path for each selected student."
+        ) {
+            LessonField("Assignment title") {
+                TextField("Assignment title", text: $assignmentTitle)
+            }
+            LessonField("Student-facing description") {
+                TextField("Student-facing description", text: $assignmentDescription, axis: .vertical)
+                    .lineLimit(2...4)
+            }
+
+            if linkedStudents.isEmpty {
+                Text("No confirmed students are available yet.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(linkedStudents) { link in
+                    StudentAssignmentToggle(
+                        link: link,
+                        displayName: studentNames[link.studentId],
+                        isSelected: selectedStudentIds.contains(link.studentId)
+                    ) {
+                        toggleStudent(link.studentId)
+                    }
+                }
+            }
+
+            if let assignmentMessage {
+                Label(assignmentMessage, systemImage: "checkmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.green)
+            }
+
+            Button(action: assign) {
+                if isAssigning {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text("Assigning...")
+                    }
+                    .frame(maxWidth: .infinity)
+                } else {
+                    Label("Assign to \(selectedStudentIds.count) Student\(selectedStudentIds.count == 1 ? "" : "s")", systemImage: "paperplane.fill")
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(!canAssign)
+        }
+    }
+
+    private var canGenerate: Bool {
+        !topic.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        availableTeachingDays > 0 &&
+        !isGenerating
+    }
+
+    private var canAssign: Bool {
+        !generatedPlan.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !assignmentTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !selectedStudentIds.isEmpty &&
+        !isAssigning
+    }
+
+    private var matchingCurriculumDocs: [CurriculumDocEntry] {
+        curriculumDocs.filter { doc in
+            gradeMatches(doc.gradeLevel, selectedGrade: grade) && subjectMatches(doc.subject, selectedSubject: subject)
+        }
+    }
+
+    private var selectedProviderName: String {
+        Self.resourceProviders.first(where: { $0.id == selectedResourceProvider })?.name ?? "Provider"
+    }
+
+    private var selectedProviderDetail: String {
+        Self.resourceProviders.first(where: { $0.id == selectedResourceProvider })?.detail ?? ""
+    }
+
+    private var selectedVendorResources: [CatalogItem] {
+        vendorResources.filter { selectedVendorResourceIds.contains($0.id) }
+    }
+
+    private var resourceContextForGeneration: String {
+        var parts: [String] = []
+        if !selectedVendorResources.isEmpty {
+            let selected = selectedVendorResources.map { item in
+                "- \(providerDisplayName(item.source)): \(item.title)\n  \(item.description)\n  \(item.url)"
+            }
+            parts.append("Teacher-selected provider resources:\n\(selected.joined(separator: "\n"))")
+        }
+        let typed = supplementalResources.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !typed.isEmpty {
+            parts.append("Teacher-entered resources and links:\n\(typed)")
+        }
+        return parts.joined(separator: "\n\n")
+    }
+
+    private func loadWorkspaceData() async {
+        isLoadingWorkspace = true
+        async let docs = FirestoreService.shared.fetchCurriculumDocuments()
+        async let links = FirestoreService.shared.fetchLinkedStudents(adultId: teacherProfile.id)
+
+        curriculumDocs = (try? await docs) ?? []
+        linkedStudents = ((try? await links) ?? []).filter(\.confirmed)
+        selectedStudentIds = Set(linkedStudents.map(\.studentId))
+
+        var names: [String: String] = [:]
+        await withTaskGroup(of: (String, String?).self) { group in
+            for link in linkedStudents {
+                group.addTask {
+                    let profile = try? await FirestoreService.shared.fetchUserProfile(uid: link.studentId)
+                    return (link.studentId, profile?.displayName)
+                }
+            }
+            for await (studentId, name) in group {
+                if let name { names[studentId] = name }
+            }
+        }
+        studentNames = names
+        isLoadingWorkspace = false
+    }
+
     private func generate() {
         errorMessage = nil
+        assignmentMessage = nil
         isGenerating = true
         Task {
             defer { isGenerating = false }
             do {
-                result = try await CloudFunctionService.shared.generateLessonPlan(
+                let trimmedTopic = topic.trimmingCharacters(in: .whitespacesAndNewlines)
+                let planResult = try await CloudFunctionService.shared.generateLessonPlan(
                     grade: grade,
                     subject: subject,
-                    topic: topic.trimmingCharacters(in: .whitespaces),
+                    topic: trimmedTopic,
                     durationMinutes: durationMinutes,
-                    standard: standard.trimmingCharacters(in: .whitespaces),
+                    standard: standard.trimmingCharacters(in: .whitespacesAndNewlines),
                     startDate: startDate,
                     endDate: endDate,
                     teachingDays: Self.weekdays.filter { selectedWeekdays.contains($0) },
-                    supplementalResources: supplementalResources.trimmingCharacters(in: .whitespacesAndNewlines),
+                    supplementalResources: resourceContextForGeneration,
                     teacherNotes: teacherNotes.trimmingCharacters(in: .whitespacesAndNewlines)
                 )
-                showResult = true
+                result = planResult
+                generatedPlan = planResult.lessonPlan
+                assignmentTitle = "\(subject) - \(trimmedTopic)"
+                assignmentDescription = "Complete the reviewed lesson plan activities for \(trimmedTopic)."
+                assignedCount = nil
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func loadVendorResources() {
+        vendorResourceMessage = nil
+        isLoadingVendorResources = true
+        Task {
+            defer { isLoadingVendorResources = false }
+            do {
+                let items = try await CloudFunctionService.shared.curateContent(
+                    subject: subject,
+                    gradeLevel: grade,
+                    source: selectedResourceProvider
+                )
+                vendorResources = items
+                selectedVendorResourceIds = Set(items.prefix(3).map(\.id))
+                vendorResourceMessage = items.isEmpty
+                    ? "No provider resources were returned for this subject."
+                    : "\(items.count) resources found. The first \(min(3, items.count)) are selected."
+            } catch {
+                vendorResourceMessage = "Could not load \(selectedProviderName) resources: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func assign() {
+        errorMessage = nil
+        assignmentMessage = nil
+        isAssigning = true
+        Task {
+            defer { isAssigning = false }
+            do {
+                let response = try await CloudFunctionService.shared.assignLessonPlan(
+                    title: assignmentTitle.trimmingCharacters(in: .whitespacesAndNewlines),
+                    description: assignmentDescription.trimmingCharacters(in: .whitespacesAndNewlines),
+                    grade: grade,
+                    subject: subject,
+                    standard: standard.trimmingCharacters(in: .whitespacesAndNewlines),
+                    lessonPlan: generatedPlan.trimmingCharacters(in: .whitespacesAndNewlines),
+                    documentId: result?.documentId,
+                    studentIds: Array(selectedStudentIds)
+                )
+                assignedCount = response.assignedCount
+                assignmentMessage = "Assigned to \(response.assignedCount) student\(response.assignedCount == 1 ? "" : "s")."
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -169,6 +518,250 @@ struct GenerateLessonPlanView: View {
         default: return ""
         }
     }
+
+    private func sourceTitle(_ doc: CurriculumDocEntry) -> String {
+        if doc.standard.isEmpty {
+            return doc.title
+        }
+        return "\(doc.standard) - \(doc.title)"
+    }
+
+    private func applyCurriculumSelection(_ id: String?) {
+        guard let id, let doc = curriculumDocs.first(where: { $0.id == id }) else { return }
+        if !doc.standard.isEmpty { standard = doc.standard }
+        if topic.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            topic = doc.title
+        }
+    }
+
+    private func toggleStudent(_ studentId: String) {
+        if selectedStudentIds.contains(studentId) {
+            selectedStudentIds.remove(studentId)
+        } else {
+            selectedStudentIds.insert(studentId)
+        }
+    }
+
+    private func toggleVendorResource(_ resourceId: String) {
+        if selectedVendorResourceIds.contains(resourceId) {
+            selectedVendorResourceIds.remove(resourceId)
+        } else {
+            selectedVendorResourceIds.insert(resourceId)
+        }
+    }
+
+    private func resetVendorResourcesAfterLessonChange() {
+        vendorResources = []
+        selectedVendorResourceIds.removeAll()
+        vendorResourceMessage = "Resource results were cleared because the lesson subject or grade changed."
+    }
+
+    private func providerDisplayName(_ source: String) -> String {
+        switch source {
+        case "khanacademy": return "Khan Academy"
+        case "edx": return "edX"
+        case "nasa": return "NASA STEM"
+        default: return source
+        }
+    }
+
+    private func gradeMatches(_ value: String, selectedGrade: String) -> Bool {
+        let normalized = value.lowercased()
+        if normalized.isEmpty { return true }
+        if selectedGrade == "K" {
+            return normalized.contains("k") || normalized.contains("kindergarten")
+        }
+        return normalized == selectedGrade ||
+            normalized.contains("grade \(selectedGrade)") ||
+            normalized.contains("grades \(selectedGrade)") ||
+            normalized.contains("\(selectedGrade)-")
+    }
+
+    private func subjectMatches(_ value: String, selectedSubject: String) -> Bool {
+        let normalized = value.lowercased()
+        let selected = selectedSubject.lowercased()
+        if normalized.isEmpty { return true }
+        if selected == "ela" {
+            return normalized.contains("english") || normalized.contains("language arts") || normalized.contains("ela")
+        }
+        if selected == "math" {
+            return normalized.contains("math")
+        }
+        if selected == "pe" {
+            return normalized.contains("physical") || normalized.contains("health")
+        }
+        return normalized.contains(selected)
+    }
+}
+
+private struct VendorResourceProvider: Identifiable {
+    let id: String
+    let name: String
+    let detail: String
+}
+
+private struct WorkspaceStep: View {
+    let number: Int
+    let title: String
+    let isActive: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text("\(number)")
+                .font(.caption.bold())
+                .foregroundStyle(isActive ? .white : .secondary)
+                .frame(width: 24, height: 24)
+                .background(isActive ? Color.blue : Color.secondary.opacity(0.14), in: Circle())
+            Text(title)
+                .font(.caption.bold())
+                .foregroundStyle(isActive ? .primary : .secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct LessonWorkspaceSection<Content: View>: View {
+    let title: String?
+    let footer: String?
+    @ViewBuilder let content: Content
+
+    init(_ title: String? = nil, footer: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.footer = footer
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let title {
+                Text(title)
+                    .font(.headline)
+            }
+            content
+            if let footer {
+                Text(footer)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.appSecondaryGroupedBackground, in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+private struct LessonField<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    init(_ title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct StudentAssignmentToggle: View {
+    let link: StudentAdultLink
+    let displayName: String?
+    let isSelected: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: 10) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? .blue : .secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(displayName ?? link.studentEmail)
+                        .font(.subheadline)
+                    if displayName != nil {
+                        Text(link.studentEmail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct VendorResourceToggle: View {
+    let item: CatalogItem
+    let isSelected: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? .blue : .secondary)
+                    .padding(.top, 2)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Label(providerName, systemImage: iconName)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Text("\(item.estimatedMinutes) min")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Text(item.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if !item.description.isEmpty {
+                        Text(item.description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(3)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.appSecondaryBackground, in: RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(isSelected ? "Remove" : "Add") \(item.title)")
+    }
+
+    private var providerName: String {
+        switch item.source {
+        case "khanacademy": return "Khan Academy"
+        case "edx": return "edX"
+        case "nasa": return "NASA STEM"
+        default: return item.source
+        }
+    }
+
+    private var iconName: String {
+        switch item.contentType {
+        case "video": return "play.rectangle.fill"
+        case "article": return "doc.text.fill"
+        default: return "link"
+        }
+    }
 }
 
 private struct WeekdaySelector: View {
@@ -176,7 +769,7 @@ private struct WeekdaySelector: View {
     let weekdays: [String]
 
     var body: some View {
-        HStack(spacing: 8) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 58), spacing: 8)], spacing: 8) {
             ForEach(weekdays, id: \.self) { weekday in
                 Button {
                     if selectedWeekdays.contains(weekday) {

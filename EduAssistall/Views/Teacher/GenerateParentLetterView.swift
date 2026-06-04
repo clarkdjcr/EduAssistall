@@ -122,6 +122,7 @@ struct GenerateParentLetterView: View {
                         documentId: result.documentId,
                         documentType: "parent letter"
                     )
+                    .macSheetFrame(width: 920, height: 760)
                 }
             }
         }

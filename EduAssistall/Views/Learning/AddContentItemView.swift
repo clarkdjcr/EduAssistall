@@ -99,6 +99,7 @@ struct AddContentItemView: View {
                     onAdd(imported)
                     dismiss()
                 }
+                .macSheetFrame(width: 920, height: 720)
             }
         }
     }

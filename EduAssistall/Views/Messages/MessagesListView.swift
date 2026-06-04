@@ -46,6 +46,7 @@ struct MessagesListView: View {
                 Task { await load() }
             }) {
                 ComposeMessageView(currentUser: profile)
+                    .macSheetFrame(width: 760, height: 620)
             }
             .task { await load() }
             .refreshable { await load() }

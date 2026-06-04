@@ -53,6 +53,7 @@ struct TeacherLearningPathView: View {
             CreateLearningPathView(teacherProfile: teacherProfile) {
                 Task { await load() }
             }
+            .macSheetFrame(width: 940, height: 720)
         }
         .task { await load() }
     }
