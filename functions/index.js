@@ -1868,6 +1868,7 @@ exports.generateLessonPlan = onCall(
       teachingDays = [],
       supplementalResources = "",
       teacherNotes = "",
+      ncStandardCodes = [],
     } = request.data;
     if (!grade || !subject || !topic) {
       throw new HttpsError("invalid-argument", "grade, subject, and topic are required.");
@@ -1920,6 +1921,31 @@ exports.generateLessonPlan = onCall(
         "Quote or reference specific content where it strengthens the plan.\n";
     }
 
+    // NC Standard Course of Study grounding — fetch approved standards by code.
+    let ncStandardsBlock = "";
+    const validNCCodes = Array.isArray(ncStandardCodes)
+      ? ncStandardCodes.filter((c) => typeof c === "string" && c.trim()).slice(0, 10)
+      : [];
+    if (validNCCodes.length > 0) {
+      try {
+        const ncSnap = await db.collection("ncStandards")
+          .where("standardCode", "in", validNCCodes)
+          .get();
+        const approvedNC = ncSnap.docs
+          .map((d) => d.data())
+          .filter((s) => s.approvalStatus === "Approved");
+        if (approvedNC.length > 0) {
+          ncStandardsBlock =
+            "\n\nAPPROVED NC STANDARD COURSE OF STUDY STANDARDS (teacher-selected):\n" +
+            approvedNC.map((s) => `  ${s.standardCode}: ${s.standardText}`).join("\n") +
+            "\n\nAlign the lesson plan directly to each of these approved NC DPI standards. " +
+            "Reference each code explicitly in the STANDARDS ALIGNMENT section.\n";
+        }
+      } catch (ncErr) {
+        console.warn("NC standards fetch failed (non-fatal):", ncErr.message);
+      }
+    }
+
     const learningEnhancement = await buildOpenAILearningEnhancement({
       grade,
       subject,
@@ -1949,6 +1975,7 @@ exports.generateLessonPlan = onCall(
       (standard ? `Standard: ${standard}\n` : "") +
       pacingBlock +
       groundingBlock +
+      ncStandardsBlock +
       learningEnhancementBlock +
       `\nFormat the lesson plan exactly as follows (use these headings verbatim):\n\n` +
       `LESSON PLAN: ${topic}\n` +

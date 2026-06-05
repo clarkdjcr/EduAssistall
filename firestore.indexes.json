@@ -1,6 +1,15 @@
 {
   "indexes": [
     {
+      "collectionGroup": "ncStandards",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "subject",        "order": "ASCENDING" },
+        { "fieldPath": "gradeLevel",     "order": "ASCENDING" },
+        { "fieldPath": "approvalStatus", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "aiAuditLog",
       "queryScope": "COLLECTION",
       "fields": [

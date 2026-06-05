@@ -468,7 +468,7 @@
 				CODE_SIGN_ENTITLEMENTS = EduAssistall/EduAssistall.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "EduAssistall/EduAssistall-macOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 18;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 965RA266P3;
 				ENABLE_APP_SANDBOX = YES;
@@ -517,7 +517,7 @@
 				CODE_SIGN_ENTITLEMENTS = EduAssistall/EduAssistall.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "EduAssistall/EduAssistall-macOS.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 18;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 965RA266P3;
 				ENABLE_APP_SANDBOX = YES;
