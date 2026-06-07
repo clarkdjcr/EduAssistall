@@ -10,20 +10,6 @@
       ]
     },
     {
-      "collectionGroup": "aiAuditLog",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "sharepointSubscriptions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "expirationDateTime", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "goals",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
