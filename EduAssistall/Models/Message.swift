@@ -8,9 +8,10 @@ struct Message: Codable, Identifiable {
     var body: String
     var createdAt: Date
     var aiDrafted: Bool
+    var attachments: [MessageAttachment]
 
     init(threadId: String, senderId: String, senderName: String,
-         body: String, aiDrafted: Bool = false) {
+         body: String, aiDrafted: Bool = false, attachments: [MessageAttachment] = []) {
         self.id = UUID().uuidString
         self.threadId = threadId
         self.senderId = senderId
@@ -18,5 +19,6 @@ struct Message: Codable, Identifiable {
         self.body = body
         self.createdAt = Date()
         self.aiDrafted = aiDrafted
+        self.attachments = attachments
     }
 }

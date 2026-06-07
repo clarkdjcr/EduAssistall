@@ -11,6 +11,7 @@ struct StudentDashboardView: View {
     @State private var milestones: [LearningMilestone] = []
     @State private var recentMessages: [ChatMessage] = []
     @State private var approvedRecs: [Recommendation] = []
+    @State private var weeklyAssignments: [WeeklyAssignment] = []
     @State private var loadError: Error?
     @State private var showProfile = false
     @State private var pendingLinks: [StudentAdultLink] = []
@@ -94,17 +95,41 @@ struct StudentDashboardView: View {
                     }
                     .padding(.horizontal, 20)
 
-                    // Upcoming Section
+                    // Weekly Assignments Section
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Upcoming")
-                            .font(.headline)
-                            .padding(.horizontal, 20)
-
-                        EmptyStateCard(
-                            icon: "calendar",
-                            message: "No upcoming assignments yet.\nCheck back after your teacher sets up your learning path."
-                        )
+                        HStack {
+                            Text("This Week")
+                                .font(.headline)
+                            Spacer()
+                            NavigationLink {
+                                WeeklyPlannerView(profile: profile)
+                            } label: {
+                                Text("See All")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.blue)
+                            }
+                        }
                         .padding(.horizontal, 20)
+
+                        if weeklyAssignments.isEmpty {
+                            EmptyStateCard(
+                                icon: "calendar",
+                                message: "No assignments this week yet.\nCheck back after your teacher sets up the week."
+                            )
+                            .padding(.horizontal, 20)
+                        } else {
+                            VStack(spacing: 8) {
+                                ForEach(weeklyAssignments.prefix(3)) { assignment in
+                                    NavigationLink {
+                                        AssignmentDetailView(assignment: assignment, profile: profile)
+                                    } label: {
+                                        DashboardAssignmentRow(assignment: assignment)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .padding(.horizontal, 20)
+                                }
+                            }
+                        }
                     }
 
                     // Interests
@@ -190,6 +215,16 @@ struct StudentDashboardView: View {
                     .buttonStyle(.plain)
                     .padding(.horizontal, 20)
 
+                    // My Files & Group Collaboration
+                    NavigationLink { SharedFilesView(profile: profile) } label: {
+                        GradientNavCard(title: "My Files",
+                                        subtitle: "Personal and group shared storage",
+                                        icon: "folder.fill",
+                                        colors: [.teal, .blue.opacity(0.8)])
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 20)
+
                     // FR-300: Recent Interactions
                     if !recentMessages.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
@@ -270,6 +305,8 @@ struct StudentDashboardView: View {
             milestones = (try? await milestonesFetch) ?? []
             recentMessages = (try? await messagesFetch) ?? []
             approvedRecs = (try? await FirestoreService.shared.fetchRecommendations(studentId: profile.id)) ?? []
+            weeklyAssignments = (try? await FirestoreService.shared.fetchWeeklyAssignments(
+                studentId: profile.id, weekOf: Date())) ?? []
 
             let paths = try await pathsFetch
             activePath = paths.first(where: { $0.isActive }) ?? paths.first
@@ -722,6 +759,37 @@ private struct ApprovedRecommendationCard: View {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(Color.purple.opacity(0.15), lineWidth: 1)
         )
+    }
+}
+
+// MARK: - Dashboard Assignment Row
+
+private struct DashboardAssignmentRow: View {
+    let assignment: WeeklyAssignment
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(assignment.dayLabel.prefix(3))
+                .font(.caption.bold())
+                .foregroundStyle(.blue)
+                .frame(width: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(assignment.title)
+                    .font(.subheadline.bold())
+                    .lineLimit(1)
+                    .foregroundStyle(.primary)
+                Text("Tap to view assignment")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(12)
+        .background(Color.appSecondaryGroupedBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 

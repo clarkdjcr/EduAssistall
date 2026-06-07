@@ -269,6 +269,15 @@ final class FirestoreService {
         return try snapshot.documents.map { try $0.data(as: Recommendation.self) }
     }
 
+    func fetchTeacherApprovedLessonDays(teacherId: String) async throws -> [Recommendation] {
+        let snap = try await db.collection("recommendations")
+            .whereField("teacherId", isEqualTo: teacherId)
+            .whereField("type", isEqualTo: RecommendationType.lessonDay.rawValue)
+            .whereField("status", isEqualTo: RecommendationStatus.approved.rawValue)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: Recommendation.self) }
+    }
+
     func updateRecommendationStatus(id: String, status: RecommendationStatus, reviewedBy: String) async throws {
         try await db.collection("recommendations").document(id).updateData([
             "status": status.rawValue,
@@ -837,6 +846,116 @@ final class FirestoreService {
     func deleteCurriculumDocument(id: String, collectionType: String) async throws {
         let collection = collectionType == "grounding" ? "groundingContent" : "curriculumContent"
         try await db.collection(collection).document(id).delete()
+    }
+
+    // MARK: - WeeklyAssignments
+
+    func saveWeeklyAssignment(_ assignment: WeeklyAssignment) async throws {
+        let data = try Firestore.Encoder().encode(assignment)
+        try await db.collection("weeklyAssignments").document(assignment.id).setData(data)
+    }
+
+    func fetchWeeklyAssignments(studentId: String, weekOf: Date) async throws -> [WeeklyAssignment] {
+        let monday = WeeklyAssignment.mondayOf(week: weekOf)
+        let sunday = Calendar.current.date(byAdding: .day, value: 7, to: monday)!
+        let snap = try await db.collection("weeklyAssignments")
+            .whereField("studentId", isEqualTo: studentId)
+            .whereField("weekOf", isGreaterThanOrEqualTo: monday)
+            .whereField("weekOf", isLessThan: sunday)
+            .whereField("archived", isEqualTo: false)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: WeeklyAssignment.self) }
+    }
+
+    func fetchArchivedWeeklyAssignments(studentId: String, limit: Int = 20) async throws -> [WeeklyAssignment] {
+        let snap = try await db.collection("weeklyAssignments")
+            .whereField("studentId", isEqualTo: studentId)
+            .whereField("archived", isEqualTo: true)
+            .order(by: "weekOf", descending: true)
+            .limit(to: limit)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: WeeklyAssignment.self) }
+    }
+
+    func archiveWeek(studentId: String, weekOf: Date) async throws {
+        let assignments = try await fetchWeeklyAssignments(studentId: studentId, weekOf: weekOf)
+        let batch = db.batch()
+        for a in assignments {
+            batch.updateData(["archived": true],
+                             forDocument: db.collection("weeklyAssignments").document(a.id))
+        }
+        try await batch.commit()
+    }
+
+    func fetchAssignedWeeks(teacherId: String, studentId: String) async throws -> [WeeklyAssignment] {
+        let snap = try await db.collection("weeklyAssignments")
+            .whereField("teacherId", isEqualTo: teacherId)
+            .whereField("studentId", isEqualTo: studentId)
+            .order(by: "weekOf", descending: true)
+            .limit(to: 50)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: WeeklyAssignment.self) }
+    }
+
+    // MARK: - GradeWeights
+
+    func saveGradeWeights(_ weights: GradeWeights) async throws {
+        let data = try Firestore.Encoder().encode(weights)
+        try await db.collection("gradeWeights").document(weights.teacherId).setData(data)
+    }
+
+    func fetchGradeWeights(teacherId: String) async throws -> GradeWeights? {
+        let snap = try await db.collection("gradeWeights").document(teacherId).getDocument()
+        guard snap.exists else { return nil }
+        return try snap.data(as: GradeWeights.self)
+    }
+
+    // MARK: - GradingCriteria
+
+    func saveGradingCriteria(_ criteria: GradingCriteria) async throws {
+        let data = try Firestore.Encoder().encode(criteria)
+        try await db.collection("gradingCriteria").document(criteria.id).setData(data)
+    }
+
+    func fetchGradingCriteria(teacherId: String) async throws -> [GradingCriteria] {
+        let snap = try await db.collection("gradingCriteria")
+            .whereField("teacherId", isEqualTo: teacherId)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: GradingCriteria.self) }
+    }
+
+    func deleteGradingCriteria(criteriaId: String) async throws {
+        try await db.collection("gradingCriteria").document(criteriaId).delete()
+    }
+
+    // MARK: - SharedFiles
+
+    func saveSharedFile(_ file: SharedFile) async throws {
+        let data = try Firestore.Encoder().encode(file)
+        try await db.collection("sharedFiles").document(file.id).setData(data)
+    }
+
+    func fetchIndividualFiles(studentId: String) async throws -> [SharedFile] {
+        let snap = try await db.collection("sharedFiles")
+            .whereField("scope", isEqualTo: FileScope.individual.rawValue)
+            .whereField("ownerId", isEqualTo: studentId)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: SharedFile.self) }
+    }
+
+    func fetchGroupFiles(groupMemberId: String) async throws -> [SharedFile] {
+        let snap = try await db.collection("sharedFiles")
+            .whereField("scope", isEqualTo: FileScope.group.rawValue)
+            .whereField("groupMemberIds", arrayContains: groupMemberId)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: SharedFile.self) }
+    }
+
+    func deleteSharedFile(_ file: SharedFile) async throws {
+        try await db.collection("sharedFiles").document(file.id).delete()
     }
 
     // MARK: - Badges

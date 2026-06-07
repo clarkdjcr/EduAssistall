@@ -30,6 +30,68 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "weeklyAssignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "studentId", "order": "ASCENDING" },
+        { "fieldPath": "weekOf",    "order": "ASCENDING" },
+        { "fieldPath": "archived",  "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "weeklyAssignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "studentId", "order": "ASCENDING" },
+        { "fieldPath": "archived",  "order": "ASCENDING" },
+        { "fieldPath": "weekOf",    "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "weeklyAssignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "teacherId",  "order": "ASCENDING" },
+        { "fieldPath": "studentId",  "order": "ASCENDING" },
+        { "fieldPath": "weekOf",     "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "gradingCriteria",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "teacherId",  "order": "ASCENDING" },
+        { "fieldPath": "createdAt",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sharedFiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "scope",    "order": "ASCENDING" },
+        { "fieldPath": "ownerId",  "order": "ASCENDING" },
+        { "fieldPath": "createdAt","order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sharedFiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "scope",           "order": "ASCENDING" },
+        { "fieldPath": "groupMemberIds",  "arrayConfig": "CONTAINS" },
+        { "fieldPath": "createdAt",       "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "recommendations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "teacherId", "order": "ASCENDING" },
+        { "fieldPath": "type",      "order": "ASCENDING" },
+        { "fieldPath": "status",    "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

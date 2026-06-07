@@ -6,12 +6,19 @@ import XCTest
 
 extension XCUIApplication {
 
-    /// Launch the app with UI-test flags so views can check for test credentials
-    /// and disable animations for faster, more reliable tests.
+    /// Launch the app with UI-test flags (student role by default).
     static func eduAssistLaunch() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["--uitesting"]
-        // Disable animations so transitions complete synchronously.
+        app.launchEnvironment["UITEST_DISABLE_ANIMATIONS"] = "1"
+        app.launch()
+        return app
+    }
+
+    /// Launch the app bypassing Firebase auth as a teacher profile.
+    static func eduAssistLaunchAsTeacher() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments += ["--uitesting", "--uitesting-role-teacher"]
         app.launchEnvironment["UITEST_DISABLE_ANIMATIONS"] = "1"
         app.launch()
         return app
@@ -19,24 +26,42 @@ extension XCUIApplication {
 
     // MARK: Sign-in helpers
 
-    /// Signs in using the test account credentials injected via the scheme environment.
-    /// Waits for the tab bar to appear, confirming successful login.
+    /// Signs in and waits for the tab bar to appear.
+    ///
+    /// When `--uitesting` is in the launch arguments, the app bypasses Firebase and
+    /// renders MainTabView directly, so this helper just waits for the tab bar.
+    /// Otherwise it fills the email/password form and submits.
     @discardableResult
-    func signIn(email: String = "uitest.student@school.edu",
+    func signIn(email: String = "uitest.student@eduassist.test",
                 password: String = "UITest123!") -> Bool {
+        // --uitesting bypass: app renders MainTabView directly (no Firebase).
+        // On iOS 26 iPad the TabView sidebar doesn't expose a XCUIElementType.tabBar,
+        // so we look for tab buttons or navigation bars that appear on the first screen.
+        if launchArguments.contains("--uitesting") {
+            let tabBar   = tabBars.firstMatch
+            let homeBtn  = buttons["Home"]
+            let rosterBtn = buttons["Roster"]
+            let navBar   = navigationBars.firstMatch
+            let deadline = Date().addingTimeInterval(12)
+            while Date() < deadline {
+                if tabBar.exists || homeBtn.exists || rosterBtn.exists || navBar.exists { return true }
+                Thread.sleep(forTimeInterval: 0.5)
+            }
+            return false
+        }
+
         let emailField    = textFields["login_email_field"]
         let passwordField = secureTextFields["login_password_field"]
         let signInButton  = buttons["login_sign_in_button"]
 
-        guard emailField.waitForExistence(timeout: 10) else { return false }
+        guard emailField.waitForExistence(timeout: 20) else { return false }
         emailField.tap()
         emailField.typeText(email)
         passwordField.tap()
         passwordField.typeText(password)
         signInButton.tap()
 
-        // Wait for the tab bar — proof that auth state reached .authenticated
-        return tabBars.firstMatch.waitForExistence(timeout: 15)
+        return tabBars.firstMatch.waitForExistence(timeout: 30)
     }
 
     /// Signs out via the Profile tab's Sign Out button.

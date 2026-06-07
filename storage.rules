@@ -1,0 +1,30 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Student submission attachments sent in messages
+    match /submissions/{studentId}/{threadId}/{filename} {
+      allow read: if request.auth != null && (
+        request.auth.uid == studentId ||
+        // Teachers/parents linked to this student can read
+        firestore.exists(/databases/(default)/documents/studentAdultLinks/$(request.auth.uid + '_' + studentId))
+      );
+      allow write: if request.auth != null && request.auth.uid == studentId;
+    }
+
+    // Individual student files
+    match /files/students/{studentId}/{filename} {
+      allow read: if request.auth != null && (
+        request.auth.uid == studentId ||
+        firestore.exists(/databases/(default)/documents/studentAdultLinks/$(request.auth.uid + '_' + studentId))
+      );
+      allow write: if request.auth != null && request.auth.uid == studentId;
+    }
+
+    // Group collaboration files — any authenticated user can write;
+    // read is gated by Firestore sharedFiles metadata (checked in app).
+    match /files/groups/{groupId}/{filename} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

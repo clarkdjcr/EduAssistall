@@ -71,9 +71,9 @@ private struct StudentTabView: View {
                     Label("Companion", systemImage: "bubble.left.and.bubble.right.fill")
                 }
 
-            CareerExplorerView(profile: profile)
+            WeeklyPlannerView(profile: profile)
                 .tabItem {
-                    Label("Careers", systemImage: "briefcase.fill")
+                    Label("Planner", systemImage: "calendar")
                 }
 
             StudentProgressView(profile: profile)
@@ -137,6 +137,7 @@ private struct TeacherDocumentsTabView: View {
     @State private var studentIds: [String]         = []
     @State private var showLessonPlan               = false
     @State private var showParentLetter             = false
+    @State private var showAssignWeek               = false
 
     var body: some View {
         NavigationStack {
@@ -154,6 +155,21 @@ private struct TeacherDocumentsTabView: View {
                     } label: {
                         Label("Parent Letter", systemImage: "envelope.fill")
                             .foregroundStyle(.primary)
+                    }
+                }
+
+                Section("Assignments") {
+                    Button { showAssignWeek = true } label: {
+                        Label("Assign to Students", systemImage: "calendar.badge.plus")
+                            .foregroundStyle(.primary)
+                    }
+                }
+
+                Section("Grading") {
+                    NavigationLink {
+                        GradingSetupView(teacherProfile: profile)
+                    } label: {
+                        Label("Grading Setup", systemImage: "percent")
                     }
                 }
 
@@ -188,6 +204,10 @@ private struct TeacherDocumentsTabView: View {
             .sheet(isPresented: $showParentLetter) {
                 GenerateParentLetterView(teacherProfile: profile)
                     .macSheetFrame(width: 860, height: 700)
+            }
+            .sheet(isPresented: $showAssignWeek) {
+                AssignWeekView(teacherProfile: profile)
+                    .macSheetFrame(width: 680, height: 580)
             }
         }
         .task {

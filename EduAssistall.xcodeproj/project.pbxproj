@@ -13,6 +13,7 @@
 		9238A6EC2F905B4C00297DA1 /* FirebaseFirestoreCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 9238A6EB2F905B4C00297DA1 /* FirebaseFirestoreCombine-Community */; };
 		92443D232F932D9600009983 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 92443D222F932D9600009983 /* FirebaseFunctions */; };
 		924E17982F9575970068E159 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 924E17972F9575970068E159 /* FirebaseMessaging */; };
+		92FD9A572FD4C800009B9732 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 92FD9A562FD4C800009B9732 /* FirebaseStorage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +37,7 @@
 		92B2FAE62F8EE96500EDC823 /* EduAssistall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EduAssistall.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		92B2FAF52F8EE96700EDC823 /* EduAssistallTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EduAssistallTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		92B2FAFF2F8EE96700EDC823 /* EduAssistallUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EduAssistallUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		92FD9A552FD4C798009B9732 /* Untitled.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Untitled.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -106,6 +108,7 @@
 				92443D232F932D9600009983 /* FirebaseFunctions in Frameworks */,
 				9238A6E62F905B4C00297DA1 /* FirebaseAuth in Frameworks */,
 				9238A6EA2F905B4C00297DA1 /* FirebaseFirestore in Frameworks */,
+				92FD9A572FD4C800009B9732 /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -136,6 +139,7 @@
 		92B2FADD2F8EE96500EDC823 = {
 			isa = PBXGroup;
 			children = (
+				92FD9A552FD4C798009B9732 /* Untitled.swift */,
 				92B2FAE82F8EE96500EDC823 /* EduAssistall */,
 				92B2FAF82F8EE96700EDC823 /* EduAssistallTests */,
 				92B2FB022F8EE96700EDC823 /* EduAssistallUITests */,
@@ -180,6 +184,7 @@
 				9238A6EB2F905B4C00297DA1 /* FirebaseFirestoreCombine-Community */,
 				92443D222F932D9600009983 /* FirebaseFunctions */,
 				924E17972F9575970068E159 /* FirebaseMessaging */,
+				92FD9A562FD4C800009B9732 /* FirebaseStorage */,
 			);
 			productName = EduAssistall;
 			productReference = 92B2FAE62F8EE96500EDC823 /* EduAssistall.app */;
@@ -746,6 +751,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9238A6E42F905B4C00297DA1 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseMessaging;
+		};
+		92FD9A562FD4C800009B9732 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9238A6E42F905B4C00297DA1 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
