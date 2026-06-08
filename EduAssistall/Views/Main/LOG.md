@@ -17,3 +17,9 @@
 **Outcome:** Success
 **Summary:** Widened macOS teacher document creation sheets.
 **Details:** Updated `MainTabView.swift` so lesson plan and parent letter sheets use desktop-sized presentation on macOS while preserving iOS behavior.
+
+## 2026-06-06T21:10:01 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Removed the student Planner tab from primary navigation.
+**Details:** Updated `MainTabView.swift` so student work starts from assigned learning paths rather than a separate weekly assignment surface.

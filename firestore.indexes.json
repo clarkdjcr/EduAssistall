@@ -45,6 +45,14 @@
       ]
     },
     {
+      "collectionGroup": "learningPaths",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "studentId", "order": "ASCENDING" },
+        { "fieldPath": "isActive",  "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "gradingCriteria",
       "queryScope": "COLLECTION",
       "fields": [
@@ -76,6 +84,14 @@
       "fields": [
         { "fieldPath": "teacherId", "order": "ASCENDING" },
         { "fieldPath": "type",      "order": "ASCENDING" },
+        { "fieldPath": "status",    "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "recommendations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "studentId", "order": "ASCENDING" },
         { "fieldPath": "status",    "order": "ASCENDING" }
       ]
     }

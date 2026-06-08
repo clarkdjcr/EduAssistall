@@ -71,11 +71,6 @@ private struct StudentTabView: View {
                     Label("Companion", systemImage: "bubble.left.and.bubble.right.fill")
                 }
 
-            WeeklyPlannerView(profile: profile)
-                .tabItem {
-                    Label("Planner", systemImage: "calendar")
-                }
-
             StudentProgressView(profile: profile)
                 .tabItem {
                     Label("Progress", systemImage: "chart.bar.fill")

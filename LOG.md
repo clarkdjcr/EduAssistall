@@ -95,3 +95,21 @@
 **Outcome:** Success
 **Summary:** Extended the failure-as-feedback concept across tutoring, journaling, and quiz retry flows.
 **Details:** Updated AI companion prompts, journal summary prompts, journal writing guidance, and quiz retry UI so missed attempts produce correction steps and reinforce learning beyond memorization.
+
+## 2026-06-06T21:10:01 — [CONFIG_CHANGE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Restricted student-visible assigned work to learning paths.
+**Details:** Updated `firestore.rules` so intermediate AI recommendations and weekly assignment documents are adult/admin-facing, while students receive teacher-approved work through assigned `learningPaths` and `contentItems`.
+
+## 2026-06-06T21:34:39 — [CONFIG_CHANGE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added Firestore composite indexes for student assignment visibility.
+**Details:** Updated `firestore.indexes.json` with `learningPaths` student active-path lookup support and `recommendations` student status lookup support.
+
+## 2026-06-07T20:09:25 — [CONFIG_CHANGE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Allowed students to archive completed learning paths without deleting logs.
+**Details:** Updated `firestore.rules` so a student can mark their own path inactive with archive metadata after completion is handled in the app.

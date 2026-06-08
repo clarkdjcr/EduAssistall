@@ -83,21 +83,18 @@ struct LearningJournalEntry: Identifiable, Codable {
     }
 
     private static func parsedJournalPayload(from value: String) -> (summary: String, keyTopics: [String])? {
-        guard let json = extractedJSONObjectString(from: value),
+        guard let json = extractedJSONPayloadString(from: value),
               let data = json.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+              let payload = try? JSONSerialization.jsonObject(with: data) else {
             return nil
         }
 
-        let summary = (object["summary"] as? String ?? "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let topics = (object["keyTopics"] as? [String] ?? [])
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+        let summary = summaryText(from: payload)
+        let topics = topicTexts(from: payload)
         return summary.isEmpty ? nil : (summary, topics)
     }
 
-    private static func extractedJSONObjectString(from value: String) -> String? {
+    private static func extractedJSONPayloadString(from value: String) -> String? {
         var text = value.trimmingCharacters(in: .whitespacesAndNewlines)
         if text.hasPrefix("```") {
             text = text
@@ -107,11 +104,74 @@ struct LearningJournalEntry: Identifiable, Codable {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
-        guard let start = text.firstIndex(of: "{"),
-              let end = text.lastIndex(of: "}"),
-              start <= end else {
-            return nil
+        let objectStart = text.firstIndex(of: "{")
+        let arrayStart = text.firstIndex(of: "[")
+
+        if let arrayStart, objectStart == nil || arrayStart < objectStart! {
+            return payloadSlice(in: text, opening: "[", closing: "]")
         }
+        return payloadSlice(in: text, opening: "{", closing: "}")
+    }
+
+    private static func payloadSlice(in text: String, opening: Character, closing: Character) -> String? {
+        guard let start = text.firstIndex(of: opening),
+              let end = text.lastIndex(of: closing),
+              start <= end else { return nil }
         return String(text[start...end])
+    }
+
+    private static func summaryText(from payload: Any) -> String {
+        if let string = payload as? String {
+            return cleanDisplayLine(string)
+        }
+        if let array = payload as? [Any] {
+            return array
+                .map(summaryText(from:))
+                .filter { !$0.isEmpty }
+                .joined(separator: "\n")
+        }
+        guard let object = payload as? [String: Any] else { return "" }
+
+        for key in ["summary", "studentSummary", "reflectionSummary", "accomplishment", "note", "message", "text", "content"] {
+            if let value = object[key] as? String {
+                let cleaned = cleanDisplayLine(value)
+                if !cleaned.isEmpty { return cleaned }
+            }
+        }
+
+        let lines = object
+            .sorted { $0.key < $1.key }
+            .compactMap { key, value -> String? in
+                guard let text = value as? String else { return nil }
+                let cleaned = cleanDisplayLine(text)
+                guard !cleaned.isEmpty else { return nil }
+                let label = key
+                    .replacingOccurrences(of: "_", with: " ")
+                    .replacingOccurrences(of: "-", with: " ")
+                return "\(label.capitalized): \(cleaned)"
+            }
+        return lines.joined(separator: "\n")
+    }
+
+    private static func topicTexts(from payload: Any) -> [String] {
+        if let array = payload as? [Any] {
+            return array.flatMap(topicTexts(from:))
+        }
+        guard let object = payload as? [String: Any] else { return [] }
+
+        for key in ["keyTopics", "topics", "tags"] {
+            if let topics = object[key] as? [String] {
+                return topics
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+            }
+        }
+        return []
+    }
+
+    private static func cleanDisplayLine(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\\n", with: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

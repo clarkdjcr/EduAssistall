@@ -121,7 +121,16 @@ service cloud.firestore {
           isAdmin()
       );
       allow create, update: if request.auth != null && (
-          isLinkedTeacher(request.resource.data.studentId) || isAdmin()
+          isLinkedTeacher(request.resource.data.studentId) ||
+          isAdmin() ||
+          (
+            resource.data.studentId == request.auth.uid &&
+            request.resource.data.studentId == resource.data.studentId &&
+            request.resource.data.archivedBy == request.auth.uid &&
+            request.resource.data.isActive == false &&
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(["isActive", "workflowStatus", "archivedAt", "archivedBy"])
+          )
       );
       allow delete: if request.auth != null && isAdmin();
     }
@@ -191,12 +200,12 @@ service cloud.firestore {
 
     // -------------------------------------------------------------------------
     // recommendations/{recId}
-    // Cloud Functions create; linked teachers can approve/reject; students and
-    // linked parents can read.
+    // Cloud Functions create; linked teachers can approve/reject. Intermediate
+    // AI recommendations stay adult/admin-facing until assigned as learning paths.
     // -------------------------------------------------------------------------
     match /recommendations/{recId} {
       allow read: if request.auth != null && (
-          resource.data.studentId == request.auth.uid ||
+          resource.data.teacherId == request.auth.uid ||
           isLinked(resource.data.studentId) ||
           isAdmin()
       );
@@ -432,11 +441,11 @@ service cloud.firestore {
 
     // -------------------------------------------------------------------------
     // weeklyAssignments/{assignmentId}
-    // Teachers create/update. Students read their own. Linked parents can read.
+    // Teachers create/update. Linked adults/admins can read. Students receive
+    // assigned work through learningPaths/contentItems instead.
     // -------------------------------------------------------------------------
     match /weeklyAssignments/{assignmentId} {
       allow read: if request.auth != null && (
-          resource.data.studentId == request.auth.uid ||
           isLinked(resource.data.studentId) ||
           isAdmin()
       );
@@ -444,12 +453,7 @@ service cloud.firestore {
           isLinkedTeacher(request.resource.data.studentId) || isAdmin()
       );
       allow update: if request.auth != null && (
-          // Teacher can update (reassign, etc.)
           isLinkedTeacher(resource.data.studentId) ||
-          // Student can only flip archived=true (not other fields)
-          (resource.data.studentId == request.auth.uid
-           && request.resource.data.archived == true
-           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["archived"])) ||
           isAdmin()
       );
       allow delete: if request.auth != null && isAdmin();

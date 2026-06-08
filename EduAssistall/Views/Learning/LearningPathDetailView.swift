@@ -3,6 +3,7 @@ import SwiftUI
 struct LearningPathDetailView: View {
     let path: LearningPath
     let studentId: String
+    var archiveActorId: String?
     /// When true, show the answer-mode toggle (teacher/admin only).
     var showAnswerModeToggle: Bool = false
 
@@ -10,6 +11,9 @@ struct LearningPathDetailView: View {
     @State private var progressMap: [String: StudentProgress] = [:]
     @State private var isLoading = true
     @State private var answerModeEnabled: Bool = false
+    @State private var isArchiving = false
+    @State private var archiveMessage: String?
+    @State private var archiveError: String?
 
     private var sortedItems: [LearningPathItem] { path.sortedItems }
 
@@ -20,6 +24,11 @@ struct LearningPathDetailView: View {
     private var progressFraction: Double {
         guard !sortedItems.isEmpty else { return 0 }
         return Double(completedCount) / Double(sortedItems.count)
+    }
+
+    private var isPathComplete: Bool {
+        !sortedItems.isEmpty &&
+        sortedItems.allSatisfy { progressMap[$0.contentItemId]?.status == .completed }
     }
 
     var body: some View {
@@ -48,6 +57,43 @@ struct LearningPathDetailView: View {
                         Text("\(completedCount) of \(sortedItems.count) items completed")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                    }
+
+                    if let archiveMessage {
+                        Label(archiveMessage, systemImage: "archivebox.fill")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else if let archiveError {
+                        Label(archiveError, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else if isPathComplete && path.isActive {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("This assignment set is complete. Clearing it keeps the progress log and removes it from active assignments.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Button(action: archiveCompletedPath) {
+                                if isArchiving {
+                                    HStack(spacing: 8) {
+                                        ProgressView()
+                                        Text("Clearing...")
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                } else {
+                                    Label("Clear Completed Path", systemImage: "archivebox.fill")
+                                        .frame(maxWidth: .infinity)
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(isArchiving)
+                        }
+                        .padding(12)
+                        .background(Color.green.opacity(0.10))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                 }
                 .padding(.horizontal, 16)
@@ -130,6 +176,24 @@ struct LearningPathDetailView: View {
         contentItems = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
         progressMap = Dictionary(uniqueKeysWithValues: progressList.map { ($0.contentItemId, $0) })
         isLoading = false
+    }
+
+    private func archiveCompletedPath() {
+        guard isPathComplete else { return }
+        isArchiving = true
+        archiveError = nil
+        Task {
+            defer { isArchiving = false }
+            do {
+                try await FirestoreService.shared.archiveLearningPath(
+                    pathId: path.id,
+                    archivedBy: archiveActorId ?? studentId
+                )
+                archiveMessage = "Cleared from active assignments. Your completed work stays in progress reports."
+            } catch {
+                archiveError = error.localizedDescription
+            }
+        }
     }
 }
 

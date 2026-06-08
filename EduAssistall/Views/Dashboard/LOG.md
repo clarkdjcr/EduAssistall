@@ -17,3 +17,9 @@
 **Outcome:** Success
 **Summary:** Widened teacher dashboard sheets on macOS.
 **Details:** Updated `TeacherDashboardView.swift` so roster, import, add-student, lesson-plan, and assign-path sheets open with desktop-sized frames on macOS.
+
+## 2026-06-06T21:10:01 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Consolidated student dashboard work entry around assigned learning paths.
+**Details:** Updated `StudentDashboardView.swift` to stop showing separate weekly assignments and approved AI recommendation cards, leaving assigned learning paths as the student-facing activity surface.

@@ -29,3 +29,9 @@
 **Outcome:** Success
 **Summary:** Added private reflection metadata to learning journal entries.
 **Details:** Updated `EduAssistall/Models/LearningJournalEntry.swift` with student reflection text, teacher/parent share flags, and reflection safety status fields.
+
+## 2026-06-07T20:09:25 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Hardened learning journal cleanup for older JSON-shaped entries.
+**Details:** Updated `EduAssistall/Models/LearningJournalEntry.swift` so object and array payloads with varied summary/topic keys render as student-readable text.

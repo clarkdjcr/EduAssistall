@@ -35,3 +35,9 @@
 **Outcome:** Success
 **Summary:** Added a Cloud Function client for saving private journal reflections.
 **Details:** Updated `EduAssistall/Services/CloudFunctionService.swift` with `saveJournalReflection(...)` so student comments save through the backend safety pipeline.
+
+## 2026-06-07T20:09:25 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added a service method for clearing completed learning paths from active assignments.
+**Details:** Updated `FirestoreService.swift` with `archiveLearningPath(pathId:archivedBy:)`, which marks a path inactive while preserving progress records.

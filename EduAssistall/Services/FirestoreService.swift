@@ -192,6 +192,16 @@ final class FirestoreService {
             .updateData(["answerModeEnabled": enabled])
     }
 
+    func archiveLearningPath(pathId: String, archivedBy: String) async throws {
+        try await db.collection("learningPaths").document(pathId)
+            .updateData([
+                "isActive": false,
+                "workflowStatus": "Archived",
+                "archivedAt": FieldValue.serverTimestamp(),
+                "archivedBy": archivedBy
+            ])
+    }
+
     func deleteLearningPath(id: String) async throws {
         try await db.collection("learningPaths").document(id).delete()
     }

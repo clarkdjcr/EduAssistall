@@ -22,6 +22,7 @@ struct TeacherLearningPathView: View {
                             LearningPathDetailView(
                                 path: path,
                                 studentId: path.studentId,
+                                archiveActorId: teacherProfile.id,
                                 showAnswerModeToggle: true   // FR-006: teachers can toggle answer mode
                             )
                         } label: {

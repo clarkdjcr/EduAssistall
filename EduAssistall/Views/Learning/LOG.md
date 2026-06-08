@@ -35,3 +35,9 @@
 **Outcome:** Success
 **Summary:** Added a quiz retry plan that frames missed answers as useful feedback.
 **Details:** Updated `EduAssistall/Views/Learning/QuizView.swift` so non-passing results prompt students to review explanations, write a correction, and retry after practicing the missed idea.
+
+## 2026-06-07T20:09:25 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added a clear action for completed learning paths.
+**Details:** Updated `LearningPathDetailView.swift` so completed assignment sets can be archived from active learning while keeping completion history intact.
