@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseCore
 
 // MARK: - Main View
 
@@ -29,7 +30,7 @@ struct ITAdminSetupView: View {
     @State private var saveKeySucceeded   = false
     @State private var saveKeyError: String?
 
-    private let projectId = "eduassist-b1f49"
+    private let projectId = FirebaseApp.app()?.options.projectID ?? "eduassist-b1f49"
 
     var body: some View {
         List {

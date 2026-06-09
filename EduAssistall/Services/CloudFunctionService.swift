@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseCore
 import FirebaseFunctions
 
 // MARK: - CompanionError
@@ -590,7 +591,8 @@ final class CloudFunctionService {
     }
 
     func registerSharePointWebhooks() async throws -> [WebhookRegistrationResult] {
-        let url = "https://us-central1-eduassist-b1f49.cloudfunctions.net/sharepointWebhookReceiver"
+        let projectId = FirebaseApp.app()?.options.projectID ?? "eduassist-b1f49"
+        let url = "https://us-central1-\(projectId).cloudfunctions.net/sharepointWebhookReceiver"
         let result = try await functions.httpsCallable("registerSharePointWebhooks").call(["webhookUrl": url])
         guard let dict = result.data as? [String: Any],
               let rawResults = dict["results"] as? [[String: Any]] else {

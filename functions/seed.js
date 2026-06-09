@@ -9,9 +9,9 @@
  *   gcloud auth application-default login   (one-time setup)
  *
  * Test accounts created:
- *   teacher@5h1yp7.onmicrosoft.com  /  MSSPq1w2
- *   student@5h1yp7.onmicrosoft.com  /  MSSPq1w2
- *   parent@5h1yp7.onmicrosoft.com   /  MSSPq1w2
+ *   teacher@5h1yp7.onmicrosoft.com  /  <see TEST_PASSWORD below>
+ *   student@5h1yp7.onmicrosoft.com  /  <see TEST_PASSWORD below>
+ *   parent@5h1yp7.onmicrosoft.com   /  <see TEST_PASSWORD below>
  */
 
 const admin = require("firebase-admin");
@@ -73,7 +73,7 @@ async function seed() {
   const TEACHER_EMAIL  = "teacher@5h1yp7.onmicrosoft.com";
   const STUDENT_EMAIL  = "student@5h1yp7.onmicrosoft.com";
   const PARENT_EMAIL   = "parent@5h1yp7.onmicrosoft.com";
-  const TEST_PASSWORD  = "MSSPq1w2";
+  const TEST_PASSWORD  = process.env.SEED_TEST_PASSWORD || (() => { throw new Error("Set SEED_TEST_PASSWORD env var before running seed.js"); })();
 
   // ── Teacher ─────────────────────────────────────────────────────────────
   const teacher = await auth.createUser({

@@ -3917,7 +3917,7 @@ exports.sendParentalConsentEmail = onCall(
 
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     const approvalUrl =
-      `https://us-central1-eduassist-b1f49.cloudfunctions.net/approveParentalConsent?token=${token}`;
+      `https://us-central1-${process.env.GCLOUD_PROJECT}.cloudfunctions.net/approveParentalConsent?token=${token}`;
 
     await sgMail.send({
       to: parentEmail,
