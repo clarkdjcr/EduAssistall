@@ -3,29 +3,27 @@ import SwiftUI
 struct LearningPathsView: View {
     let profile: UserProfile
 
-    @State private var paths: [LearningPath] = []
-    @State private var progressMap: [String: StudentProgress] = [:]
-    @State private var isLoading = true
+    @State private var vm = LearningPathViewModel()
 
     var body: some View {
         NavigationStack {
             Group {
-                if isLoading {
+                if vm.isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if paths.isEmpty {
+                } else if vm.paths.isEmpty {
                     emptyState
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 14) {
-                            ForEach(paths) { path in
+                            ForEach(vm.paths) { path in
                                 NavigationLink {
                                     LearningPathDetailView(
                                         path: path,
                                         studentId: profile.id
                                     )
                                 } label: {
-                                    LearningPathCard(path: path, progressMap: progressMap)
+                                    LearningPathCard(path: path, progressMap: vm.progressMap)
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -37,8 +35,8 @@ struct LearningPathsView: View {
             .background(Color.appGroupedBackground)
             .navigationTitle("Learning")
             .inlineNavigationTitle()
-            .task { await load() }
-            .refreshable { await load() }
+            .task { await vm.load(studentId: profile.id) }
+            .refreshable { await vm.load(studentId: profile.id) }
         }
     }
 
@@ -58,27 +56,6 @@ struct LearningPathsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func load() async {
-        isLoading = true
-        if ConnectivityService.shared.isOnline {
-            async let fetchPaths = FirestoreService.shared.fetchLearningPaths(studentId: profile.id)
-            async let fetchProgress = FirestoreService.shared.fetchAllProgress(studentId: profile.id)
-
-            let loadedPaths = (try? await fetchPaths) ?? []
-            let progressList = (try? await fetchProgress) ?? []
-
-            paths = loadedPaths.sorted { $0.createdAt > $1.createdAt }
-            progressMap = Dictionary(uniqueKeysWithValues: progressList.map { ($0.contentItemId, $0) })
-
-            OfflineCacheService.shared.cacheLearningPaths(paths, for: profile.id)
-            OfflineCacheService.shared.cacheProgress(progressList, for: profile.id)
-        } else {
-            paths = OfflineCacheService.shared.cachedLearningPaths(for: profile.id)
-            let cached = OfflineCacheService.shared.cachedProgress(for: profile.id)
-            progressMap = Dictionary(uniqueKeysWithValues: cached.map { ($0.contentItemId, $0) })
-        }
-        isLoading = false
-    }
 }
 
 // MARK: - Path Card

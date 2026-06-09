@@ -1,7 +1,6 @@
 import SwiftUI
 
 enum OnboardingStep {
-    case roleConfirmation
     case learningStyleAssessment  // student only
     case interests                // student only
     case gradeSelection           // student only
@@ -14,92 +13,56 @@ enum OnboardingStep {
 struct OnboardingCoordinatorView: View {
     @Environment(AuthViewModel.self) private var authVM
 
-    @State private var profile: UserProfile
-    @State private var step: OnboardingStep = .roleConfirmation
-    @State private var learningProfile: LearningProfile
-    @State private var teacherSchool = ""
-    @State private var teacherGrades: [String] = []
-    @State private var linkedStudentEmail = ""
+    let profile: UserProfile
+    @State private var vm: OnboardingViewModel
 
     init(profile: UserProfile) {
-        self._profile = State(initialValue: profile)
-        self._learningProfile = State(initialValue: LearningProfile(studentId: profile.id))
+        self.profile = profile
+        self._vm = State(initialValue: OnboardingViewModel(profile: profile))
     }
 
     var body: some View {
+        @Bindable var vm = vm
         NavigationStack {
             Group {
-                switch step {
-                case .roleConfirmation:
-                    RoleConfirmationView(profile: profile) { selectedRole in
-                        Task { await selectRole(selectedRole) }
-                    }
-
+                switch vm.step {
                 case .learningStyleAssessment:
-                    LearningStyleAssessmentView(profile: $learningProfile) {
-                        step = .interests
+                    LearningStyleAssessmentView(profile: $vm.learningProfile) {
+                        vm.step = .interests
                     }
 
                 case .interests:
-                    InterestsView(profile: $learningProfile) {
-                        step = .gradeSelection
+                    InterestsView(profile: $vm.learningProfile) {
+                        vm.step = .gradeSelection
                     }
 
                 case .gradeSelection:
-                    GradeSelectionView(profile: $learningProfile) {
-                        step = .aiDisclosure
+                    GradeSelectionView(profile: $vm.learningProfile) {
+                        vm.step = .aiDisclosure
                     }
 
                 case .teacherSetup:
-                    TeacherSetupView(school: $teacherSchool, grades: $teacherGrades, teacherId: profile.id) {
-                        step = .complete
+                    TeacherSetupView(school: $vm.teacherSchool, grades: $vm.teacherGrades, teacherId: profile.id) {
+                        vm.step = .complete
                     }
 
                 case .parentSetup:
-                    ParentSetupView(studentEmail: $linkedStudentEmail, adultId: profile.id) {
-                        step = .aiDisclosure
+                    ParentSetupView(studentEmail: $vm.linkedStudentEmail, adultId: profile.id) {
+                        vm.step = .aiDisclosure
                     }
 
                 case .aiDisclosure:
                     AIDisclosureView {
-                        step = .complete
+                        vm.step = .complete
                     }
 
                 case .complete:
                     OnboardingCompleteView {
-                        Task { await finishOnboarding() }
+                        Task { await vm.finishOnboarding(profile: profile, authVM: authVM) }
                     }
                 }
             }
             .hideBackButton()
-        }
-    }
-
-    private func selectRole(_ role: UserRole) async {
-        profile.role = role
-        try? await FirestoreService.shared.updateRole(uid: profile.id, role: role)
-        advanceFromRoleConfirmation()
-    }
-
-    private func advanceFromRoleConfirmation() {
-        switch profile.role {
-        case .student: step = .learningStyleAssessment
-        case .teacher: step = .teacherSetup
-        case .parent:  step = .parentSetup
-        case .admin:   step = .complete
-        }
-    }
-
-    private func finishOnboarding() async {
-        do {
-            if profile.role == .student {
-                learningProfile.assessmentCompleted = true
-                learningProfile.updatedAt = Date()
-                try await FirestoreService.shared.saveLearningProfile(learningProfile)
-            }
-            try await authVM.completeOnboarding()
-        } catch {
-            // In Phase 2 we'll surface this error properly
         }
     }
 }

@@ -3,24 +3,14 @@ import SwiftUI
 struct CareerExplorerView: View {
     let profile: UserProfile
 
-    @State private var learningProfile: LearningProfile?
-    @State private var selectedTab = 0         // 0 = For You, 1 = All
+    @State private var vm = CareerViewModel()
+    @State private var selectedTab = 0
     @State private var showLuminaries = false
-
-    private var interests: [String] { learningProfile?.interests ?? [] }
-
-    private var forYouCareers: [CareerPath] {
-        CareerDataProvider.careers(matchingInterests: interests)
-    }
 
     private var displayedCareers: [CareerPath] {
         selectedTab == 0
-            ? (forYouCareers.isEmpty ? CareerDataProvider.careers : forYouCareers)
+            ? (vm.forYouCareers.isEmpty ? CareerDataProvider.careers : vm.forYouCareers)
             : CareerDataProvider.careers
-    }
-
-    private var forYouLuminaries: [Luminary] {
-        CareerDataProvider.luminaries(matchingInterests: interests)
     }
 
     var body: some View {
@@ -28,7 +18,6 @@ struct CareerExplorerView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
 
-                    // Segmented picker
                     Picker("View", selection: $selectedTab) {
                         Text("For You").tag(0)
                         Text("All Careers").tag(1)
@@ -36,7 +25,6 @@ struct CareerExplorerView: View {
                     .pickerStyle(.segmented)
                     .padding(.horizontal, 20)
 
-                    // Career cards grid
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                         ForEach(displayedCareers) { career in
                             NavigationLink {
@@ -49,7 +37,6 @@ struct CareerExplorerView: View {
                     }
                     .padding(.horizontal, 20)
 
-                    // Luminaries section
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("Meet the Luminaries")
@@ -62,9 +49,9 @@ struct CareerExplorerView: View {
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
-                                let displayed = forYouLuminaries.isEmpty
+                                let displayed = vm.forYouLuminaries.isEmpty
                                     ? Array(CareerDataProvider.luminaries.prefix(5))
-                                    : Array(forYouLuminaries.prefix(5))
+                                    : Array(vm.forYouLuminaries.prefix(5))
                                 ForEach(displayed) { luminary in
                                     NavigationLink {
                                         LuminaryDetailView(luminary: luminary)
@@ -86,14 +73,10 @@ struct CareerExplorerView: View {
             .navigationTitle("Career Explorer")
             .inlineNavigationTitle()
             .sheet(isPresented: $showLuminaries) {
-                LuminariesListView(interests: interests)
+                LuminariesListView(interests: vm.interests)
             }
-            .task { await loadProfile() }
+            .task { await vm.loadProfile(studentId: profile.id) }
         }
-    }
-
-    private func loadProfile() async {
-        learningProfile = try? await FirestoreService.shared.fetchLearningProfile(studentId: profile.id)
     }
 }
 

@@ -4,38 +4,29 @@ struct MessageThreadView: View {
     let thread: MessageThread
     let currentUser: UserProfile
 
-    @State private var messages: [Message] = []
-    @State private var isLoading = true
+    @State private var vm = MessageThreadViewModel()
     @State private var draftText = ""
-    @State private var pendingAttachments: [PendingAttachment] = []
-    @State private var isSending = false
+    @State private var pendingAttachments: [MessagePendingAttachment] = []
 
     #if os(iOS)
     @State private var showImagePicker = false
     #endif
 
-    struct PendingAttachment: Identifiable {
-        let id = UUID()
-        let filename: String
-        let data: Data
-        let mimeType: String
-    }
-
     private var canSend: Bool {
         let hasText = !draftText.trimmingCharacters(in: .whitespaces).isEmpty
-        return (hasText || !pendingAttachments.isEmpty) && !isSending
+        return (hasText || !pendingAttachments.isEmpty) && !vm.isSending
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            if isLoading {
+            if vm.isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 10) {
-                            ForEach(messages) { message in
+                            ForEach(vm.messages) { message in
                                 MessageBubble(
                                     message: message,
                                     isFromCurrentUser: message.senderId == currentUser.id
@@ -46,8 +37,8 @@ struct MessageThreadView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
                     }
-                    .onChange(of: messages.count) { _, _ in
-                        if let last = messages.last {
+                    .onChange(of: vm.messages.count) { _, _ in
+                        if let last = vm.messages.last {
                             withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                         }
                     }
@@ -65,11 +56,11 @@ struct MessageThreadView: View {
         .background(Color.appGroupedBackground)
         .navigationTitle(thread.otherParticipantName(currentUserId: currentUser.id))
         .inlineNavigationTitle()
-        .task { await load() }
+        .task { await vm.loadMessages(threadId: thread.id) }
         #if os(iOS)
         .sheet(isPresented: $showImagePicker) {
             ImageAttachmentPicker { data, filename, mime in
-                pendingAttachments.append(PendingAttachment(filename: filename, data: data, mimeType: mime))
+                pendingAttachments.append(MessagePendingAttachment(filename: filename, data: data, mimeType: mime))
             }
         }
         #endif
@@ -131,7 +122,13 @@ struct MessageThreadView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20))
 
             Button {
-                Task { await send() }
+                Task {
+                    let body = draftText.trimmingCharacters(in: .whitespaces)
+                    let captured = pendingAttachments
+                    draftText = ""
+                    pendingAttachments = []
+                    await vm.send(thread: thread, currentUser: currentUser, body: body, pendingAttachments: captured)
+                }
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 30))
@@ -142,49 +139,6 @@ struct MessageThreadView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(Color.appGroupedBackground)
-    }
-
-    private func load() async {
-        isLoading = true
-        messages = (try? await FirestoreService.shared.fetchMessages(threadId: thread.id)) ?? []
-        isLoading = false
-    }
-
-    private func send() async {
-        let body = draftText.trimmingCharacters(in: .whitespaces)
-        isSending = true
-        draftText = ""
-        let captured = pendingAttachments
-        pendingAttachments = []
-
-        var uploaded: [MessageAttachment] = []
-        for att in captured {
-            if let (ref, url) = try? await StorageService.shared.upload(
-                data: att.data,
-                path: StorageService.submissionPath(
-                    studentId: currentUser.id,
-                    threadId: thread.id,
-                    filename: "\(UUID().uuidString)_\(att.filename)"
-                ),
-                mimeType: att.mimeType
-            ) {
-                uploaded.append(MessageAttachment(
-                    filename: att.filename, storageRef: ref,
-                    downloadURL: url, mimeType: att.mimeType, sizeBytes: att.data.count
-                ))
-            }
-        }
-
-        let message = Message(
-            threadId: thread.id,
-            senderId: currentUser.id,
-            senderName: currentUser.displayName,
-            body: body.isEmpty ? "(Attachment)" : body,
-            attachments: uploaded
-        )
-        try? await FirestoreService.shared.sendMessage(message)
-        messages.append(message)
-        isSending = false
     }
 }
 

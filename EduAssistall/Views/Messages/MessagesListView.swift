@@ -3,20 +3,19 @@ import SwiftUI
 struct MessagesListView: View {
     let profile: UserProfile
 
-    @State private var threads: [MessageThread] = []
-    @State private var isLoading = true
+    @State private var vm = MessagingViewModel()
     @State private var showCompose = false
 
     var body: some View {
         NavigationStack {
             Group {
-                if isLoading {
+                if vm.isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if threads.isEmpty {
+                } else if vm.threads.isEmpty {
                     emptyState
                 } else {
-                    List(threads) { thread in
+                    List(vm.threads) { thread in
                         NavigationLink {
                             MessageThreadView(thread: thread, currentUser: profile)
                         } label: {
@@ -43,17 +42,18 @@ struct MessagesListView: View {
                 }
             }
             .sheet(isPresented: $showCompose, onDismiss: {
-                Task { await load() }
+                Task { await vm.loadThreads(userId: profile.id) }
             }) {
-                ComposeMessageView(currentUser: profile)
+                ComposeMessageView(currentUser: profile, vm: vm)
                     .macSheetFrame(width: 760, height: 620)
             }
-            .task { await load() }
-            .refreshable { await load() }
+            .task { await vm.loadThreads(userId: profile.id) }
+            .refreshable { await vm.loadThreads(userId: profile.id) }
         }
     }
 
     private var emptyState: some View {
+
         VStack(spacing: 16) {
             Image(systemName: "message.fill")
                 .font(.system(size: 48))
@@ -69,14 +69,6 @@ struct MessagesListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func load() async {
-        isLoading = true
-        let loaded = (try? await FirestoreService.shared.fetchMessageThreads(userId: profile.id)) ?? []
-        threads = loaded.sorted {
-            ($0.lastMessageAt ?? $0.createdAt) > ($1.lastMessageAt ?? $1.createdAt)
-        }
-        isLoading = false
-    }
 }
 
 // MARK: - Thread Row

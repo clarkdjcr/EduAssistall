@@ -2,15 +2,11 @@ import SwiftUI
 
 struct ComposeMessageView: View {
     let currentUser: UserProfile
+    @Bindable var vm: MessagingViewModel
 
     @Environment(\.dismiss) private var dismiss
-    @State private var linkedStudents: [StudentAdultLink] = []
     @State private var selectedLink: StudentAdultLink?
-    @State private var studentProfiles: [String: UserProfile] = [:]
     @State private var messageBody = ""
-    @State private var isLoading = true
-    @State private var isSending = false
-    @State private var errorMessage: String?
 
     private var isValid: Bool {
         selectedLink != nil && !messageBody.trimmingCharacters(in: .whitespaces).isEmpty
@@ -20,16 +16,16 @@ struct ComposeMessageView: View {
         NavigationStack {
             Form {
                 Section("Regarding") {
-                    if isLoading {
+                    if vm.composeLoading {
                         ProgressView()
-                    } else if linkedStudents.isEmpty {
+                    } else if vm.linkedStudents.isEmpty {
                         Text("No linked students found.")
                             .foregroundStyle(.secondary)
                     } else {
                         Picker("Student", selection: $selectedLink) {
                             Text("Select a student").tag(StudentAdultLink?.none)
-                            ForEach(linkedStudents) { link in
-                                let name = studentProfiles[link.studentId]?.displayName ?? "Student"
+                            ForEach(vm.linkedStudents) { link in
+                                let name = vm.studentProfiles[link.studentId]?.displayName ?? "Student"
                                 Text(name).tag(StudentAdultLink?.some(link))
                             }
                         }
@@ -41,7 +37,7 @@ struct ComposeMessageView: View {
                         .lineLimit(4...8)
                 }
 
-                if let error = errorMessage {
+                if let error = vm.composeError {
                     Section {
                         Text(error)
                             .foregroundStyle(.red)
@@ -55,77 +51,23 @@ struct ComposeMessageView: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    if isSending {
+                    if vm.composeSending {
                         ProgressView()
                     } else {
-                        Button("Send") { Task { await send() } }
-                            .fontWeight(.semibold)
-                            .disabled(!isValid)
+                        Button("Send") {
+                            Task {
+                                guard let link = selectedLink else { return }
+                                let body = messageBody.trimmingCharacters(in: .whitespaces)
+                                let success = await vm.sendNewThread(currentUser: currentUser, link: link, body: body)
+                                if success { dismiss() }
+                            }
+                        }
+                        .fontWeight(.semibold)
+                        .disabled(!isValid)
                     }
                 }
             }
-            .task { await loadStudents() }
+            .task { await vm.loadLinkedStudents(adultId: currentUser.id) }
         }
-    }
-
-    private func loadStudents() async {
-        isLoading = true
-        linkedStudents = (try? await FirestoreService.shared.fetchLinkedStudents(adultId: currentUser.id))?.filter(\.confirmed) ?? []
-        // Fetch student profiles to display names
-        for link in linkedStudents {
-            if let profile = try? await FirestoreService.shared.fetchUserProfile(uid: link.studentId) {
-                studentProfiles[link.studentId] = profile
-            }
-        }
-        isLoading = false
-    }
-
-    private func send() async {
-        guard let link = selectedLink else { return }
-        isSending = true
-        errorMessage = nil
-
-        let studentName = studentProfiles[link.studentId]?.displayName ?? "Student"
-
-        // Find other adults linked to the same student
-        let otherLinks = (try? await FirestoreService.shared.fetchLinkedAdults(studentId: link.studentId)) ?? []
-        let otherAdultIds = otherLinks.map(\.adultId).filter { $0 != currentUser.id }
-
-        guard !otherAdultIds.isEmpty else {
-            errorMessage = "No other contacts are linked to this student yet."
-            isSending = false
-            return
-        }
-
-        // Fetch other participant profiles
-        var participantNames: [String: String] = [currentUser.id: currentUser.displayName]
-        for adultId in otherAdultIds {
-            if let profile = try? await FirestoreService.shared.fetchUserProfile(uid: adultId) {
-                participantNames[adultId] = profile.displayName
-            }
-        }
-
-        let allParticipants = [currentUser.id] + otherAdultIds
-        let thread = MessageThread(
-            participants: allParticipants,
-            participantNames: participantNames,
-            studentId: link.studentId,
-            studentName: studentName
-        )
-
-        do {
-            try await FirestoreService.shared.createMessageThread(thread)
-            let message = Message(
-                threadId: thread.id,
-                senderId: currentUser.id,
-                senderName: currentUser.displayName,
-                body: messageBody.trimmingCharacters(in: .whitespaces)
-            )
-            try await FirestoreService.shared.sendMessage(message)
-            dismiss()
-        } catch {
-            errorMessage = "Failed to send. Please try again."
-        }
-        isSending = false
     }
 }

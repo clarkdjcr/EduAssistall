@@ -3,53 +3,21 @@ import SwiftUI
 struct TestPrepView: View {
     let profile: UserProfile
 
-    @State private var attempts: [TestAttempt] = []
-    @State private var learningProfile: LearningProfile?
-    @State private var isLoading = true
+    @State private var vm = TestPrepViewModel()
     @State private var selectedTest: PracticeTest?
     @State private var filterType: TestType? = nil
     @State private var showForYouOnly = false
-
-    private let tests = TestDataProvider.tests
-
-    private var studentGrade: Int? {
-        guard let g = learningProfile?.grade, !g.isEmpty else { return nil }
-        return Int(g)
-    }
-
-    private var recommendedTests: [PracticeTest] {
-        guard let grade = studentGrade else { return [] }
-        return tests.filter { isRecommended($0, forGrade: grade) }
-    }
-
-    private func isRecommended(_ test: PracticeTest, forGrade grade: Int) -> Bool {
-        if test.type == .sat || test.type == .act { return grade >= 9 }
-        guard let testGrade = Int(test.gradeLevel) else { return false }
-        return abs(testGrade - grade) <= 1
-    }
-
-    private var filtered: [PracticeTest] {
-        let base: [PracticeTest]
-        if showForYouOnly, let grade = studentGrade {
-            base = tests.filter { isRecommended($0, forGrade: grade) }
-        } else if let t = filterType {
-            base = tests.filter { $0.type == t }
-        } else {
-            base = tests
-        }
-        return base
-    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     typeFilter
-                    if !recommendedTests.isEmpty && !showForYouOnly && filterType == nil {
+                    if !vm.recommendedTests.isEmpty && !showForYouOnly && filterType == nil {
                         forYouSection
                     }
                     testGrid
-                    if !attempts.isEmpty { historySection }
+                    if !vm.attempts.isEmpty { historySection }
                     Spacer(minLength: 32)
                 }
                 .padding(.vertical, 16)
@@ -57,11 +25,11 @@ struct TestPrepView: View {
             .background(Color.appGroupedBackground)
             .navigationTitle("Test Prep")
             .inlineNavigationTitle()
-            .task { await load() }
-            .refreshable { await load() }
+            .task { await vm.load(studentId: profile.id) }
+            .refreshable { await vm.load(studentId: profile.id) }
             .sheet(item: $selectedTest) { test in
                 PracticeTestView(test: test, studentId: profile.id) {
-                    Task { await load() }
+                    Task { await vm.load(studentId: profile.id) }
                 }
                 .macSheetFrame(width: 900, height: 740)
             }
@@ -74,7 +42,7 @@ struct TestPrepView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 filterChip(label: "All", forYou: false, type: nil)
-                if !recommendedTests.isEmpty {
+                if !vm.recommendedTests.isEmpty {
                     filterChip(label: "For You", forYou: true, type: nil)
                 }
                 ForEach(TestType.allCases, id: \.self) { type in
@@ -104,7 +72,7 @@ struct TestPrepView: View {
     private var forYouSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("Recommended for Grade \(learningProfile?.grade ?? "")", systemImage: "star.fill")
+                Label("Recommended for Grade \(vm.learningProfile?.grade ?? "")", systemImage: "star.fill")
                     .font(.headline)
                     .foregroundStyle(.primary)
                 Spacer()
@@ -116,8 +84,8 @@ struct TestPrepView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
-                    ForEach(recommendedTests) { test in
-                        TestCard(test: test, bestScore: bestScore(for: test.id)) {
+                    ForEach(vm.recommendedTests) { test in
+                        TestCard(test: test, bestScore: vm.bestScore(for: test.id)) {
                             selectedTest = test
                         }
                         .frame(width: 180)
@@ -136,6 +104,7 @@ struct TestPrepView: View {
                 .font(.headline)
                 .padding(.horizontal, 20)
 
+            let filtered = vm.filtered(showForYouOnly: showForYouOnly, filterType: filterType)
             if filtered.isEmpty {
                 Text("No tests match this filter.")
                     .font(.subheadline)
@@ -144,7 +113,7 @@ struct TestPrepView: View {
             } else {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
                     ForEach(filtered) { test in
-                        TestCard(test: test, bestScore: bestScore(for: test.id)) {
+                        TestCard(test: test, bestScore: vm.bestScore(for: test.id)) {
                             selectedTest = test
                         }
                     }
@@ -162,27 +131,13 @@ struct TestPrepView: View {
                 .font(.headline)
                 .padding(.horizontal, 20)
 
-            ForEach(attempts.prefix(5)) { attempt in
+            ForEach(vm.attempts.prefix(5)) { attempt in
                 AttemptRow(attempt: attempt)
                     .padding(.horizontal, 20)
             }
         }
     }
 
-    // MARK: - Helpers
-
-    private func bestScore(for testId: String) -> Int? {
-        attempts.filter { $0.testId == testId }.map(\.score).max()
-    }
-
-    private func load() async {
-        isLoading = true
-        async let fetchedAttempts = FirestoreService.shared.fetchTestAttempts(studentId: profile.id)
-        async let fetchedProfile = FirestoreService.shared.fetchLearningProfile(studentId: profile.id)
-        attempts = (try? await fetchedAttempts) ?? []
-        learningProfile = try? await fetchedProfile
-        isLoading = false
-    }
 }
 
 // MARK: - Test Card
