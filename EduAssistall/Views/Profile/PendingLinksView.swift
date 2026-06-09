@@ -19,7 +19,7 @@ struct PendingLinksView: View {
                         .foregroundStyle(.secondary)
                     Text("No Pending Requests")
                         .font(.title3.bold())
-                    Text("You'll see link requests from parents and teachers here.")
+                    Text("Legacy pending links appear here if an older invite needs approval.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -38,7 +38,7 @@ struct PendingLinksView: View {
                             )
                         }
                     } footer: {
-                        Text("Accepting a request lets this person view your progress, reports, and message your teacher.")
+                        Text("Accepting a legacy pending link lets this person view your progress and reports.")
                     }
                 }
                 #if os(iOS)
@@ -49,7 +49,7 @@ struct PendingLinksView: View {
             }
         }
         .background(Color.appGroupedBackground)
-        .navigationTitle("Link Requests")
+        .navigationTitle("Legacy Links")
         .inlineNavigationTitle()
         .task { await load() }
     }
@@ -57,7 +57,7 @@ struct PendingLinksView: View {
     private func load() async {
         isLoading = true
         let all = (try? await FirestoreService.shared.fetchPendingLinks(studentId: studentId)) ?? []
-        // Filter out expired requests — the nightly purge removes them from Firestore but they
+        // Filter out expired legacy requests — the nightly purge removes them from Firestore but they
         // can persist until the next run. Don't show them as actionable.
         links = all.filter { $0.expiresAt.map { $0 > Date() } ?? true }
         // Resolve adult display names

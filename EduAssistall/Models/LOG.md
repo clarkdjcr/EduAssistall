@@ -35,3 +35,9 @@
 **Outcome:** Success
 **Summary:** Hardened learning journal cleanup for older JSON-shaped entries.
 **Details:** Updated `EduAssistall/Models/LearningJournalEntry.swift` so object and array payloads with varied summary/topic keys render as student-readable text.
+
+## 2026-06-07T20:27:36 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Clarified student-adult link semantics.
+**Details:** Updated `StudentAdultLink.swift` comments/defaults so current teacher-invite and parent-lookup links are confirmed relationships, with pending links treated as legacy.

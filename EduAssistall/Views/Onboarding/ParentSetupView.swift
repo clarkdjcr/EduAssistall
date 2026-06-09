@@ -20,7 +20,7 @@ struct ParentSetupView: View {
                 Text("Link to Your Child")
                     .font(.title.bold())
 
-                Text("Enter your child's email address to request a link to their account.")
+                Text("Enter your child's email address to link to an existing student account.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -55,7 +55,7 @@ struct ParentSetupView: View {
                         if isLinking {
                             ProgressView().tint(Color.white)
                         } else {
-                            Text("Send Link Request")
+                            Text("Link Child Account")
                                 .fontWeight(.semibold)
                         }
                     }
@@ -96,7 +96,7 @@ struct ParentSetupView: View {
                 studentEmail: studentEmail
             )
             try await FirestoreService.shared.createStudentAdultLink(link)
-            successMessage = "Linked to \(result.displayName)! They'll appear on your dashboard."
+            successMessage = "Linked to \(result.displayName). They'll appear on your dashboard."
             try? await Task.sleep(for: .seconds(1.5))
             onComplete()
         } catch let error as NSError where error.domain == "com.firebase.functions" {

@@ -1869,6 +1869,7 @@ exports.generateLessonPlan = onCall(
       supplementalResources = "",
       teacherNotes = "",
       ncStandardCodes = [],
+      teacherWikiDigest = "",
     } = request.data;
     if (!grade || !subject || !topic) {
       throw new HttpsError("invalid-argument", "grade, subject, and topic are required.");
@@ -1962,10 +1963,54 @@ exports.generateLessonPlan = onCall(
         "\nUse this as instructional design guidance only. The approved district curriculum remains authoritative.\n"
       : "";
 
+    // Tier-2 teacher enhancement knowledge (FR-T7): the teacher's personal wiki, used to
+    // amplify the assignment with their creativity WITHOUT overriding the approved curriculum.
+    // Prefer the on-device-compressed digest the client sends (token-minimal); otherwise fall
+    // back to a capped server-side fetch so older iPads without Apple Intelligence still benefit.
+    let teacherEnhancementText = String(teacherWikiDigest || "").trim().slice(0, 1500);
+    if (!teacherEnhancementText) {
+      try {
+        const wikiSnap = await db.collection("teacherWiki").doc(request.auth.uid)
+          .collection("entries")
+          .where("applyToGeneration", "==", true)
+          .limit(20)
+          .get();
+        const subjectKey = String(subject || "").toLowerCase();
+        const gradeKey = String(grade || "").toLowerCase();
+        const relevant = wikiSnap.docs
+          .map((d) => d.data())
+          .filter((w) => w && String(w.body || "").trim())
+          .filter((w) => {
+            const ws = String(w.subject || "").toLowerCase();
+            const wg = String(w.gradeLevel || "").toLowerCase();
+            // An entry applies when its subject and grade either match or are left unset (any).
+            return (!ws || ws === subjectKey) && (!wg || wg === gradeKey);
+          })
+          .slice(0, 3);
+        if (relevant.length > 0) {
+          teacherEnhancementText = relevant
+            .map((w) => `- ${w.title || "Note"}: ${String(w.body).trim().slice(0, 800)}`)
+            .join("\n");
+        }
+      } catch (wikiErr) {
+        console.warn("teacherWiki fetch failed (non-fatal):", wikiErr.message);
+      }
+    }
+
+    const teacherEnhancementBlock = teacherEnhancementText
+      ? "\n\nTEACHER ENHANCEMENT KNOWLEDGE (supplemental — subordinate to the approved curriculum):\n" +
+        teacherEnhancementText +
+        "\n\nUse this only to make the assignment more engaging, differentiated, and locally relevant. " +
+        "Every objective must still satisfy the stated standard and the approved district curriculum. " +
+        "If anything here conflicts with the approved curriculum or standards above, the curriculum and standards take precedence.\n"
+      : "";
+
     const systemPrompt =
       "You are an experienced K-12 curriculum designer. Generate clear, practical lesson plans " +
       "that any classroom teacher can execute without modification. Use precise educational language. " +
-      "Every section must be concrete and specific — no placeholders or generic filler.";
+      "Every section must be concrete and specific — no placeholders or generic filler. " +
+      "Approved curriculum and standards are authoritative; teacher enhancement knowledge is supplemental " +
+      "and must never override them.";
 
     const userPrompt =
       `Create a complete ${durationMinutes}-minute lesson plan with the following parameters:\n` +
@@ -1977,6 +2022,7 @@ exports.generateLessonPlan = onCall(
       groundingBlock +
       ncStandardsBlock +
       learningEnhancementBlock +
+      teacherEnhancementBlock +
       `\nFormat the lesson plan exactly as follows (use these headings verbatim):\n\n` +
       `LESSON PLAN: ${topic}\n` +
       `Grade: ${grade} | Subject: ${subject} | Duration: ${durationMinutes} min\n` +
@@ -2072,6 +2118,7 @@ exports.generateLessonPlan = onCall(
       groundingItems: curriculumItems.slice(0, 2),
       usage:          response.usage,
       cacheHit:       false,
+      teacherWikiApplied: teacherEnhancementText.length > 0,
     });
 
     return {

@@ -41,3 +41,15 @@
 **Outcome:** Success
 **Summary:** Added two-stage lesson-plan and daily recommendation approval before assignment.
 **Details:** Updated `GenerateLessonPlanView.swift` so teachers approve the AI lesson plan, review AI-parsed teaching days, approve those days, and only then assign to selected students.
+
+## 2026-06-07T20:27:36 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Renamed single-student roster creation as an invitation flow.
+**Details:** Updated `AddStudentView.swift` copy so teachers invite students rather than silently creating unmanaged student accounts.
+
+## 2026-06-07T20:34:54 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added dynamic readiness descriptions to Teacher Assist.
+**Details:** Updated `TeacherAssistView.swift` so each assist feature explains whether it is live now or waiting for roster, assignment, standards, progress, assessment, session, or flag data.

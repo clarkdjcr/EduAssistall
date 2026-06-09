@@ -464,7 +464,7 @@ struct StudentProfileSheet: View {
                             showLinks = true
                         } label: {
                             HStack {
-                                Label("Link Requests", systemImage: "person.badge.plus")
+                                Label("Legacy Link Approvals", systemImage: "person.badge.plus")
                                     .foregroundStyle(.primary)
                                 Spacer()
                                 if pendingCount > 0 {
@@ -642,10 +642,10 @@ private struct PendingLinksBanner: View {
                 .foregroundStyle(.orange)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(count == 1 ? "1 Link Request Waiting" : "\(count) Link Requests Waiting")
+                Text(count == 1 ? "1 Legacy Link Waiting" : "\(count) Legacy Links Waiting")
                     .font(.subheadline.bold())
                     .foregroundStyle(.primary)
-                Text("A parent or teacher wants to connect to your account. Tap to review.")
+                Text("An older pending link needs your review.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -663,7 +663,7 @@ private struct PendingLinksBanner: View {
                 .stroke(Color.orange.opacity(0.35), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
-        .accessibilityLabel("\(count) pending link \(count == 1 ? "request" : "requests")")
-        .accessibilityHint("Tap to review and approve or decline")
+        .accessibilityLabel("\(count) legacy pending \(count == 1 ? "link" : "links")")
+        .accessibilityHint("Tap to review")
     }
 }

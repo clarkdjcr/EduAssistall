@@ -2,14 +2,9 @@ import SwiftUI
 
 struct RoleConfirmationView: View {
     let profile: UserProfile
-    let onContinue: (UserRole) -> Void
-
-    @State private var selectedRole: UserRole?
 
     init(profile: UserProfile, onContinue: @escaping (UserRole) -> Void) {
         self.profile = profile
-        self.onContinue = onContinue
-        self._selectedRole = State(initialValue: nil)
     }
 
     var body: some View {
@@ -23,37 +18,18 @@ struct RoleConfirmationView: View {
                 Text("Welcome, \(profile.displayName)!")
                     .font(.title.bold())
 
-                Text("I am a…")
+                Text("Your account role has already been assigned.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             .padding(.bottom, 32)
 
             VStack(spacing: 12) {
-                ForEach([UserRole.student, .teacher, .parent], id: \.self) { role in
-                    RoleOptionCard(role: role, isSelected: selectedRole == role) {
-                        selectedRole = role
-                    }
-                }
+                RoleOptionCard(role: profile.role, isSelected: true) {}
             }
             .padding(.horizontal, 24)
 
             Spacer()
-
-            Button {
-                if let role = selectedRole { onContinue(role) }
-            } label: {
-                Text("Continue")
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(selectedRole != nil ? Color.blue : Color.secondary.opacity(0.3))
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-            }
-            .disabled(selectedRole == nil)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 48)
         }
         .navigationTitle("Welcome")
         .inlineNavigationTitle()

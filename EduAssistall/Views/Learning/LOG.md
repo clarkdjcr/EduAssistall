@@ -41,3 +41,9 @@
 **Outcome:** Success
 **Summary:** Added a clear action for completed learning paths.
 **Details:** Updated `LearningPathDetailView.swift` so completed assignment sets can be archived from active learning while keeping completion history intact.
+
+## 2026-06-07T20:27:36 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Clarified assignment prerequisites for teacher-created paths.
+**Details:** Updated `CreateLearningPathView.swift` empty-state copy so teachers invite/link students before assigning paths.

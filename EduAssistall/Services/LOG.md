@@ -41,3 +41,9 @@
 **Outcome:** Success
 **Summary:** Added a service method for clearing completed learning paths from active assignments.
 **Details:** Updated `FirestoreService.swift` with `archiveLearningPath(pathId:archivedBy:)`, which marks a path inactive while preserving progress records.
+
+## 2026-06-07T20:27:36 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Removed uninvited student fallback profile creation.
+**Details:** Updated `AuthViewModel.swift` so open self-registration is parent-only and unknown authenticated users without profiles are initialized as parents, not students.

@@ -138,7 +138,8 @@ final class CloudFunctionService {
         endDate: Date? = nil,
         teachingDays: [String] = [],
         supplementalResources: String = "",
-        teacherNotes: String = ""
+        teacherNotes: String = "",
+        teacherWikiDigest: String = ""
     ) async throws -> LessonPlanResult {
         var data: [String: Any] = [
             "grade": grade,
@@ -152,6 +153,7 @@ final class CloudFunctionService {
         if !teachingDays.isEmpty { data["teachingDays"] = teachingDays }
         if !supplementalResources.isEmpty { data["supplementalResources"] = supplementalResources }
         if !teacherNotes.isEmpty { data["teacherNotes"] = teacherNotes }
+        if !teacherWikiDigest.isEmpty { data["teacherWikiDigest"] = teacherWikiDigest }
         let result = try await functions.httpsCallable("generateLessonPlan").call(data)
         guard let dict = result.data as? [String: Any],
               let plan = dict["lessonPlan"] as? String else {

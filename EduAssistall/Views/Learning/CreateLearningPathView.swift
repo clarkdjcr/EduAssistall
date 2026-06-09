@@ -28,7 +28,7 @@ struct CreateLearningPathView: View {
 
                 Section("Assign To Student") {
                     if linkedStudents.isEmpty {
-                        Text("No confirmed students found. Students must accept your invite before you can assign paths.")
+                        Text("No linked students found. Invite students from your roster before assigning paths.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {

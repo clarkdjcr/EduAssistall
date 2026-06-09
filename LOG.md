@@ -113,3 +113,15 @@
 **Outcome:** Success
 **Summary:** Allowed students to archive completed learning paths without deleting logs.
 **Details:** Updated `firestore.rules` so a student can mark their own path inactive with archive metadata after completion is handled in the app.
+
+## 2026-06-07T20:27:36 — [CONFIG_CHANGE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Tightened role and link rules for invited-student sanity.
+**Details:** Updated `firestore.rules` so user roles cannot be changed by ordinary self-writes, and clarified that current teacher/parent links are confirmed after invite or lookup.
+
+## 2026-06-07T20:31:33 — [CONFIG_CHANGE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Restricted first-time client profile creation to parent accounts.
+**Details:** Updated `firestore.rules` so student and teacher roles cannot be self-declared during open signup.

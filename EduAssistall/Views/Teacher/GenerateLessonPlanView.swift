@@ -27,6 +27,7 @@ struct GenerateLessonPlanView: View {
     @State private var vendorResources: [CatalogItem] = []
     @State private var selectedVendorResourceIds = Set<String>()
     @State private var teacherNotes = ""
+    @State private var appliedWikiCount = 0
 
     @State private var curriculumDocs: [CurriculumDocEntry] = []
     @State private var selectedCurriculumId: String?
@@ -288,6 +289,11 @@ struct GenerateLessonPlanView: View {
                 Label("Saved as a draft document for review", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             }
+            if appliedWikiCount > 0 {
+                Label("\(appliedWikiCount) wiki insight\(appliedWikiCount == 1 ? "" : "s") applied from your Teaching Wiki", systemImage: "sparkles")
+                    .font(.caption)
+                    .foregroundStyle(.blue)
+            }
             TextEditor(text: $generatedPlan)
                 .frame(minHeight: 260)
                 .font(.body)
@@ -521,17 +527,20 @@ struct GenerateLessonPlanView: View {
             defer { isGenerating = false }
             do {
                 let trimmedTopic = topic.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedStandard = standard.trimmingCharacters(in: .whitespacesAndNewlines)
+                let wikiDigest = await buildWikiDigest(standard: trimmedStandard)
                 let planResult = try await CloudFunctionService.shared.generateLessonPlan(
                     grade: grade,
                     subject: subject,
                     topic: trimmedTopic,
                     durationMinutes: durationMinutes,
-                    standard: standard.trimmingCharacters(in: .whitespacesAndNewlines),
+                    standard: trimmedStandard,
                     startDate: startDate,
                     endDate: endDate,
                     teachingDays: Self.weekdays.filter { selectedWeekdays.contains($0) },
                     supplementalResources: resourceContextForGeneration,
-                    teacherNotes: teacherNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+                    teacherNotes: teacherNotes.trimmingCharacters(in: .whitespacesAndNewlines),
+                    teacherWikiDigest: wikiDigest
                 )
                 result = planResult
                 generatedPlan = planResult.lessonPlan
@@ -544,6 +553,22 @@ struct GenerateLessonPlanView: View {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+
+    /// Selects the teacher's relevant wiki entries by metadata, compresses them on-device,
+    /// and returns a compact digest to ground generation. Returns "" when nothing applies.
+    /// Updates `appliedWikiCount` for the UI indicator.
+    private func buildWikiDigest(standard: String) async -> String {
+        let codes = standard.isEmpty ? [] : [standard]
+        let selected = (try? await FirestoreService.shared.selectWikiEntries(
+            teacherId: teacherProfile.id,
+            subject: subject,
+            grade: grade,
+            standardCodes: codes
+        )) ?? []
+        appliedWikiCount = selected.count
+        guard !selected.isEmpty else { return "" }
+        return await TeacherKnowledgeAIService.shared.buildDigest(from: selected) ?? ""
     }
 
     private func approvePlanAndBuildDays() {

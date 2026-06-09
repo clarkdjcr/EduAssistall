@@ -64,33 +64,10 @@ struct TeacherAdminDetailView: View {
                     if !confirmed.isEmpty {
                         Section("Active Roster (\(confirmed.count))") {
                             ForEach(confirmed) { link in
-                                NavigationLink {
-                                    StudentProgressDetailView(
-                                        studentId: link.studentId,
-                                        studentName: studentNames[link.studentId] ?? link.studentEmail
-                                    )
-                                } label: {
-                                    HStack(spacing: 12) {
-                                        Circle()
-                                            .fill(Color.secondary.opacity(0.12))
-                                            .frame(width: 32, height: 32)
-                                            .overlay(
-                                                Text((studentNames[link.studentId] ?? link.studentEmail).prefix(1).uppercased())
-                                                    .font(.caption.bold())
-                                                    .foregroundStyle(.secondary)
-                                            )
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(studentNames[link.studentId] ?? link.studentEmail)
-                                                .font(.subheadline)
-                                                .lineLimit(1)
-                                            Text(link.studentEmail)
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                                .lineLimit(1)
-                                        }
-                                    }
-                                    .padding(.vertical, 2)
-                                }
+                                AdminRosterNavRow(
+                                    link: link,
+                                    displayName: displayName(for: link)
+                                )
                             }
                         }
                     }
@@ -135,6 +112,10 @@ struct TeacherAdminDetailView: View {
         .task { await load() }
     }
 
+    private func displayName(for link: StudentAdultLink) -> String {
+        studentNames[link.studentId] ?? link.studentEmail
+    }
+
     private func load() async {
         isLoading = true
         links = (try? await FirestoreService.shared.fetchLinkedStudents(adultId: teacher.id)) ?? []
@@ -147,5 +128,37 @@ struct TeacherAdminDetailView: View {
             }
         }
         isLoading = false
+    }
+}
+
+private struct AdminRosterNavRow: View {
+    let link: StudentAdultLink
+    let displayName: String
+
+    var body: some View {
+        NavigationLink {
+            StudentProgressDetailView(studentId: link.studentId, studentEmail: displayName)
+        } label: {
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(Color.secondary.opacity(0.12))
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Text(displayName.prefix(1).uppercased())
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(displayName)
+                        .font(.subheadline)
+                        .lineLimit(1)
+                    Text(link.studentEmail)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.vertical, 2)
+        }
     }
 }

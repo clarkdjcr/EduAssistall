@@ -54,7 +54,7 @@ struct AddStudentView: View {
                         case .invited:
                             HStack(spacing: 10) {
                                 Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                                Text("Invitation sent — student added to your roster.")
+                                Text("Invitation sent — student account is linked to your roster.")
                                     .font(.subheadline)
                             }
                         case .alreadyExists:
@@ -81,7 +81,7 @@ struct AddStudentView: View {
                             if isAdding {
                                 ProgressView()
                             } else {
-                                Text("Add Student")
+                                Text("Invite Student")
                                     .fontWeight(.semibold)
                             }
                             Spacer()
@@ -90,7 +90,7 @@ struct AddStudentView: View {
                     .disabled(!canAdd)
                 }
             }
-            .navigationTitle("Add Student")
+            .navigationTitle("Invite Student")
             .inlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

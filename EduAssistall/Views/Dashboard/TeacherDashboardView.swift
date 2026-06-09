@@ -48,7 +48,7 @@ struct TeacherDashboardView: View {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button { showAddStudent = true } label: {
-                            Label("Add Student", systemImage: "person.badge.plus")
+                            Label("Invite Student", systemImage: "person.badge.plus")
                         }
                         Button { showImport = true } label: {
                             Label("Import Roster (CSV)", systemImage: "square.and.arrow.down")
@@ -244,7 +244,7 @@ struct TeacherDashboardView: View {
                 .buttonStyle(.plain)
 
                 Button { showAddStudent = true } label: {
-                    QuickActionCard(icon: "person.badge.plus", label: "Add Student", color: .indigo)
+                    QuickActionCard(icon: "person.badge.plus", label: "Invite Student", color: .indigo)
                 }
                 .buttonStyle(.plain)
 

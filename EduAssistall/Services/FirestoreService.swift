@@ -1010,6 +1010,86 @@ final class FirestoreService {
         try await db.collection("gradingCriteria").document(criteriaId).delete()
     }
 
+    // MARK: - Teacher Wiki (teacher-owned knowledge that amplifies lesson-plan generation)
+
+    private func teacherWikiCollection(_ teacherId: String) -> CollectionReference {
+        db.collection("teacherWiki").document(teacherId).collection("entries")
+    }
+
+    func fetchTeacherWikiEntries(teacherId: String) async throws -> [TeacherWikiEntry] {
+        let snap = try await teacherWikiCollection(teacherId)
+            .order(by: "updatedAt", descending: true)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: TeacherWikiEntry.self) }
+    }
+
+    func saveTeacherWikiEntry(_ entry: TeacherWikiEntry) async throws {
+        let data = try Firestore.Encoder().encode(entry)
+        try await teacherWikiCollection(entry.teacherId).document(entry.id).setData(data)
+    }
+
+    func deleteTeacherWikiEntry(teacherId: String, entryId: String) async throws {
+        try await teacherWikiCollection(teacherId).document(entryId).delete()
+    }
+
+    /// Selects the few wiki entries relevant to an assignment, by metadata only (no AI, no extra tokens).
+    /// Returns at most `limit` entries that are flagged `applyToGeneration`, ranked by relevance to
+    /// the requested subject / grade / standards, so the on-device digest stays small.
+    func selectWikiEntries(
+        teacherId: String,
+        subject: String,
+        grade: String,
+        standardCodes: [String] = [],
+        limit: Int = 3
+    ) async throws -> [TeacherWikiEntry] {
+        let all = try await fetchTeacherWikiEntries(teacherId: teacherId)
+            .filter { $0.applyToGeneration && !$0.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+        let subjectKey = subject.lowercased()
+        let standardSet = Set(standardCodes.map { $0.lowercased() })
+
+        func relevance(_ entry: TeacherWikiEntry) -> Int {
+            var score = 0
+            if !entry.subject.isEmpty && entry.subject.lowercased() == subjectKey { score += 4 }
+            if !entry.gradeLevel.isEmpty && entry.gradeLevel.caseInsensitiveCompare(grade) == .orderedSame { score += 2 }
+            if !standardSet.isEmpty && !standardSet.isDisjoint(with: Set(entry.standardCodes.map { $0.lowercased() })) { score += 3 }
+            return score
+        }
+
+        return all
+            .map { (entry: $0, score: relevance($0)) }
+            .filter { $0.score > 0 }
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score > rhs.score }
+                return lhs.entry.updatedAt > rhs.entry.updatedAt
+            }
+            .prefix(limit)
+            .map(\.entry)
+    }
+
+    // MARK: - Teacher Journal (private, owner-only reflection)
+
+    private func teacherJournalCollection(_ teacherId: String) -> CollectionReference {
+        db.collection("teacherJournal").document(teacherId).collection("entries")
+    }
+
+    func fetchTeacherJournalEntries(teacherId: String, limit: Int = 100) async throws -> [TeacherJournalEntry] {
+        let snap = try await teacherJournalCollection(teacherId)
+            .order(by: "createdAt", descending: true)
+            .limit(to: limit)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: TeacherJournalEntry.self) }
+    }
+
+    func saveTeacherJournalEntry(_ entry: TeacherJournalEntry) async throws {
+        let data = try Firestore.Encoder().encode(entry)
+        try await teacherJournalCollection(entry.teacherId).document(entry.id).setData(data)
+    }
+
+    func deleteTeacherJournalEntry(teacherId: String, entryId: String) async throws {
+        try await teacherJournalCollection(teacherId).document(entryId).delete()
+    }
+
     // MARK: - SharedFiles
 
     func saveSharedFile(_ file: SharedFile) async throws {

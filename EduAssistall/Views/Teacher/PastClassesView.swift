@@ -31,17 +31,10 @@ struct PastClassesView: View {
                     ForEach(byYear, id: \.year) { group in
                         Section(group.year) {
                             ForEach(group.links) { link in
-                                NavigationLink {
-                                    StudentProgressDetailView(
-                                        studentId: link.studentId,
-                                        studentName: studentNames[link.studentId] ?? link.studentEmail
-                                    )
-                                } label: {
-                                    ArchivedStudentRow(
-                                        link: link,
-                                        displayName: studentNames[link.studentId] ?? link.studentEmail
-                                    )
-                                }
+                                ArchivedStudentNavRow(
+                                    link: link,
+                                    displayName: displayName(for: link)
+                                )
                             }
                         }
                     }
@@ -60,6 +53,10 @@ struct PastClassesView: View {
         .refreshable { await load() }
     }
 
+    private func displayName(for link: StudentAdultLink) -> String {
+        studentNames[link.studentId] ?? link.studentEmail
+    }
+
     private func load() async {
         isLoading = true
         archivedLinks = (try? await FirestoreService.shared.fetchArchivedLinks(teacherId: teacherProfile.id)) ?? []
@@ -75,6 +72,19 @@ struct PastClassesView: View {
             }
         }
         isLoading = false
+    }
+}
+
+private struct ArchivedStudentNavRow: View {
+    let link: StudentAdultLink
+    let displayName: String
+
+    var body: some View {
+        NavigationLink {
+            StudentProgressDetailView(studentId: link.studentId, studentEmail: displayName)
+        } label: {
+            ArchivedStudentRow(link: link, displayName: displayName)
+        }
     }
 }
 

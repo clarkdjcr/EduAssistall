@@ -347,6 +347,27 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
+    // teacherWiki/{teacherId}/entries/{entryId}
+    // Personal teaching-knowledge entries that amplify the owning teacher's lesson-plan
+    // generation. Owner-locked. Admins may read (teacher-authored professional content).
+    // The lesson-plan Cloud Function reads via Admin SDK (bypasses these rules).
+    // -------------------------------------------------------------------------
+    match /teacherWiki/{teacherId}/entries/{entryId} {
+      allow read, write: if request.auth != null && request.auth.uid == teacherId;
+      allow read:        if request.auth != null && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // teacherJournal/{teacherId}/entries/{entryId}  (Phase 2)
+    // Private teacher reflection. STRICTLY owner-only — not readable by admins,
+    // linked adults, or anyone else. Never read by Cloud Functions; excluded from
+    // audit logs and data exports.
+    // -------------------------------------------------------------------------
+    match /teacherJournal/{teacherId}/entries/{entryId} {
+      allow read, write: if request.auth != null && request.auth.uid == teacherId;
+    }
+
+    // -------------------------------------------------------------------------
     // teacherHints/{studentId}  — one doc per student, written by linked teacher
     // -------------------------------------------------------------------------
     match /teacherHints/{studentId} {

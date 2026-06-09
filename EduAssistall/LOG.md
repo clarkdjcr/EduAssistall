@@ -53,3 +53,9 @@
 **Outcome:** Success
 **Summary:** Improved macOS modal sizing across teacher, curriculum, messaging, and test-prep workflows.
 **Details:** Added a reusable macOS sheet sizing helper and applied it to high-use sheets so desktop popups better match the roomy iOS/iPad workflows.
+
+## 2026-06-07T20:27:36 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Clarified signup, invite, onboarding, and legacy link language.
+**Details:** Updated auth, onboarding, dashboard, parent link, profile link, and teacher invite views so open registration is parent-only and student accounts are teacher-invited.

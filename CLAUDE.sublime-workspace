@@ -1,0 +1,255 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/Users/donaldclark/EduappNew/EduAssistApp/EduAssistall/LOG.md",
+		"/Users/donaldclark/EduappNew/EduAssistApp/EduAssistall/EduAssistall/Views/Student/CONTEXT.md",
+		"/Users/donaldclark/EduappNew/EduAssistApp/EduAssistall/EduAssistall/LOG.md",
+		"/Users/donaldclark/Library/Mobile Documents/com~apple~CloudDocs/AIos complete/AIos/Workflow/edu-assist-pitch/LOG.md",
+		"/Users/donaldclark/EduappNew/EduAssistApp/EduAssistall/docs/SHAREPOINT_INTEGRATION.md",
+		"/Users/donaldclark/EduappNew/EduAssistApp/EduAssistall/docs/APP_STORE_SUBMISSION.md",
+		"/Users/donaldclark/Library/Mobile Documents/com~apple~CloudDocs/AIos complete/AIos/CLAUDE.md",
+		"/Users/donaldclark/Library/Mobile Documents/com~apple~CloudDocs/AIos complete/AIos/LOG.md",
+		"/Users/donaldclark/Library/Mobile Documents/com~apple~CloudDocs/AIos complete/AIos/Workflow/review-application/output/review-2026-05-16.md",
+		"/Volumes/SSD/EduAssistApp/EduAssistall/docs/APP_STORE_SUBMISSION.md",
+		"/Volumes/SSD/EduAssistApp/EduAssistall/functions/index.js",
+		"/Volumes/VLDrive/slower2T/from main hard drive/Downloads/openai-agents-python-main/src/agents/run.py",
+		"/Users/donaldclark/Library/Mobile Documents/com~apple~CloudDocs/AIos complete/AIos/Workflow/Work-One_Action.md",
+		"/EduAssestFR",
+		"/Users/donaldclark/Library/Mobile Documents/com~apple~CloudDocs/AIos complete/AIos/Architecture (Flutter + Firebase + event-driven",
+		"/Users/donaldclark/Library/CloudStorage/Dropbox/AI OS/claude.md",
+		"/Users/donaldclark/Downloads/eduassist-b1f49-firebase-adminsdk-fbsvc-22fab5cb97.json",
+		"/Volumes/64SDNEW/Educational App/Educational Assistance App.txt",
+		"/Users/donaldclark/PycharmProjects/PythonProject13/.env",
+		"/Volumes/64SDNEW/Educational App/Educational Assistance App.md",
+		"/Volumes/SSD/iTrucker/iTruckersCoDriver/CLAUDE.md",
+		"/Users/donaldclark/Documents/Trip to Washington.md",
+		"/Volumes/SSD/CEOSim/CEOSimulation/screenshots.md",
+		"/Volumes/SSD/CEOSim/CEOSimulation/CLAUDE.md",
+		"/Volumes/SSD/CEOSim/CEOSimulation/LAUNCH_GUIDE.md",
+		"/Users/donaldclark/.claude/plans/parallel-plotting-tome.md",
+		"/Users/donaldclark/Desktop/PolForge/NIXON_DISEASE.md",
+		"/Users/donaldclark/Desktop/PolForge/ApPolForgeSym/Age_Rating_Questions.md",
+		"/Users/donaldclark/Desktop/PolForge/ApPolForgeSym/Screenshots_Design_Guide.md",
+		"/Users/donaldclark/PycharmProjects/Words/journeys_booklet.py",
+		"/Volumes/SSD/Projects/Business Simulation AI Instructions.txt",
+		"/Volumes/SSD/Projects/edu/CEOSimulation/2025-09-07-im-getting-a-crash-when-trying-to-go-to-game-ce.txt",
+		"/Users/donaldclark/Library/CloudStorage/Dropbox/AI Education.md",
+		"/Volumes/SSD/Projects/edu/CEOSimulation/RESUBMISSION_ACTION_PLAN.md",
+		"/Volumes/SSD/Projects/edu/CEOSimulation/2025-08-23-the-app-store-is-asking-for-the-parameters-for-the.txt",
+		"/Volumes/SSD/Projects/iOS Images/Support CEO-Business-Simulator/CEO-Business-Simulator-Support/GAMEKIT_INTEGRATION.md",
+		"/private/var/folders/_q/m2lk87315t30cjkbc7pzbrxc0000gn/T/CEOSimulation_2025-08-19_21-15-24.986.xcdistributionlogs/IDEDistributionPipeline.log",
+		"/Volumes/SSD/Projects/edu/CEOSimulation/SIX_SCREENSHOT_PLAN.md",
+		"/Users/donaldclark/aProjects1/aCEOBizSim/CLAUDE.md",
+		"/Volumes/SSD/Projects/edu/CEOSimulation/PRIVACY_POLICY.md",
+		"/Volumes/SSD/Projects/edu/CEOSimulation/websiteredit.txt",
+		"/Users/donaldclark/aProjects1/aCEOBizSim/web_app.py",
+		"/Users/donaldclark/aProjects1/aCEOBizSim/2025-08-14-fix-all-errors.txt",
+		"/Users/donaldclark/aProjects1/aCEOBizSim/README.md",
+		"/Users/donaldclark/Downloads/Source+Code-9/flask_app.py",
+		"/Users/donaldclark/Downloads/Source+Code-5/gui.py",
+		"/Users/donaldclark/PycharmProjects/Actual_Reminders_app/.env",
+		"/Users/donaldclark/Downloads/Source+Code-8/reminders.csv",
+		"/Users/donaldclark/Downloads/Source+Code-8/main.py",
+		"/Users/donaldclark/Downloads/Source+Code-4/gui.py",
+		"/Volumes/SSD/NewPythonCode/ReminderProj/main.py",
+		"/Volumes/SSD/NewPythonCode/ReminderProj/.env",
+		"/Volumes/SSD/NewPythonCode/ReminderProj/reminder.csv",
+		"/Users/donaldclark/python_Scripts/AIstart/imagegen/image3.py",
+		"/Volumes/64SDNEW/AI Applications/Music Library/instructions.txt",
+		"/Users/donaldclark/python_Scripts/AIstart/imagegen/imageAIgen.py",
+		"/Users/donaldclark/python_Scripts/AIstart/imagegen/image1.py",
+		"/Users/donaldclark/python_Scripts/AIstart/mainAI.py",
+		"/Users/donaldclark/rubyfiles/ruby.rb",
+		"/Users/donaldclark/rubyfiles/hello.rb",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/Wikipedia-Summary-GUI/summary.py",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/Wikipedia-Summary-GUI/requirements.txt",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/Wikipedia-Summary-GUI/README.md",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/ZIP-Function/transpose.py",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/ZIP-Function/zip_readme.md",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/Address-Book/identifier.sqlite",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/Address-Book/Readme.md",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/Address-Book/addressbook.py",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/FirebaseScripts/credentials.env",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/FirebaseScripts/CredentialsHelper.py",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/FirebaseScripts/firebase_authentications.py",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/FirebaseScripts/firebase_database.py",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/FirebaseScripts/firebase_storage.py",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/FirebaseScripts/requirements.txt",
+		"/Volumes/VLDrive/slower2T/Amazing-Python-Scripts-master/FirebaseScripts/Readme.md",
+		"/Users/donaldclark/Library/Application Support/Sublime Text/Packages/User/firebase.json",
+		"/Volumes/64SDNEW/canvastry1.txt",
+		"/Volumes/SSD/canvastry1",
+		"/Users/donaldclark/Library/CloudStorage/Dropbox/canvastry1",
+		"/Volumes/64SDNEW/Continuation of refinement to the SwiftPicdir appl",
+		"/Volumes/SSD/contacts/Connversion/vcard_to_json.py",
+		"/Volumes/SSD/contacts/Henry Seymour and 375 others.vcf",
+		"/Volumes/SSD/python_learning/lavennv/main.py",
+		"/Users/donaldclark/Desktop/choir_roster/choir_roster/RosterApplication/views.py",
+		"/Users/donaldclark/Desktop/choir_roster/choir_roster/choir_roster/urls.py",
+		"/Users/donaldclark/Desktop/choir_roster/choir_roster/choir_roster/settings.py"
+	],
+	"find":
+	{
+		"height": 24.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"scrollbar_highlights": true,
+		"show_context": true,
+		"use_buffer2": true,
+		"use_gitignore": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 24.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"pinned_build_system": "",
+	"project": "CLAUDE.sublime-project",
+	"replace":
+	{
+		"height": 68.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": true,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 178.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

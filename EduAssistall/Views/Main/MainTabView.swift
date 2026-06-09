@@ -176,6 +176,20 @@ private struct TeacherDocumentsTabView: View {
                     }
                 }
 
+                Section("Teaching Knowledge") {
+                    NavigationLink {
+                        TeacherJournalView(teacherProfile: profile)
+                    } label: {
+                        Label("Teaching Journal", systemImage: "note.text")
+                    }
+
+                    NavigationLink {
+                        TeacherWikiView(teacherProfile: profile)
+                    } label: {
+                        Label("Teaching Wiki", systemImage: "book.fill")
+                    }
+                }
+
                 Section("Pending Reviews") {
                     NavigationLink {
                         PendingRecommendationsView(reviewerProfile: profile, studentIds: studentIds)

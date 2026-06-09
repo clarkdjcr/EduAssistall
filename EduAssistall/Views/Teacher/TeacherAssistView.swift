@@ -29,6 +29,42 @@ struct TeacherAssistView: View {
         .sorted { $0.completionRate < $1.completionRate }
     }
 
+    private var assignedItemCount: Int {
+        summaries.map(\.totalItems).reduce(0, +)
+    }
+
+    private var completedItemCount: Int {
+        summaries.map(\.completedItems).reduce(0, +)
+    }
+
+    private var testAttemptCount: Int {
+        summaries.map(\.testAttemptCount).reduce(0, +)
+    }
+
+    private var flagCount: Int {
+        summaries.map { $0.recentFlags.count }.reduce(0, +)
+    }
+
+    private var activeSessionCount: Int {
+        summaries.filter { $0.activeSession?.isActive == true }.count
+    }
+
+    private var hasRoster: Bool {
+        !summaries.isEmpty
+    }
+
+    private var hasAssignedWork: Bool {
+        assignedItemCount > 0
+    }
+
+    private var hasProgressSignals: Bool {
+        completedItemCount > 0 || summaries.contains { $0.inProgressItems > 0 || $0.minutes > 0 }
+    }
+
+    private var hasEngagementSignals: Bool {
+        hasProgressSignals || flagCount > 0 || activeSessionCount > 0
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -69,6 +105,15 @@ struct TeacherAssistView: View {
                 AssistMetric(value: "\(attentionList.count)", label: "Need Attention", color: attentionList.isEmpty ? .green : .orange)
                 AssistMetric(value: "\(standards.filter { $0.completionRate < 0.7 }.count)", label: "Weak Standards", color: .purple)
             }
+            if !isLoading {
+                AssistFeatureStatus(
+                    title: hasRoster ? "Live roster snapshot" : "Waiting for invited students",
+                    text: hasRoster
+                        ? "Using \(assignedItemCount) assigned items, \(completedItemCount) completions, \(testAttemptCount) test attempts, and \(flagCount) recent flags."
+                        : "Invite or link students first. Once students have assigned work, this becomes the class health summary.",
+                    color: hasRoster ? .blue : .secondary
+                )
+            }
         }
     }
 
@@ -76,9 +121,31 @@ struct TeacherAssistView: View {
         AssistSection(title: "1. Performance Analytics", icon: "chart.line.uptrend.xyaxis") {
             if isLoading {
                 ProgressView().frame(maxWidth: .infinity)
+            } else if !hasRoster {
+                AssistFeatureStatus(
+                    title: "Needs roster data",
+                    text: "This section identifies students who need attention after they are invited and linked to your class.",
+                    color: .secondary
+                )
+            } else if !hasAssignedWork {
+                AssistFeatureStatus(
+                    title: "Needs assigned work",
+                    text: "Assign a learning path so EduAssist can compare completion, test scores, session flags, and recent activity.",
+                    color: .secondary
+                )
             } else if attentionList.isEmpty {
+                AssistFeatureStatus(
+                    title: "Monitoring current work",
+                    text: "No urgent pattern is visible from current completion, assessment, or engagement data.",
+                    color: .green
+                )
                 AssistEmptyLine("No urgent academic or engagement patterns found.")
             } else {
+                AssistFeatureStatus(
+                    title: "Actionable patterns found",
+                    text: "Students are ranked by missing work, low assessment scores, stale activity, and recent companion alerts.",
+                    color: .orange
+                )
                 ForEach(attentionList.prefix(6)) { student in
                     AssistStudentInsightRow(student: student)
                 }
@@ -89,8 +156,19 @@ struct TeacherAssistView: View {
     private var standardsHeatmapSection: some View {
         AssistSection(title: "2. Standards Mastery Heatmap", icon: "square.grid.3x3.fill") {
             if standards.isEmpty {
-                AssistEmptyLine("No standards data yet. Add aligned standards to content items to enable this heatmap.")
+                AssistFeatureStatus(
+                    title: hasAssignedWork ? "Needs standards alignment" : "Needs assigned standards-based work",
+                    text: hasAssignedWork
+                        ? "Add aligned standards to content items so EduAssist can show weak standards by class and student."
+                        : "Assign work with aligned standards. The heatmap will summarize mastery once students complete items.",
+                    color: .secondary
+                )
             } else {
+                AssistFeatureStatus(
+                    title: "Standards summary is live",
+                    text: "Showing the lowest class mastery standards first so reteach planning starts where the evidence is weakest.",
+                    color: .purple
+                )
                 ForEach(standards.prefix(8)) { standard in
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
@@ -115,42 +193,85 @@ struct TeacherAssistView: View {
 
     private var smallGroupsSection: some View {
         AssistSection(title: "3. Small Group Generator", icon: "person.3.sequence.fill") {
-            let groups = makeGroups()
-            ForEach(groups) { group in
-                VStack(alignment: .leading, spacing: 5) {
-                    Label(group.title, systemImage: group.icon)
-                        .font(.subheadline.bold())
-                        .foregroundStyle(group.color)
-                    Text(group.students.isEmpty ? "No students currently match this group." : group.students.map(\.name).joined(separator: ", "))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(group.suggestion)
-                        .font(.caption)
+            if !hasRoster {
+                AssistFeatureStatus(
+                    title: "Needs roster data",
+                    text: "Groups appear after students are invited and linked to your class.",
+                    color: .secondary
+                )
+            } else if !hasAssignedWork {
+                AssistFeatureStatus(
+                    title: "Needs assignment data",
+                    text: "Assign learning paths first. EduAssist will group students for reteach, practice, and enrichment by completion.",
+                    color: .secondary
+                )
+            } else {
+                AssistFeatureStatus(
+                    title: "Groups are generated from current completion",
+                    text: "Students move between groups automatically as they complete assigned work.",
+                    color: .blue
+                )
+                let groups = makeGroups()
+                ForEach(groups) { group in
+                    VStack(alignment: .leading, spacing: 5) {
+                        Label(group.title, systemImage: group.icon)
+                            .font(.subheadline.bold())
+                            .foregroundStyle(group.color)
+                        Text(group.students.isEmpty ? "No students currently match this group." : group.students.map(\.name).joined(separator: ", "))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(group.suggestion)
+                            .font(.caption)
+                    }
+                    .padding(.vertical, 4)
                 }
-                .padding(.vertical, 4)
             }
         }
     }
 
     private var interventionSection: some View {
         AssistSection(title: "4. Intervention Recommendations", icon: "cross.case.fill") {
-            ForEach(attentionList.prefix(5)) { student in
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(student.name).font(.subheadline.bold())
-                    ForEach(student.interventions, id: \.self) { item in
-                        Label(item, systemImage: "arrow.right.circle")
-                            .font(.caption)
+            if !hasRoster || !hasAssignedWork {
+                AssistFeatureStatus(
+                    title: hasRoster ? "Needs student work evidence" : "Needs roster data",
+                    text: hasRoster
+                        ? "Recommendations unlock after students have assignments, progress, assessments, or recent flags."
+                        : "Invite students first. EduAssist will recommend interventions once classroom evidence exists.",
+                    color: .secondary
+                )
+            } else {
+                AssistFeatureStatus(
+                    title: attentionList.isEmpty ? "No intervention needed yet" : "Interventions are evidence-based",
+                    text: attentionList.isEmpty
+                        ? "Current data does not show a student needing extra support."
+                        : "Suggestions are based on completion gaps, stale activity, low test scores, and session flags.",
+                    color: attentionList.isEmpty ? .green : .orange
+                )
+                ForEach(attentionList.prefix(5)) { student in
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(student.name).font(.subheadline.bold())
+                        ForEach(student.interventions, id: \.self) { item in
+                            Label(item, systemImage: "arrow.right.circle")
+                                .font(.caption)
+                        }
                     }
+                    .padding(.vertical, 4)
                 }
-                .padding(.vertical, 4)
+                if attentionList.isEmpty { AssistEmptyLine("No interventions recommended from current data.") }
             }
-            if attentionList.isEmpty { AssistEmptyLine("No interventions recommended from current data.") }
         }
     }
 
     private var assignmentBuilderSection: some View {
         AssistSection(title: "5. Assignment Builder", icon: "list.bullet.clipboard.fill") {
             let weakest = standards.first
+            AssistFeatureStatus(
+                title: weakest == nil ? "Starter template available" : "Differentiated set targets \(weakest?.code ?? "current skill")",
+                text: weakest == nil
+                    ? "Use the structure now; once standards data exists, EduAssist will aim the reteach step at the weakest standard."
+                    : "The set adapts to the weakest standard currently visible in class mastery data.",
+                color: weakest == nil ? .secondary : .green
+            )
             Text("Suggested differentiated set")
                 .font(.subheadline.bold())
             VStack(alignment: .leading, spacing: 6) {
@@ -184,6 +305,13 @@ struct TeacherAssistView: View {
 
     private var exitTicketSection: some View {
         AssistSection(title: "7. Exit Ticket Analyzer", icon: "rectangle.and.pencil.and.ellipsis") {
+            AssistFeatureStatus(
+                title: hasAssignedWork ? "Exit ticket template is ready" : "Template can be used before data is available",
+                text: hasAssignedWork
+                    ? "Use this to collect misconception and confidence signals for tomorrow's grouping."
+                    : "After students submit work, use these prompts to create the first evidence needed for grouping and interventions.",
+                color: .teal
+            )
             Picker("Subject", selection: $selectedExitTicketSubject) {
                 ForEach(["Math", "ELA", "Science", "Social Studies"], id: \.self) { Text($0) }
             }
@@ -200,20 +328,35 @@ struct TeacherAssistView: View {
 
     private var parentUpdatesSection: some View {
         AssistSection(title: "8. Parent Update Generator", icon: "envelope.badge.fill") {
-            ForEach(summaries.prefix(4)) { student in
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(student.name).font(.subheadline.bold())
-                    Text(parentUpdate(for: student))
+            if !hasRoster {
+                AssistFeatureStatus(
+                    title: "Needs linked students",
+                    text: "Parent update drafts appear after students are linked to your class roster.",
+                    color: .secondary
+                )
+            } else {
+                AssistFeatureStatus(
+                    title: hasAssignedWork ? "Drafts use current progress" : "Drafts are roster-only for now",
+                    text: hasAssignedWork
+                        ? "Messages summarize assigned items, completion, and next focus while leaving final wording to the teacher."
+                        : "Assign work to make these drafts include progress and a meaningful next step.",
+                    color: hasAssignedWork ? .blue : .secondary
+                )
+                ForEach(summaries.prefix(4)) { student in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(student.name).font(.subheadline.bold())
+                        Text(parentUpdate(for: student))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button {
+                            copyToClipboard(parentUpdate(for: student))
+                        } label: {
+                            Label("Copy Draft", systemImage: "doc.on.doc")
+                        }
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Button {
-                        copyToClipboard(parentUpdate(for: student))
-                    } label: {
-                        Label("Copy Draft", systemImage: "doc.on.doc")
                     }
-                    .font(.caption)
+                    .padding(.vertical, 4)
                 }
-                .padding(.vertical, 4)
             }
         }
     }
@@ -231,9 +374,30 @@ struct TeacherAssistView: View {
     private var engagementAlertsSection: some View {
         AssistSection(title: "10. Engagement Pattern Alerts", icon: "bell.badge.fill") {
             let alerts = summaries.flatMap(\.engagementAlerts)
-            if alerts.isEmpty {
-                AssistEmptyLine("No engagement alerts from current progress, session, or flag data.")
+            if !hasRoster {
+                AssistFeatureStatus(
+                    title: "Needs roster data",
+                    text: "Alerts appear after students are linked and begin using assigned work or the companion.",
+                    color: .secondary
+                )
+            } else if !hasEngagementSignals {
+                AssistFeatureStatus(
+                    title: "Waiting for engagement signals",
+                    text: "EduAssist needs progress updates, active sessions, or companion flags before it can surface engagement patterns.",
+                    color: .secondary
+                )
+            } else if alerts.isEmpty {
+                AssistFeatureStatus(
+                    title: "No current engagement alerts",
+                    text: "Current progress, session, and flag data does not show a concerning engagement pattern.",
+                    color: .green
+                )
             } else {
+                AssistFeatureStatus(
+                    title: "Engagement alerts are live",
+                    text: "Showing stale progress, quiet active sessions, incomplete work patterns, and recent companion flags.",
+                    color: .orange
+                )
                 ForEach(alerts.prefix(8), id: \.self) { alert in
                     Label(alert, systemImage: "exclamationmark.circle.fill")
                         .font(.caption)
@@ -335,6 +499,7 @@ struct TeacherAssistView: View {
             minutes: minutes,
             lastActivity: lastActivity,
             testAverage: attempts.isEmpty ? nil : Double(attempts.map(\.score).reduce(0, +)) / Double(attempts.count),
+            testAttemptCount: attempts.count,
             recentFlags: flags.filter { !$0.acknowledged },
             activeSession: session,
             standardResults: standards
@@ -350,7 +515,10 @@ struct TeacherAssistView: View {
     }
 
     private func parentUpdate(for student: TeacherAssistStudentSummary) -> String {
-        "\(student.name) has completed \(student.completedItems) of \(student.totalItems) assigned learning items. Current completion is \(Int(student.completionRate * 100))%. Next focus: \(student.primaryNeed)."
+        if student.totalItems == 0 {
+            return "\(student.name) is linked to your class roster. Assign a learning path to start sharing progress updates and next steps."
+        }
+        return "\(student.name) has completed \(student.completedItems) of \(student.totalItems) assigned learning items. Current completion is \(Int(student.completionRate * 100))%. Next focus: \(student.primaryNeed)."
     }
 }
 
@@ -364,6 +532,7 @@ private struct TeacherAssistStudentSummary: Identifiable {
     let minutes: Int
     let lastActivity: Date?
     let testAverage: Double?
+    let testAttemptCount: Int
     let recentFlags: [SessionFlag]
     let activeSession: ActiveSession?
     let standardResults: [StandardResult]
@@ -388,6 +557,7 @@ private struct TeacherAssistStudentSummary: Identifiable {
         return Date().timeIntervalSince(lastActivity) > 7 * 24 * 60 * 60
     }
     var primaryNeed: String {
+        if totalItems == 0 { return "begin the first assigned learning path" }
         if !recentFlags.isEmpty { return "review recent companion alerts" }
         if let testAverage, testAverage < 70 { return "reteach before the next assessment" }
         if completionRate < 0.5 { return "complete missing learning path items" }
@@ -500,6 +670,30 @@ private struct AssistStudentInsightRow: View {
             }
             Spacer()
         }
+    }
+}
+
+private struct AssistFeatureStatus: View {
+    let title: String
+    let text: String
+    let color: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "info.circle.fill")
+                .foregroundStyle(color)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.caption.bold())
+                Text(text)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }
 
