@@ -331,7 +331,7 @@ struct PlaceholderView: View {
 
 // MARK: - Profile & Settings
 
-private struct ProfileSettingsView: View {
+struct ProfileSettingsView: View {
     @Environment(AuthViewModel.self) private var authVM
 
     var body: some View {

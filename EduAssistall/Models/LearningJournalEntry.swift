@@ -126,7 +126,7 @@ struct LearningJournalEntry: Identifiable, Codable {
         }
         if let array = payload as? [Any] {
             return array
-                .map(summaryText(from:))
+                .map { Self.summaryText(from: $0) }
                 .filter { !$0.isEmpty }
                 .joined(separator: "\n")
         }
@@ -155,7 +155,7 @@ struct LearningJournalEntry: Identifiable, Codable {
 
     private static func topicTexts(from payload: Any) -> [String] {
         if let array = payload as? [Any] {
-            return array.flatMap(topicTexts(from:))
+            return array.flatMap { Self.topicTexts(from: $0) }
         }
         guard let object = payload as? [String: Any] else { return [] }
 
