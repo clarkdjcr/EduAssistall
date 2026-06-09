@@ -130,6 +130,18 @@ final class FirestoreService {
         try await db.collection("studentAdultLinks").document(linkId).delete()
     }
 
+    /// Returns all teacher accounts that share the given districtId.
+    /// Requires a composite Firestore index on (districtId ASC, role ASC) — the
+    /// Firebase console will prompt to create it on first use if it doesn't exist.
+    func fetchTeachers(districtId: String) async throws -> [UserProfile] {
+        let snap = try await db.collection("users")
+            .whereField("districtId", isEqualTo: districtId)
+            .whereField("role", isEqualTo: UserRole.teacher.rawValue)
+            .getDocuments()
+        return snap.documents.compactMap { try? $0.data(as: UserProfile.self) }
+            .sorted { $0.displayName < $1.displayName }
+    }
+
     /// Looks up a teacher account by email — used by the transfer flow.
     func fetchTeacherByEmail(_ email: String) async throws -> UserProfile? {
         let snap = try await db.collection("users")

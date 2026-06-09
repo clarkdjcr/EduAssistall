@@ -15,7 +15,7 @@ struct MainTabView: View {
             case .parent:
                 ParentTabView(profile: profile)
             case .admin:
-                TeacherTabView(profile: profile)
+                AdminTabView(profile: profile)
             }
 
             if !connectivity.isOnline {
@@ -519,14 +519,14 @@ private struct LinkChildSettingsView: View {
                 TextField("Child's email address", text: $studentEmail)
                     .emailInput()
             } footer: {
-                Text("Your child will see the request in their account and must accept it.")
+                Text("EduAssist will link only to an existing student account. Ask your child's teacher if the student has not been invited yet.")
             }
 
             if let result {
                 Section {
                     switch result {
                     case .success(let name):
-                        Label("Request sent to \(name). They'll see it in their account.",
+                        Label("Linked to \(name). They now appear on your dashboard.",
                               systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                     case .failure(let msg):
@@ -542,7 +542,7 @@ private struct LinkChildSettingsView: View {
                 } label: {
                     HStack {
                         Spacer()
-                        if isLinking { ProgressView() } else { Text("Send Link Request").fontWeight(.semibold) }
+                        if isLinking { ProgressView() } else { Text("Link Child Account").fontWeight(.semibold) }
                         Spacer()
                     }
                 }

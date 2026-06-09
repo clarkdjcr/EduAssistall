@@ -115,18 +115,20 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["confirmed"])
           && request.time < resource.data.expiresAt;
 
-      // End-of-year class archival: the owning adult marks their own links archived.
-      // Only the three archival fields may change; archived must be set to true (no un-archiving).
+      // End-of-year class archival: the owning adult (or a school admin) marks
+      // links archived. Only the three archival fields may change; archived must
+      // be set to true (no un-archiving from the client).
       allow update: if request.auth != null
-          && request.auth.uid == resource.data.adultId
+          && (request.auth.uid == resource.data.adultId || isAdmin())
           && request.resource.data.diff(resource.data).affectedKeys()
                .hasOnly(["archived", "schoolYear", "archivedAt"])
           && request.resource.data.archived == true;
 
-      // Either party may remove the relationship.
+      // Either party or a school admin may remove the relationship.
       allow delete: if request.auth != null && (
           request.auth.uid == resource.data.adultId ||
-          request.auth.uid == resource.data.studentId
+          request.auth.uid == resource.data.studentId ||
+          isAdmin()
       );
     }
 
