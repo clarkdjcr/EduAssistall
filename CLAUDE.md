@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Xcode source root:** `EduAssistall/EduAssistall/`
 **Firebase Functions:** `EduAssistall/functions/` (Node.js)
 **Firebase project ID:** `eduassist-b1f49`
-**Test target:** iPad (primary) — the Mac build compiles but Firebase network calls fail in the macOS sandbox.
+**Test target:** iPad (primary). Mac is a supported build target: `EduAssistall-macOS.entitlements` grants `network.client` for Firebase, Firebase Messaging is disabled on non-iOS, and Google Sign-In is guarded to `os(iOS)` (GIDSignIn requires UIViewController). Build and run the Mac scheme in Xcode to verify.
 
 ## Build & Deploy Commands
 

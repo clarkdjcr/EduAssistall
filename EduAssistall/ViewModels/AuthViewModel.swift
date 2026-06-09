@@ -5,6 +5,20 @@ import FirebaseFirestore
 enum AuthError: Error {
     case missingClientID
     case missingToken
+    case unsupportedSelfRegistration
+}
+
+extension AuthError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .missingClientID:
+            return "Google Sign-In is not configured."
+        case .missingToken:
+            return "The sign-in response was missing a required token."
+        case .unsupportedSelfRegistration:
+            return "Students and teachers must be invited or provisioned before signing in."
+        }
+    }
 }
 
 enum AuthState: Equatable {
@@ -70,14 +84,14 @@ final class AuthViewModel {
                 }
                 Task { try? await FirestoreService.shared.updateTimezone(uid: user.uid) }
             } else {
-                NSLog("[Auth] no profile found, creating one…")
+                NSLog("[Auth] no profile found, creating parent profile…")
                 let providerIDs = user.providerData.map { $0.providerID }
                 let consentGiven = providerIDs.contains("microsoft.com") || providerIDs.contains("google.com")
                 let profile = UserProfile(
                     id: user.uid,
                     email: (user.email ?? "").lowercased(),
                     displayName: user.displayName ?? user.email?.components(separatedBy: "@").first ?? "User",
-                    role: .student,
+                    role: .parent,
                     privacyConsentGiven: consentGiven
                 )
                 try await FirestoreService.shared.saveUserProfile(profile)
@@ -121,6 +135,10 @@ final class AuthViewModel {
 
     func signUp(email: String, password: String, displayName: String, role: UserRole,
                 privacyConsentGiven: Bool = false, birthYear: Int? = nil, parentEmail: String? = nil) async throws {
+        guard role == .parent else {
+            throw AuthError.unsupportedSelfRegistration
+        }
+
         let normalizedEmail = email.trimmingCharacters(in: .whitespaces).lowercased()
         let result = try await Auth.auth().createUser(withEmail: normalizedEmail, password: password)
         let profile = UserProfile(
@@ -148,7 +166,8 @@ final class AuthViewModel {
     // MARK: - Google Sign-In
     // Requires GoogleSignIn-iOS SPM package: https://github.com/google/GoogleSignIn-iOS
     // Add URL scheme (REVERSED_CLIENT_ID from GoogleService-Info.plist) to Info.plist
-    #if canImport(GoogleSignIn)
+    // iOS only: GIDSignIn.signIn/addScopes require UIViewController; macOS uses NSWindow (not yet wired).
+    #if canImport(GoogleSignIn) && os(iOS)
     func signInWithGoogle(presenting viewController: UIViewController) async throws {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             throw AuthError.missingClientID
@@ -168,7 +187,7 @@ final class AuthViewModel {
                 id: authResult.user.uid,
                 email: authResult.user.email ?? "",
                 displayName: authResult.user.displayName ?? "User",
-                role: .student,
+                role: .parent,
                 privacyConsentGiven: true
             )
             try await FirestoreService.shared.saveUserProfile(profile)
@@ -267,4 +286,3 @@ final class AuthViewModel {
         }
     }
 }
-

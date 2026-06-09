@@ -68,8 +68,8 @@ struct TeacherSetupView: View {
                         }
                     }
 
-                    // Google Classroom roster import
-                    #if canImport(GoogleSignIn)
+                    // Google Classroom roster import (iOS only — UIViewController required)
+                    #if canImport(GoogleSignIn) && os(iOS)
                     classroomImportSection
                     #endif
                 }
@@ -97,7 +97,7 @@ struct TeacherSetupView: View {
 
     // MARK: - Classroom Import Section
 
-    #if canImport(GoogleSignIn)
+    #if canImport(GoogleSignIn) && os(iOS)
     @Environment(AuthViewModel.self) private var authVM
 
     @ViewBuilder
