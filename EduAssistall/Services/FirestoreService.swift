@@ -73,7 +73,8 @@ final class FirestoreService {
             .getDocuments()
         return snapshot.documents.compactMap { doc in
             do {
-                return try doc.data(as: StudentAdultLink.self)
+                let link = try doc.data(as: StudentAdultLink.self)
+                return link.archived ? nil : link   // hide year-end archived links from active roster
             } catch {
                 NSLog("[Firestore] skipping malformed studentAdultLink %@: %@", doc.documentID, "\(error)")
                 return nil
@@ -81,7 +82,37 @@ final class FirestoreService {
         }
     }
 
-    /// Returns unconfirmed link requests directed at this student.
+    /// Marks every confirmed teacher→student link as archived for the given school year.
+    /// Student learning data is untouched; the teacher's active roster will appear empty.
+    func archiveClass(teacherId: String, schoolYear: String, links: [StudentAdultLink]) async throws {
+        let confirmed = links.filter { $0.confirmed && !$0.archived }
+        guard !confirmed.isEmpty else { return }
+        // Firestore batches cap at 500 writes; class rosters are far smaller in practice.
+        let batch = db.batch()
+        for link in confirmed {
+            let ref = db.collection("studentAdultLinks").document(link.id)
+            batch.updateData([
+                "archived":   true,
+                "schoolYear": schoolYear,
+                "archivedAt": FieldValue.serverTimestamp()
+            ], forDocument: ref)
+        }
+        try await batch.commit()
+    }
+
+    /// Returns all archived links for a teacher, sorted newest school year first.
+    func fetchArchivedLinks(teacherId: String) async throws -> [StudentAdultLink] {
+        let snapshot = try await db.collection("studentAdultLinks")
+            .whereField("adultId", isEqualTo: teacherId)
+            .whereField("archived", isEqualTo: true)
+            .getDocuments()
+        return snapshot.documents.compactMap { doc in
+            try? doc.data(as: StudentAdultLink.self)
+        }
+        .sorted { ($0.archivedAt ?? .distantPast) > ($1.archivedAt ?? .distantPast) }
+    }
+
+    /// Returns legacy unconfirmed link records directed at this student.
     func fetchPendingLinks(studentId: String) async throws -> [StudentAdultLink] {
         let snapshot = try await db.collection("studentAdultLinks")
             .whereField("studentId", isEqualTo: studentId)

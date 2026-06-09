@@ -13,13 +13,18 @@ struct StudentAdultLink: Codable, Identifiable, Hashable {
     var studentEmail: String
     var confirmed: Bool
     var createdAt: Date
-    // nil for permanent teacher links; set to 7 days for parent-initiated links.
+    // nil for normal confirmed teacher links; retained for legacy pending links.
     // Cloud Function-created teacher links omit this field; making it optional
     // prevents a decode failure that would otherwise empty the teacher roster.
     var expiresAt: Date?
 
-    // Custom decoder so that documents created without `expiresAt` (e.g. by
-    // bulkInviteStudents Cloud Function) decode cleanly instead of throwing.
+    // End-of-year archival fields. Absent on active links.
+    var archived: Bool
+    var schoolYear: String?   // e.g. "2025-2026"
+    var archivedAt: Date?
+
+    // Custom decoder so that documents created without optional fields decode
+    // cleanly instead of throwing.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id          = try c.decode(String.self,   forKey: .id)
@@ -30,6 +35,9 @@ struct StudentAdultLink: Codable, Identifiable, Hashable {
         confirmed   = try c.decodeIfPresent(Bool.self, forKey: .confirmed) ?? false
         createdAt   = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         expiresAt   = try c.decodeIfPresent(Date.self, forKey: .expiresAt)
+        archived    = try c.decodeIfPresent(Bool.self, forKey: .archived) ?? false
+        schoolYear  = try c.decodeIfPresent(String.self, forKey: .schoolYear)
+        archivedAt  = try c.decodeIfPresent(Date.self, forKey: .archivedAt)
     }
 
     init(studentId: String, adultId: String, adultRole: AdultRole, studentEmail: String) {
@@ -38,13 +46,13 @@ struct StudentAdultLink: Codable, Identifiable, Hashable {
         self.adultId = adultId
         self.adultRole = adultRole
         self.studentEmail = studentEmail
-        // Both parent and teacher links are auto-confirmed — these are authoritative
-        // school/family relationships that don't require the student to approve.
+        // Parent links are created only after server-side student lookup; teacher
+        // links come from teacher invitation/import flows. Both are confirmed.
         self.confirmed = true
         self.createdAt = Date()
-        // Only parent-initiated links carry an expiry. Teacher links are permanent.
-        self.expiresAt = adultRole == .parent
-            ? Calendar.current.date(byAdding: .day, value: 7, to: Date())
-            : nil
+        self.expiresAt = nil
+        self.archived = false
+        self.schoolYear = nil
+        self.archivedAt = nil
     }
 }

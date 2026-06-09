@@ -37,7 +37,8 @@ service cloud.firestore {
 
     // -------------------------------------------------------------------------
     // users/{uid}
-    // Owner read/write always allowed. Linked adults can read (for dashboard display).
+    // Owner read/write allowed except for role changes. Linked adults can read
+    // for dashboard display.
     // Admins can read all profiles.
     // Role changes require admin — enforced by checking that a non-admin cannot
     // change the role field.
@@ -45,18 +46,19 @@ service cloud.firestore {
     match /users/{uid} {
       // Users can always read their own profile (including before it exists).
       allow read: if request.auth != null && request.auth.uid == uid;
-      // Self-writes allowed unless changing the role field (requires admin).
-      // Exception: role may be changed freely before onboarding is complete so
-      // SSO users can select their correct role in RoleConfirmationView.
-      // request.resource.data is only valid on writes, so keep this separate from reads.
+      // Self-writes allowed unless changing the role field. Roles are assigned
+      // by registration, teacher invite/import, SSO provisioning, or admin setup.
       allow write: if request.auth != null && request.auth.uid == uid
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["role"])
-              || isAdmin()
-              || resource.data.onboardingComplete == false);
+              || isAdmin());
       // Linked adults and admins can read for dashboard display.
       allow read: if request.auth != null && (isLinked(uid) || isAdmin());
-      // First-time profile creation: allow if uid matches.
-      allow create: if request.auth != null && request.auth.uid == uid;
+      // First-time self-profile creation is parent-only. Student accounts are
+      // created through teacher invite/import flows, and teacher/admin roles are
+      // provisioned outside open client registration.
+      allow create: if request.auth != null
+          && request.auth.uid == uid
+          && request.resource.data.role == "parent";
     }
 
     // -------------------------------------------------------------------------
@@ -72,13 +74,12 @@ service cloud.firestore {
     // -------------------------------------------------------------------------
     // studentAdultLinks/{linkId}  (linkId == "{adultId}_{studentId}")
     //
-    // COPPA mutual-verification contract:
-    //   CREATE  — adult initiates; link starts confirmed=false, expiresAt set by client.
-    //   UPDATE  — ONLY the student may confirm. The parent/teacher cannot flip
-    //             confirmed=true themselves. Only the `confirmed` field may change,
-    //             and it must move to true (decline = delete, not update).
-    //             The request must arrive before expiresAt.
-    //   DELETE  — either party withdraws/declines at any time.
+    // Adult/student relationship contract:
+    //   CREATE  — adult initiates a teacher or parent link. Current app flows
+    //             create confirmed links after teacher invite or parent lookup.
+    //   UPDATE  — retained for legacy pending links only: the named student may
+    //             confirm an unexpired pending link by changing `confirmed` only.
+    //   DELETE  — either party withdraws/removes the link.
     // -------------------------------------------------------------------------
     match /studentAdultLinks/{linkId} {
       allow read: if request.auth != null && (
@@ -88,12 +89,12 @@ service cloud.firestore {
           isAdmin()
       );
 
-      // Adult creates the link. Both parent and teacher links are pre-confirmed —
-      // these are authoritative relationships that don't require student sign-off.
+      // Adult creates the link. Current parent and teacher flows create
+      // confirmed links after server-side lookup/invite checks.
       allow create: if request.auth != null
           && request.auth.uid == request.resource.data.adultId;
 
-      // ONLY the student can confirm. Constraints:
+      // Legacy pending-link confirmation. Constraints:
       //   • caller must be the named student
       //   • only the `confirmed` field changes (no other data mutated)
       //   • confirmed must be set to true (not false — decline uses delete)
@@ -104,7 +105,15 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["confirmed"])
           && request.time < resource.data.expiresAt;
 
-      // Either party may remove: adult withdraws the request, student declines it.
+      // End-of-year class archival: the owning adult marks their own links archived.
+      // Only the three archival fields may change; archived must be set to true (no un-archiving).
+      allow update: if request.auth != null
+          && request.auth.uid == resource.data.adultId
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(["archived", "schoolYear", "archivedAt"])
+          && request.resource.data.archived == true;
+
+      // Either party may remove the relationship.
       allow delete: if request.auth != null && (
           request.auth.uid == resource.data.adultId ||
           request.auth.uid == resource.data.studentId

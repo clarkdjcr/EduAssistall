@@ -11,6 +11,8 @@ struct RosterManagementView: View {
     @State private var transferTarget: StudentAdultLink?
     @State private var removeTarget: StudentAdultLink?
     @State private var showRemoveConfirm = false
+    @State private var showEndYearSheet = false
+    @State private var showPastClasses = false
 
     private var confirmed: [StudentAdultLink] { links.filter(\.confirmed) }
     private var pending:   [StudentAdultLink] { links.filter { !$0.confirmed } }
@@ -50,9 +52,9 @@ struct RosterManagementView: View {
 
                 if links.isEmpty {
                     ContentUnavailableView(
-                        "No Students Yet",
+                        "No Active Students",
                         systemImage: "person.badge.plus",
-                        description: Text("Import a spreadsheet or add students individually.")
+                        description: Text("Import a spreadsheet or add students individually. Past classes are available in the toolbar.")
                     )
                     .listRowBackground(Color.clear)
                 }
@@ -74,10 +76,36 @@ struct RosterManagementView: View {
                     Label("Import", systemImage: "arrow.down.doc")
                 }
             }
+            ToolbarItem(placement: .secondaryAction) {
+                Button {
+                    showPastClasses = true
+                } label: {
+                    Label("Past Classes", systemImage: "archivebox")
+                }
+            }
+            ToolbarItem(placement: .secondaryAction) {
+                Button(role: .destructive) {
+                    showEndYearSheet = true
+                } label: {
+                    Label("End School Year…", systemImage: "calendar.badge.checkmark")
+                }
+                .disabled(confirmed.isEmpty)
+            }
         }
         .sheet(isPresented: $showImport, onDismiss: { Task { await load() } }) {
             BulkImportView(teacherProfile: teacherProfile)
                 .macSheetFrame(width: 820, height: 680)
+        }
+        .sheet(isPresented: $showEndYearSheet) {
+            EndSchoolYearSheet(teacherProfile: teacherProfile, activeLinks: confirmed) {
+                links.removeAll()
+                studentNames.removeAll()
+                parentLinks.removeAll()
+            }
+            .macSheetFrame(width: 560, height: 420)
+        }
+        .navigationDestination(isPresented: $showPastClasses) {
+            PastClassesView(teacherProfile: teacherProfile)
         }
         .sheet(item: $transferTarget) { link in
             TransferStudentView(
