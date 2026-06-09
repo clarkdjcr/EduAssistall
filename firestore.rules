@@ -91,8 +91,18 @@ service cloud.firestore {
 
       // Adult creates the link. Current parent and teacher flows create
       // confirmed links after server-side lookup/invite checks.
-      allow create: if request.auth != null
-          && request.auth.uid == request.resource.data.adultId;
+      // Transfer case: a currently-linked teacher may also create a new confirmed
+      // teacher link for one of their students (individual or bulk transfer).
+      // Constraints: caller must be a confirmed linked teacher for that student,
+      // and the new link must be a confirmed teacher link (no forging parent links).
+      allow create: if request.auth != null && (
+          request.auth.uid == request.resource.data.adultId
+          || (
+              isLinkedTeacher(request.resource.data.studentId)
+              && request.resource.data.adultRole == "teacher"
+              && request.resource.data.confirmed == true
+          )
+      );
 
       // Legacy pending-link confirmation. Constraints:
       //   • caller must be the named student

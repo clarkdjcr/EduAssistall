@@ -13,6 +13,7 @@ struct RosterManagementView: View {
     @State private var showRemoveConfirm = false
     @State private var showEndYearSheet = false
     @State private var showPastClasses = false
+    @State private var showTransferClass = false
 
     private var confirmed: [StudentAdultLink] { links.filter(\.confirmed) }
     private var pending:   [StudentAdultLink] { links.filter { !$0.confirmed } }
@@ -84,6 +85,14 @@ struct RosterManagementView: View {
                 }
             }
             ToolbarItem(placement: .secondaryAction) {
+                Button {
+                    showTransferClass = true
+                } label: {
+                    Label("Transfer Entire Class…", systemImage: "arrow.triangle.2.circlepath.circle")
+                }
+                .disabled(confirmed.isEmpty)
+            }
+            ToolbarItem(placement: .secondaryAction) {
                 Button(role: .destructive) {
                     showEndYearSheet = true
                 } label: {
@@ -106,6 +115,14 @@ struct RosterManagementView: View {
         }
         .navigationDestination(isPresented: $showPastClasses) {
             PastClassesView(teacherProfile: teacherProfile)
+        }
+        .sheet(isPresented: $showTransferClass) {
+            TransferClassView(teacherProfile: teacherProfile, activeLinks: confirmed) {
+                links.removeAll()
+                studentNames.removeAll()
+                parentLinks.removeAll()
+            }
+            .macSheetFrame(width: 620, height: 520)
         }
         .sheet(item: $transferTarget) { link in
             TransferStudentView(

@@ -159,6 +159,34 @@ final class FirestoreService {
         try await batch.commit()
     }
 
+    /// Moves every confirmed link in `links` from the current teacher to `newTeacherId`.
+    /// Uses chunked batches (200 students / 400 writes per batch) to stay within
+    /// Firestore's 500-write limit. Each chunk is committed independently.
+    func transferClass(links: [StudentAdultLink], newTeacherId: String) async throws {
+        let confirmed = links.filter { $0.confirmed && !$0.archived }
+        guard !confirmed.isEmpty else { return }
+        let chunks = stride(from: 0, to: confirmed.count, by: 200).map {
+            Array(confirmed[$0 ..< min($0 + 200, confirmed.count)])
+        }
+        for chunk in chunks {
+            let batch = db.batch()
+            for link in chunk {
+                batch.deleteDocument(db.collection("studentAdultLinks").document(link.id))
+                let newLinkId = "\(newTeacherId)_\(link.studentId)"
+                batch.setData([
+                    "id": newLinkId,
+                    "adultId": newTeacherId,
+                    "studentId": link.studentId,
+                    "adultRole": AdultRole.teacher.rawValue,
+                    "studentEmail": link.studentEmail,
+                    "confirmed": true,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], forDocument: db.collection("studentAdultLinks").document(newLinkId), merge: true)
+            }
+            try await batch.commit()
+        }
+    }
+
     // MARK: - ContentItems
 
     func saveContentItem(_ item: ContentItem) async throws {
