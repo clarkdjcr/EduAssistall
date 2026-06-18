@@ -154,6 +154,12 @@ private struct TeacherDocumentsTabView: View {
                 }
 
                 Section("Assignments") {
+                    NavigationLink {
+                        DailyLessonPlansView(teacherProfile: profile)
+                    } label: {
+                        Label("Daily Lesson Plans", systemImage: "list.bullet.clipboard.fill")
+                    }
+
                     Button { showAssignWeek = true } label: {
                         Label("Assign to Students", systemImage: "calendar.badge.plus")
                             .foregroundStyle(.primary)

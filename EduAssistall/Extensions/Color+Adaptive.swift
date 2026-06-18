@@ -1,39 +1,44 @@
 import SwiftUI
 
+// Centralized adaptive background colors. UIKit's system background colors
+// (and their grouped variants) are iOS/visionOS-only, so we map to AppKit's
+// nearest equivalents on macOS. Keep all platform conditionals here — never
+// inline `#if os(iOS)` in views (see CLAUDE.md).
 extension Color {
-    /// Primary background (white / near-white)
+
+    /// Primary window/content background.
     static var appBackground: Color {
         #if os(macOS)
-        Color(NSColor.windowBackgroundColor)
+        Color(nsColor: .windowBackgroundColor)
         #else
-        Color(UIColor.systemBackground)
+        Color(uiColor: .systemBackground)
         #endif
     }
 
-    /// Secondary background (light gray cards / input fields)
+    /// Secondary background layered on top of `appBackground`.
     static var appSecondaryBackground: Color {
         #if os(macOS)
-        Color(NSColor.controlBackgroundColor)
+        Color(nsColor: .underPageBackgroundColor)
         #else
-        Color(UIColor.secondarySystemBackground)
+        Color(uiColor: .secondarySystemBackground)
         #endif
     }
 
-    /// Grouped list background
+    /// Background for grouped content (e.g. the base behind grouped lists).
     static var appGroupedBackground: Color {
         #if os(macOS)
-        Color(NSColor.controlBackgroundColor)
+        Color(nsColor: .windowBackgroundColor)
         #else
-        Color(UIColor.systemGroupedBackground)
+        Color(uiColor: .systemGroupedBackground)
         #endif
     }
 
-    /// Secondary grouped list background (card surfaces inside grouped lists)
+    /// Secondary grouped background for cards/rows within grouped content.
     static var appSecondaryGroupedBackground: Color {
         #if os(macOS)
-        Color(NSColor.textBackgroundColor)
+        Color(nsColor: .controlBackgroundColor)
         #else
-        Color(UIColor.secondarySystemGroupedBackground)
+        Color(uiColor: .secondarySystemGroupedBackground)
         #endif
     }
 }

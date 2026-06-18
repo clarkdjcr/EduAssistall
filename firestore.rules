@@ -543,6 +543,23 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // -------------------------------------------------------------------------
+    // dailyLessonPlans/{planId}
+    // Seeded from NC ELA standards. Teachers and admins browse, edit suggested
+    // content, and approve plans before assigning them to students.
+    // Students never read this collection directly — they receive content
+    // through learningPaths / contentItems created by assignLessonPlan.
+    // -------------------------------------------------------------------------
+    match /dailyLessonPlans/{planId} {
+      allow read:          if request.auth != null && isEducator();
+      allow update:        if request.auth != null && isEducator()
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(["editedPrimaryText", "editedAlternativeText",
+                         "editedActivities", "editedStudentPrompt",
+                         "teacherNotes", "status", "updatedAt"]);
+      allow create, delete: if false;
+    }
+
     // NOTE: no catch-all. Firestore denies by default — any collection not
     // listed above is implicitly inaccessible to all clients.
 
