@@ -29,6 +29,12 @@ struct GenerateLessonPlanView: View {
     @State private var teacherNotes = ""
     @State private var appliedWikiCount = 0
 
+    @State private var bookSuggestions: [BookSuggestion] = []
+    @State private var selectedBookTitle: String?
+    @State private var customBookTitle = ""
+    @State private var isLoadingBookSuggestions = false
+    @State private var bookSuggestionMessage: String?
+
     @State private var curriculumDocs: [CurriculumDocEntry] = []
     @State private var selectedCurriculumId: String?
     @State private var linkedStudents: [StudentAdultLink] = []
@@ -58,6 +64,9 @@ struct GenerateLessonPlanView: View {
                 VStack(spacing: 16) {
                     workspaceProgressSection
                     lessonDetailsSection
+                    if subject == "ELA" {
+                        bookChoiceSection
+                    }
                     teachingWindowSection
                     amplifyingSourcesSection
                     generateSection
@@ -107,9 +116,11 @@ struct GenerateLessonPlanView: View {
             }
             .onChange(of: subject) { _, _ in
                 resetVendorResourcesAfterLessonChange()
+                resetBookSuggestionsAfterLessonChange()
             }
             .onChange(of: grade) { _, _ in
                 resetVendorResourcesAfterLessonChange()
+                resetBookSuggestionsAfterLessonChange()
             }
             .task { await loadWorkspaceData() }
         }
@@ -169,6 +180,63 @@ struct GenerateLessonPlanView: View {
                     .nameInput()
             }
             Stepper("\(durationMinutes) minutes per class period", value: $durationMinutes, in: 30...90, step: 5)
+        }
+    }
+
+    private var bookChoiceSection: some View {
+        LessonWorkspaceSection(
+            "Primary Text",
+            footer: "Optional — pick a book or supply your own. If you skip this, the AI chooses the text itself, just like today."
+        ) {
+            Button(action: suggestBooks) {
+                if isLoadingBookSuggestions {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text("Suggesting Books...")
+                    }
+                    .frame(maxWidth: .infinity)
+                } else {
+                    Label("Suggest Books for This Topic", systemImage: "book.fill")
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(.bordered)
+            .disabled(isLoadingBookSuggestions || topic.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+            if !bookSuggestions.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Suggested Books")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    ForEach(bookSuggestions) { book in
+                        BookSuggestionToggle(
+                            book: book,
+                            isSelected: selectedBookTitle == book.title
+                        ) {
+                            selectedBookTitle = book.title
+                            customBookTitle = ""
+                        }
+                    }
+                }
+            }
+
+            if let bookSuggestionMessage {
+                Label(bookSuggestionMessage, systemImage: "info.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            LessonField("Or type your own book/material") {
+                TextField("e.g. Charlotte's Web by E.B. White", text: $customBookTitle)
+                    .nameInput()
+                    .onChange(of: customBookTitle) { _, newValue in
+                        if !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            selectedBookTitle = nil
+                        }
+                    }
+            }
         }
     }
 
@@ -479,8 +547,22 @@ struct GenerateLessonPlanView: View {
         vendorResources.filter { selectedVendorResourceIds.contains($0.id) }
     }
 
+    private var chosenBookContext: String? {
+        let custom = customBookTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !custom.isEmpty {
+            return "Primary text/book for this lesson (teacher-supplied): \(custom)"
+        }
+        guard let selectedBookTitle,
+              let book = bookSuggestions.first(where: { $0.title == selectedBookTitle }) else { return nil }
+        let authorPart = book.author.isEmpty ? "" : " by \(book.author)"
+        return "Primary text/book for this lesson: \"\(book.title)\"\(authorPart) — \(book.rationale)"
+    }
+
     private var resourceContextForGeneration: String {
         var parts: [String] = []
+        if let chosenBookContext {
+            parts.append(chosenBookContext)
+        }
         if !selectedVendorResources.isEmpty {
             let selected = selectedVendorResources.map { item in
                 "- \(providerDisplayName(item.source)): \(item.title)\n  \(item.description)\n  \(item.url)"
@@ -620,6 +702,27 @@ struct GenerateLessonPlanView: View {
         }
     }
 
+    private func suggestBooks() {
+        bookSuggestionMessage = nil
+        isLoadingBookSuggestions = true
+        Task {
+            defer { isLoadingBookSuggestions = false }
+            do {
+                let items = try await CloudFunctionService.shared.suggestLessonMaterials(
+                    grade: grade,
+                    topic: topic.trimmingCharacters(in: .whitespacesAndNewlines),
+                    standard: standard.trimmingCharacters(in: .whitespacesAndNewlines)
+                )
+                bookSuggestions = items
+                selectedBookTitle = items.first?.title
+                customBookTitle = ""
+                bookSuggestionMessage = items.isEmpty ? "No book suggestions were returned for this topic." : nil
+            } catch {
+                bookSuggestionMessage = "Could not load book suggestions: \(error.localizedDescription)"
+            }
+        }
+    }
+
     private func assign() {
         errorMessage = nil
         assignmentMessage = nil
@@ -732,6 +835,13 @@ struct GenerateLessonPlanView: View {
         vendorResources = []
         selectedVendorResourceIds.removeAll()
         vendorResourceMessage = "Resource results were cleared because the lesson subject or grade changed."
+    }
+
+    private func resetBookSuggestionsAfterLessonChange() {
+        bookSuggestions = []
+        selectedBookTitle = nil
+        customBookTitle = ""
+        bookSuggestionMessage = nil
     }
 
     private func providerDisplayName(_ source: String) -> String {
@@ -876,6 +986,43 @@ private struct StudentAssignmentToggle: View {
             }
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct BookSuggestionToggle: View {
+    let book: BookSuggestion
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? .blue : .secondary)
+                    .padding(.top, 2)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(book.author.isEmpty ? book.title : "\(book.title) — \(book.author)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if !book.rationale.isEmpty {
+                        Text(book.rationale)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.appSecondaryBackground, in: RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Select \(book.title)")
     }
 }
 

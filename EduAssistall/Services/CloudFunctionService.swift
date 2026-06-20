@@ -92,6 +92,15 @@ struct CatalogItem: Identifiable {
     }
 }
 
+// MARK: - Book Suggestion (returned by suggestLessonMaterials Cloud Function)
+
+struct BookSuggestion: Identifiable {
+    let id = UUID()
+    let title: String
+    let author: String
+    let rationale: String
+}
+
 // MARK: - Service
 
 final class CloudFunctionService {
@@ -347,6 +356,24 @@ final class CloudFunctionService {
         guard let dict = result.data as? [String: Any],
               let rawItems = dict["items"] as? [[String: Any]] else { return [] }
         return rawItems.compactMap { CatalogItem(from: $0, defaultSubject: subject) }
+    }
+
+    /// ELA-only: asks the AI for 2-3 grade-appropriate book/text options for a lesson topic,
+    /// so the teacher can pick one (or supply their own) before the lesson plan is generated.
+    func suggestLessonMaterials(grade: String, topic: String, standard: String) async throws -> [BookSuggestion] {
+        var data: [String: Any] = ["grade": grade, "subject": "ELA", "topic": topic]
+        if !standard.isEmpty { data["standard"] = standard }
+        let result = try await functions.httpsCallable("suggestLessonMaterials").call(data)
+        guard let dict = result.data as? [String: Any],
+              let rawItems = dict["suggestions"] as? [[String: Any]] else { return [] }
+        return rawItems.compactMap { item in
+            guard let title = item["title"] as? String, !title.isEmpty else { return nil }
+            return BookSuggestion(
+                title: title,
+                author: item["author"] as? String ?? "",
+                rationale: item["rationale"] as? String ?? ""
+            )
+        }
     }
 
     func bulkInviteStudents(students: [[String: Any]], teacherName: String) async throws -> ImportResult {
