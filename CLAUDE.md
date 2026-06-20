@@ -93,6 +93,12 @@ All Firestore access goes through `FirestoreService.shared` (`Services/Firestore
 
 **`dailyDigest`** — scheduled (06:00 UTC): sends teacher email summary of student alerts and progress via SendGrid.
 
+### Related Repositories
+
+**[EduAssistDesktopAPI](https://github.com/clarkdjcr/EduAssistDesktopAPI)** — a separate, independently deployed Cloud Function (`desktopApi`, Gen2, Node 24) that exposes a REST/JSON API over the same `eduassist-b1f49` Firestore data, for desktop companion clients (macOS/Windows) that can't embed the Firebase mobile SDK the way this app's SwiftUI target does. It is **not part of this repo's `functions/` codebase** and is not deployed by this repo's `firebase deploy --only functions`.
+
+This matters for deploys: running an unscoped `firebase deploy --only functions` from this repo will see `desktopApi` as "exists live but not in local source" and try to delete it. Always deploy specific functions by name (e.g. `firebase deploy --only functions:curateContent,functions:assignLessonPlan`) rather than a bare `--only functions` sync, unless you intend to prune functions not defined here.
+
 ### Safety & Compliance Pipeline (inside `askCompanion`)
 
 All classifiers run synchronously before Claude is called; latency target < 100 ms each.
