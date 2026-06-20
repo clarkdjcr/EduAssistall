@@ -2135,6 +2135,96 @@ exports.generateLessonPlan = onCall(
   }
 );
 
+// MARK: - Suggest Lesson Materials (ELA book/text choice, ahead of lesson plan generation)
+exports.suggestLessonMaterials = onCall(
+  {
+    secrets: [
+      "ANTHROPIC_API_KEY",
+      "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
+      "SHAREPOINT_SITE_ID", "SHAREPOINT_CURRICULUM_LIST_ID",
+    ],
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Must be signed in.");
+
+    const db = getFirestore();
+    const callerSnap = await db.collection("users").doc(request.auth.uid).get();
+    const callerData = callerSnap.data() || {};
+    if (callerData.role !== "teacher" && callerData.role !== "admin") {
+      throw new HttpsError("permission-denied", "Only teachers and admins may request lesson material suggestions.");
+    }
+
+    const { grade, subject, topic, standard = "" } = request.data || {};
+    if (!grade || !topic) {
+      throw new HttpsError("invalid-argument", "grade and topic are required.");
+    }
+    if (subject !== "ELA") {
+      throw new HttpsError("invalid-argument", "Book suggestions are only available for ELA lessons.");
+    }
+
+    const districtSnapSLM = callerData.districtId
+      ? await db.collection("districtConfig").doc(callerData.districtId).get()
+      : null;
+    const backendSLM = getDocumentBackend(districtSnapSLM?.data());
+    const curriculumItems = await (backendSLM === "firebase"
+      ? fetchFirebaseCurriculumItems(grade, subject, db)
+      : fetchCurriculumItems(grade, subject)
+    ).catch(() => []);
+
+    const curriculumContext = curriculumItems.length > 0
+      ? `\nDistrict ELA Curriculum Available for Grade ${grade}:\n` +
+        curriculumItems.map((i) => {
+          const f = i.fields || i;
+          return `- ${f.Title || f.title || "Untitled"}${(f.Standard || f.standard) ? ` (Standard: ${f.Standard || f.standard})` : ""}`;
+        }).join("\n") +
+        "\nPrefer these district-approved texts when one fits the topic.\n"
+      : "";
+
+    const prompt = `You are an ELA curriculum advisor. Suggest exactly 3 grade-appropriate books or texts for a lesson.
+
+Grade: ${grade}
+Topic: ${topic}
+${standard ? `Standard: ${standard}\n` : ""}${curriculumContext}
+Return a JSON array of exactly 3 objects, each with:
+- "title": the book or text title
+- "author": author name, or "" if not applicable
+- "rationale": 1 sentence on why this fits the topic and grade level
+
+Return ONLY the JSON array, no other text.`;
+
+    const anthropic = await getAnthropicClientForDistrict(callerData.districtId, db);
+    let response;
+    try {
+      response = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1024,
+        messages: [{ role: "user", content: prompt }],
+      });
+    } catch (err) {
+      console.error("suggestLessonMaterials Claude error:", err.message);
+      throw new HttpsError("unavailable", "AI is temporarily unavailable. Please try again.");
+    }
+
+    let suggestions;
+    try {
+      suggestions = parseJsonArrayFromModel(response.content[0].text)
+        .filter((s) => s && s.title)
+        .map((s) => ({
+          title: String(s.title).slice(0, 120),
+          author: s.author ? String(s.author).slice(0, 80) : "",
+          rationale: s.rationale ? String(s.rationale).slice(0, 300) : "",
+        }))
+        .slice(0, 3);
+    } catch (err) {
+      console.error("suggestLessonMaterials parse error:", err.message);
+      throw new HttpsError("internal", "Failed to parse book suggestions.");
+    }
+
+    return { suggestions };
+  }
+);
+
 function parseJsonArrayFromModel(text) {
   const raw = String(text || "").trim();
   const candidates = [
@@ -2411,6 +2501,30 @@ exports.assignLessonPlan = onCall(
       }
     });
 
+    // Deactivate each student's currently-active learning path(s) so this new
+    // assignment is unambiguously the one StudentDashboardView's "Continue
+    // Learning" card surfaces — fetchLearningPaths has no ordering, so
+    // leaving a prior path active means the new assignment can silently
+    // never reach the student.
+    const previouslyActiveSnaps = await Promise.all(
+      cleanStudentIds.map((studentId) =>
+        db.collection("learningPaths")
+          .where("studentId", "==", studentId)
+          .where("isActive", "==", true)
+          .get()
+      )
+    );
+    previouslyActiveSnaps.forEach((snap) => {
+      snap.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          isActive: false,
+          workflowStatus: "Archived",
+          archivedAt: FieldValue.serverTimestamp(),
+          archivedBy: request.auth.uid,
+        });
+      });
+    });
+
     const pathIds = [];
     for (const studentId of cleanStudentIds) {
       const pathId = crypto.randomUUID();
@@ -2438,6 +2552,17 @@ exports.assignLessonPlan = onCall(
     }
 
     await batch.commit();
+
+    // Best-effort: students have no Messages tab, so notify their linked
+    // parent(s)/adults with a real message in the existing teacher<->parent
+    // thread. This also triggers onMessageCreated's push notification.
+    await notifyLinkedAdultsOfAssignment(db, {
+      teacherId: request.auth.uid,
+      teacherName: caller.displayName || "Your teacher",
+      title: cleanTitle,
+      studentIds: cleanStudentIds,
+    });
+
     return {
       ok: true,
       contentItemId: contentIds[0] || "",
@@ -2447,6 +2572,77 @@ exports.assignLessonPlan = onCall(
     };
   }
 );
+
+async function notifyLinkedAdultsOfAssignment(db, { teacherId, teacherName, title, studentIds }) {
+  await Promise.all(studentIds.map(async (studentId) => {
+    try {
+      const [linksSnap, studentSnap] = await Promise.all([
+        db.collection("studentAdultLinks")
+          .where("studentId", "==", studentId)
+          .where("confirmed", "==", true)
+          .get(),
+        db.collection("users").doc(studentId).get(),
+      ]);
+
+      const adultIds = [...new Set(
+        linksSnap.docs.map((doc) => doc.data().adultId).filter((id) => id && id !== teacherId)
+      )];
+      if (adultIds.length === 0) return;
+
+      const studentName = studentSnap.data()?.displayName || "your student";
+
+      const adultProfiles = await Promise.all(
+        adultIds.map((id) => db.collection("users").doc(id).get())
+      );
+      const participantNames = { [teacherId]: teacherName };
+      adultProfiles.forEach((snap, index) => {
+        participantNames[adultIds[index]] = snap.data()?.displayName || "Parent";
+      });
+
+      const existingThreadsSnap = await db.collection("messageThreads")
+        .where("studentId", "==", studentId)
+        .get();
+      const existingThread = existingThreadsSnap.docs.find((doc) =>
+        (doc.data().participants || []).includes(teacherId)
+      );
+      const existingData = existingThread?.data();
+
+      const threadId = existingThread?.id || crypto.randomUUID();
+      const participants = [...new Set([...(existingData?.participants || []), ...adultIds, teacherId])];
+      const now = FieldValue.serverTimestamp();
+      const body = `${teacherName} assigned a new lesson to ${studentName}: "${title}". It's ready in their Learning tab now.`;
+
+      const threadRef = db.collection("messageThreads").doc(threadId);
+      const messageId = crypto.randomUUID();
+      const messageRef = threadRef.collection("messages").doc(messageId);
+
+      const notifyBatch = db.batch();
+      notifyBatch.set(threadRef, {
+        id: threadId,
+        participants,
+        participantNames: { ...(existingData?.participantNames || {}), ...participantNames },
+        studentId,
+        studentName,
+        lastMessage: body,
+        lastMessageAt: now,
+        createdAt: existingData?.createdAt || now,
+      }, { merge: true });
+      notifyBatch.set(messageRef, {
+        id: messageId,
+        threadId,
+        senderId: teacherId,
+        senderName: teacherName,
+        body,
+        createdAt: now,
+        aiDrafted: false,
+        attachments: [],
+      });
+      await notifyBatch.commit();
+    } catch (err) {
+      console.error(`notifyLinkedAdultsOfAssignment failed for student ${studentId}:`, err.message);
+    }
+  }));
+}
 
 function buildStudentLessonAssignment({ title, description, grade, subject, standard, lessonPlan }) {
   const cleanGrade = String(grade || "").trim();
@@ -2731,11 +2927,11 @@ exports.curateContent = onCall(
     const normalizedSubject = normalizeResourceSubject(subject);
 
     if (source === "edx") {
-      return { items: await fetchEdxItems(normalizedSubject.label) };
+      return { items: filterByGradeBand(await fetchEdxItems(normalizedSubject.label, gradeLevel), gradeLevel) };
     }
 
     if (source === "nasa") {
-      return { items: await fetchNasaItems(normalizedSubject.label) };
+      return { items: filterByGradeBand(await fetchNasaItems(normalizedSubject.label), gradeLevel) };
     }
 
     const slugMap = {
@@ -2751,7 +2947,13 @@ exports.curateContent = onCall(
     };
 
     const key = normalizedSubject.key;
-    const slug = slugMap[key] || slugMap[key.split(" ")[0]] || "math";
+    const slug = slugMap[key] || slugMap[key.split(" ")[0]] || null;
+
+    // No Khan Academy topic corresponds to this subject (e.g. PE, Other) — go
+    // straight to the curated fallback instead of silently querying "math".
+    if (!slug) {
+      return { items: filterByGradeBand(getFallbackItems(normalizedSubject.label), gradeLevel) };
+    }
 
     try {
       const [videoResult, articleResult] = await Promise.allSettled([
@@ -2801,10 +3003,10 @@ exports.curateContent = onCall(
         items = getFallbackItems(normalizedSubject.label);
       }
 
-      return { items };
+      return { items: filterByGradeBand(items, gradeLevel) };
     } catch (error) {
       console.error("curateContent error:", error.message);
-      return { items: getFallbackItems(normalizedSubject.label) };
+      return { items: filterByGradeBand(getFallbackItems(normalizedSubject.label), gradeLevel) };
     }
   }
 );
@@ -2830,11 +3032,47 @@ function normalizeResourceSubject(subject) {
   return { key, label: raw };
 }
 
-async function fetchEdxItems(subject) {
+// Coarse K-12 grade bands used to filter curated fallback catalogs and to
+// pick an appropriate edX course level. Returns "" for unrecognized input,
+// which callers treat as "no filtering."
+function gradeBandFor(gradeLevel) {
+  const g = String(gradeLevel || "").trim().toUpperCase();
+  if (g === "K" || /^[1-2]$/.test(g)) return "K-2";
+  if (/^[3-5]$/.test(g)) return "3-5";
+  if (/^[6-8]$/.test(g)) return "6-8";
+  if (/^(9|10|11|12)$/.test(g)) return "9-12";
+  return "";
+}
+
+function filterByGradeBand(items, gradeLevel) {
+  const band = gradeBandFor(gradeLevel);
+  if (!band) return items;
+  const matched = items.filter((item) => !item.gradeBand || item.gradeBand === band);
+  return matched.length > 0 ? matched : items;
+}
+
+// Shared subject -> fallback-catalog-key resolution for every provider's
+// static catalog below. A subject with no real catalog entry (e.g. PE on
+// Khan Academy) resolves to "" so callers return an empty list instead of
+// mislabeling unrelated content (the previous behavior always defaulted to
+// "math"/"science" here, which is why non-math subjects showed math content).
+function fallbackCatalogKey(subject, availableKeys) {
+  const key = (subject || "").toLowerCase();
+  const lookupKey = key.includes("social") || key.includes("history") ? "history"
+    : key.includes("english") || key.includes("ela") || key.includes("language") ? "grammar"
+    : key.includes("technology") || key.includes("comput") ? "computing"
+    : key;
+  return availableKeys.find((k) => lookupKey.includes(k) || k.includes(lookupKey)) || "";
+}
+
+async function fetchEdxItems(subject, gradeLevel) {
   try {
     const query = encodeURIComponent(subject);
+    const level = ["9", "10", "11", "12"].includes(String(gradeLevel || "").trim())
+      ? "intermediate"
+      : "introductory";
     const res = await fetch(
-      `https://discovery.edx.org/api/v1/search/all/?content_type=course&q=${query}&level=introductory`,
+      `https://discovery.edx.org/api/v1/search/all/?content_type=course&q=${query}&level=${level}`,
       { headers: { Accept: "application/json" } }
     );
     if (!res.ok) return getFallbackEdxItems(subject);
@@ -2861,38 +3099,34 @@ async function fetchEdxItems(subject) {
 }
 
 function getFallbackEdxItems(subject) {
-  const key = (subject || "math").toLowerCase();
-  const lookupKey = key.includes("social") || key.includes("history") ? "history" : key;
   const catalog = {
     math: [
-      { externalId: "edx-math-1", title: "Introduction to Algebra", description: "Foundational algebra concepts for beginners", contentType: "article", url: "https://www.edx.org/learn/algebra", source: "edx", subject: "Math", estimatedMinutes: 30 },
-      { externalId: "edx-math-2", title: "Pre-Calculus Fundamentals", description: "Prepare for calculus with key mathematical concepts", contentType: "article", url: "https://www.edx.org/learn/pre-calculus", source: "edx", subject: "Math", estimatedMinutes: 45 },
+      { externalId: "edx-math-1", title: "Introduction to Algebra", description: "Foundational algebra concepts for beginners", contentType: "article", url: "https://www.edx.org/learn/algebra", source: "edx", subject: "Math", estimatedMinutes: 30, gradeBand: "6-8" },
+      { externalId: "edx-math-2", title: "Pre-Calculus Fundamentals", description: "Prepare for calculus with key mathematical concepts", contentType: "article", url: "https://www.edx.org/learn/pre-calculus", source: "edx", subject: "Math", estimatedMinutes: 45, gradeBand: "9-12" },
     ],
     science: [
-      { externalId: "edx-sci-1", title: "Introduction to Biology", description: "Core biology concepts from cells to ecosystems", contentType: "article", url: "https://www.edx.org/learn/biology", source: "edx", subject: "Science", estimatedMinutes: 40 },
-      { externalId: "edx-sci-2", title: "Introductory Physics", description: "Forces, motion, and energy explained", contentType: "article", url: "https://www.edx.org/learn/physics", source: "edx", subject: "Science", estimatedMinutes: 50 },
+      { externalId: "edx-sci-1", title: "Introduction to Biology", description: "Core biology concepts from cells to ecosystems", contentType: "article", url: "https://www.edx.org/learn/biology", source: "edx", subject: "Science", estimatedMinutes: 40, gradeBand: "6-8" },
+      { externalId: "edx-sci-2", title: "Introductory Physics", description: "Forces, motion, and energy explained", contentType: "article", url: "https://www.edx.org/learn/physics", source: "edx", subject: "Science", estimatedMinutes: 50, gradeBand: "9-12" },
     ],
     computing: [
-      { externalId: "edx-cs-1", title: "CS50: Introduction to Computer Science", description: "Harvard's world-renowned intro to CS", contentType: "article", url: "https://www.edx.org/course/introduction-computer-science-harvardx-cs50x", source: "edx", subject: "Computing", estimatedMinutes: 60 },
-      { externalId: "edx-cs-2", title: "Introduction to Python", description: "Learn Python programming from scratch", contentType: "article", url: "https://www.edx.org/learn/python", source: "edx", subject: "Computing", estimatedMinutes: 35 },
+      { externalId: "edx-cs-1", title: "CS50: Introduction to Computer Science", description: "Harvard's world-renowned intro to CS", contentType: "article", url: "https://www.edx.org/course/introduction-computer-science-harvardx-cs50x", source: "edx", subject: "Computing", estimatedMinutes: 60, gradeBand: "9-12" },
+      { externalId: "edx-cs-2", title: "Introduction to Python", description: "Learn Python programming from scratch", contentType: "article", url: "https://www.edx.org/learn/python", source: "edx", subject: "Computing", estimatedMinutes: 35, gradeBand: "6-8" },
     ],
     history: [
-      { externalId: "edx-hist-1", title: "World History", description: "Survey of major world civilizations and events", contentType: "article", url: "https://www.edx.org/learn/world-history", source: "edx", subject: "History", estimatedMinutes: 45 },
+      { externalId: "edx-hist-1", title: "World History", description: "Survey of major world civilizations and events", contentType: "article", url: "https://www.edx.org/learn/world-history", source: "edx", subject: "History", estimatedMinutes: 45, gradeBand: "6-8" },
     ],
     economics: [
-      { externalId: "edx-econ-1", title: "Introduction to Microeconomics", description: "Supply, demand, and market forces", contentType: "article", url: "https://www.edx.org/learn/microeconomics", source: "edx", subject: "Economics", estimatedMinutes: 40 },
+      { externalId: "edx-econ-1", title: "Introduction to Microeconomics", description: "Supply, demand, and market forces", contentType: "article", url: "https://www.edx.org/learn/microeconomics", source: "edx", subject: "Economics", estimatedMinutes: 40, gradeBand: "9-12" },
     ],
     grammar: [
-      { externalId: "edx-eng-1", title: "English Grammar & Essay Writing", description: "Build strong writing and grammar skills", contentType: "article", url: "https://www.edx.org/learn/english-writing", source: "edx", subject: "English", estimatedMinutes: 30 },
+      { externalId: "edx-eng-1", title: "English Grammar & Essay Writing", description: "Build strong writing and grammar skills", contentType: "article", url: "https://www.edx.org/learn/english-writing", source: "edx", subject: "English", estimatedMinutes: 30, gradeBand: "6-8" },
     ],
     art: [
-      { externalId: "edx-art-1", title: "Introduction to Art History", description: "Survey of major art movements and artists", contentType: "article", url: "https://www.edx.org/learn/art-history", source: "edx", subject: "Art", estimatedMinutes: 35 },
+      { externalId: "edx-art-1", title: "Introduction to Art History", description: "Survey of major art movements and artists", contentType: "article", url: "https://www.edx.org/learn/art-history", source: "edx", subject: "Art", estimatedMinutes: 35, gradeBand: "9-12" },
     ],
   };
-  for (const [k, items] of Object.entries(catalog)) {
-    if (lookupKey.includes(k) || k.includes(lookupKey)) return items;
-  }
-  return catalog.math;
+  const key = fallbackCatalogKey(subject, Object.keys(catalog));
+  return key ? catalog[key] : [];
 }
 
 // MARK: - NASA STEM Content
@@ -2946,41 +3180,37 @@ async function fetchNasaItems(subject) {
 }
 
 function getFallbackNasaItems(subject) {
-  const key = (subject || "science").toLowerCase();
-  const lookupKey = key.includes("social") || key.includes("history") ? "history" : key;
   const catalog = {
     science: [
-      { externalId: "nasa-sci-1", title: "NASA Science: Earth from Space", description: "Explore Earth systems, climate, and natural phenomena from a NASA perspective.", contentType: "video", url: "https://www.nasa.gov/stem-ed-resources/earth-science.html", source: "nasa", subject: "Science", estimatedMinutes: 12 },
-      { externalId: "nasa-sci-2", title: "Solar System Exploration", description: "Tour the planets, moons, and other bodies in our solar system.", contentType: "video", url: "https://solarsystem.nasa.gov/resources/", source: "nasa", subject: "Science", estimatedMinutes: 15 },
-      { externalId: "nasa-sci-3", title: "NASA Climate Kids", description: "Interactive activities and videos explaining climate science.", contentType: "article", url: "https://climatekids.nasa.gov/", source: "nasa", subject: "Science", estimatedMinutes: 20 },
+      { externalId: "nasa-sci-1", title: "NASA Science: Earth from Space", description: "Explore Earth systems, climate, and natural phenomena from a NASA perspective.", contentType: "video", url: "https://www.nasa.gov/stem-ed-resources/earth-science.html", source: "nasa", subject: "Science", estimatedMinutes: 12, gradeBand: "3-5" },
+      { externalId: "nasa-sci-2", title: "Solar System Exploration", description: "Tour the planets, moons, and other bodies in our solar system.", contentType: "video", url: "https://solarsystem.nasa.gov/resources/", source: "nasa", subject: "Science", estimatedMinutes: 15, gradeBand: "3-5" },
+      { externalId: "nasa-sci-3", title: "NASA Climate Kids", description: "Interactive activities and videos explaining climate science.", contentType: "article", url: "https://climatekids.nasa.gov/", source: "nasa", subject: "Science", estimatedMinutes: 20, gradeBand: "K-2" },
     ],
     math: [
-      { externalId: "nasa-math-1", title: "NASA: Math in Space Exploration", description: "See how NASA engineers and scientists use math every day.", contentType: "article", url: "https://www.nasa.gov/stem-ed-resources/math.html", source: "nasa", subject: "Math", estimatedMinutes: 10 },
-      { externalId: "nasa-math-2", title: "Rocket Math", description: "Calculate trajectories, fuel, and orbital mechanics like a NASA engineer.", contentType: "article", url: "https://www.jpl.nasa.gov/edu/teach/activity/rocket-math/", source: "nasa", subject: "Math", estimatedMinutes: 15 },
+      { externalId: "nasa-math-1", title: "NASA: Math in Space Exploration", description: "See how NASA engineers and scientists use math every day.", contentType: "article", url: "https://www.nasa.gov/stem-ed-resources/math.html", source: "nasa", subject: "Math", estimatedMinutes: 10, gradeBand: "6-8" },
+      { externalId: "nasa-math-2", title: "Rocket Math", description: "Calculate trajectories, fuel, and orbital mechanics like a NASA engineer.", contentType: "article", url: "https://www.jpl.nasa.gov/edu/teach/activity/rocket-math/", source: "nasa", subject: "Math", estimatedMinutes: 15, gradeBand: "9-12" },
     ],
     computing: [
-      { externalId: "nasa-cs-1", title: "NASA Coding for Kids", description: "Introductory coding activities used by NASA education programs.", contentType: "article", url: "https://www.nasa.gov/stem-ed-resources/coding.html", source: "nasa", subject: "Computing", estimatedMinutes: 20 },
-      { externalId: "nasa-cs-2", title: "How NASA Uses Artificial Intelligence", description: "Learn how AI and machine learning power NASA missions.", contentType: "video", url: "https://www.nasa.gov/topics/technology/index.html", source: "nasa", subject: "Computing", estimatedMinutes: 12 },
+      { externalId: "nasa-cs-1", title: "NASA Coding for Kids", description: "Introductory coding activities used by NASA education programs.", contentType: "article", url: "https://www.nasa.gov/stem-ed-resources/coding.html", source: "nasa", subject: "Computing", estimatedMinutes: 20, gradeBand: "3-5" },
+      { externalId: "nasa-cs-2", title: "How NASA Uses Artificial Intelligence", description: "Learn how AI and machine learning power NASA missions.", contentType: "video", url: "https://www.nasa.gov/topics/technology/index.html", source: "nasa", subject: "Computing", estimatedMinutes: 12, gradeBand: "9-12" },
     ],
     history: [
-      { externalId: "nasa-hist-1", title: "History of Human Spaceflight", description: "From Mercury to Artemis — NASA's journey into space.", contentType: "article", url: "https://www.nasa.gov/history/", source: "nasa", subject: "History", estimatedMinutes: 25 },
-      { externalId: "nasa-hist-2", title: "Apollo 11: The Moon Landing", description: "The story of the first crewed lunar landing in 1969.", contentType: "video", url: "https://www.nasa.gov/mission/apollo-11/", source: "nasa", subject: "History", estimatedMinutes: 18 },
+      { externalId: "nasa-hist-1", title: "History of Human Spaceflight", description: "From Mercury to Artemis — NASA's journey into space.", contentType: "article", url: "https://www.nasa.gov/history/", source: "nasa", subject: "History", estimatedMinutes: 25, gradeBand: "6-8" },
+      { externalId: "nasa-hist-2", title: "Apollo 11: The Moon Landing", description: "The story of the first crewed lunar landing in 1969.", contentType: "video", url: "https://www.nasa.gov/mission/apollo-11/", source: "nasa", subject: "History", estimatedMinutes: 18, gradeBand: "3-5" },
     ],
     economics: [
-      { externalId: "nasa-econ-1", title: "The Economic Value of Space Exploration", description: "How NASA research drives innovation and economic growth.", contentType: "article", url: "https://www.nasa.gov/offices/oct/home/index.html", source: "nasa", subject: "Economics", estimatedMinutes: 15 },
+      { externalId: "nasa-econ-1", title: "The Economic Value of Space Exploration", description: "How NASA research drives innovation and economic growth.", contentType: "article", url: "https://www.nasa.gov/offices/oct/home/index.html", source: "nasa", subject: "Economics", estimatedMinutes: 15, gradeBand: "9-12" },
     ],
     grammar: [
-      { externalId: "nasa-eng-1", title: "NASA Spinoff: Science Writing", description: "Read real NASA spinoff stories and practice science communication.", contentType: "article", url: "https://spinoff.nasa.gov/", source: "nasa", subject: "English", estimatedMinutes: 12 },
+      { externalId: "nasa-eng-1", title: "NASA Spinoff: Science Writing", description: "Read real NASA spinoff stories and practice science communication.", contentType: "article", url: "https://spinoff.nasa.gov/", source: "nasa", subject: "English", estimatedMinutes: 12, gradeBand: "6-8" },
     ],
     art: [
-      { externalId: "nasa-art-1", title: "NASA Hubble Imagery Gallery", description: "Stunning imagery from the Hubble Space Telescope for art and science.", contentType: "article", url: "https://hubblesite.org/images/gallery", source: "nasa", subject: "Art", estimatedMinutes: 15 },
-      { externalId: "nasa-art-2", title: "NASA Visualization Studio", description: "Scientific visualizations blending art and data from NASA missions.", contentType: "video", url: "https://svs.gsfc.nasa.gov/", source: "nasa", subject: "Art", estimatedMinutes: 10 },
+      { externalId: "nasa-art-1", title: "NASA Hubble Imagery Gallery", description: "Stunning imagery from the Hubble Space Telescope for art and science.", contentType: "article", url: "https://hubblesite.org/images/gallery", source: "nasa", subject: "Art", estimatedMinutes: 15, gradeBand: "6-8" },
+      { externalId: "nasa-art-2", title: "NASA Visualization Studio", description: "Scientific visualizations blending art and data from NASA missions.", contentType: "video", url: "https://svs.gsfc.nasa.gov/", source: "nasa", subject: "Art", estimatedMinutes: 10, gradeBand: "9-12" },
     ],
   };
-  for (const [k, items] of Object.entries(catalog)) {
-    if (lookupKey.includes(k) || k.includes(lookupKey)) return items;
-  }
-  return catalog.science;
+  const key = fallbackCatalogKey(subject, Object.keys(catalog));
+  return key ? catalog[key] : [];
 }
 
 // MARK: - Import Google Classroom Roster
@@ -3058,48 +3288,48 @@ exports.importClassroomRoster = onCall(
 );
 
 function getFallbackItems(subject) {
-  const key = (subject || "math").toLowerCase();
-  const lookupKey = key.includes("social") || key.includes("history") ? "history" : key;
   const catalog = {
     math: [
-      { externalId: "ka-var-1", title: "What is a Variable?", description: "Introduction to variables in algebra", contentType: "video", url: "https://www.khanacademy.org/math/algebra/x2f8bb11595b61c86:foundation-algebra/x2f8bb11595b61c86:intro-variables/v/what-is-a-variable", source: "khanacademy", subject: "Math", estimatedMinutes: 5 },
-      { externalId: "ka-frac-1", title: "Concept of a Fraction", description: "Understanding fractions as parts of a whole", contentType: "video", url: "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-fractions/v/concept-of-a-fraction", source: "khanacademy", subject: "Math", estimatedMinutes: 6 },
-      { externalId: "ka-prob-1", title: "Basic Probability", description: "Introduction to probability and simple events", contentType: "video", url: "https://www.khanacademy.org/math/statistics-probability/basic-theoretical-probability/basic-probability/v/basic-probability", source: "khanacademy", subject: "Math", estimatedMinutes: 10 },
-      { externalId: "ka-angle-1", title: "Angle Basics", description: "Learn about types of angles and how to measure them", contentType: "video", url: "https://www.khanacademy.org/math/basic-geo/basic-geo-angle/basic-geo-angles/v/angle-basics", source: "khanacademy", subject: "Math", estimatedMinutes: 7 },
-      { externalId: "ka-dec-1", title: "Decimals and Place Value", description: "Understanding the decimal number system", contentType: "video", url: "https://www.khanacademy.org/math/arithmetic/arith-decimals/intro-to-decimals/v/decimal-place-value", source: "khanacademy", subject: "Math", estimatedMinutes: 8 },
+      { externalId: "ka-var-1", title: "What is a Variable?", description: "Introduction to variables in algebra", contentType: "video", url: "https://www.khanacademy.org/math/algebra/x2f8bb11595b61c86:foundation-algebra/x2f8bb11595b61c86:intro-variables/v/what-is-a-variable", source: "khanacademy", subject: "Math", estimatedMinutes: 5, gradeBand: "6-8" },
+      { externalId: "ka-frac-1", title: "Concept of a Fraction", description: "Understanding fractions as parts of a whole", contentType: "video", url: "https://www.khanacademy.org/math/arithmetic/fraction-arithmetic/arith-review-fractions/v/concept-of-a-fraction", source: "khanacademy", subject: "Math", estimatedMinutes: 6, gradeBand: "3-5" },
+      { externalId: "ka-prob-1", title: "Basic Probability", description: "Introduction to probability and simple events", contentType: "video", url: "https://www.khanacademy.org/math/statistics-probability/basic-theoretical-probability/basic-probability/v/basic-probability", source: "khanacademy", subject: "Math", estimatedMinutes: 10, gradeBand: "6-8" },
+      { externalId: "ka-angle-1", title: "Angle Basics", description: "Learn about types of angles and how to measure them", contentType: "video", url: "https://www.khanacademy.org/math/basic-geo/basic-geo-angle/basic-geo-angles/v/angle-basics", source: "khanacademy", subject: "Math", estimatedMinutes: 7, gradeBand: "3-5" },
+      { externalId: "ka-dec-1", title: "Decimals and Place Value", description: "Understanding the decimal number system", contentType: "video", url: "https://www.khanacademy.org/math/arithmetic/arith-decimals/intro-to-decimals/v/decimal-place-value", source: "khanacademy", subject: "Math", estimatedMinutes: 8, gradeBand: "3-5" },
     ],
     science: [
-      { externalId: "ka-cell-1", title: "Introduction to Cells", description: "Overview of cell structure and function", contentType: "video", url: "https://www.khanacademy.org/science/biology/structure-of-a-cell/intro-to-cells/v/intro-to-cells", source: "khanacademy", subject: "Science", estimatedMinutes: 10 },
-      { externalId: "ka-newton-1", title: "Newton's First Law of Motion", description: "Understanding inertia and the first law", contentType: "video", url: "https://www.khanacademy.org/science/physics/forces-newtons-laws/newtons-laws-of-motion/v/newton-s-first-law-of-motion", source: "khanacademy", subject: "Science", estimatedMinutes: 9 },
-      { externalId: "ka-eco-1", title: "Introduction to Ecosystems", description: "How living things interact with their environment", contentType: "video", url: "https://www.khanacademy.org/science/biology/ecology/intro-to-ecosystems/v/ecosystems", source: "khanacademy", subject: "Science", estimatedMinutes: 11 },
-      { externalId: "ka-atom-1", title: "Introduction to Atoms", description: "The building blocks of matter", contentType: "video", url: "https://www.khanacademy.org/science/chemistry/atomic-structure-and-properties/introduction-to-the-atom/v/introduction-to-the-atom", source: "khanacademy", subject: "Science", estimatedMinutes: 12 },
+      { externalId: "ka-cell-1", title: "Introduction to Cells", description: "Overview of cell structure and function", contentType: "video", url: "https://www.khanacademy.org/science/biology/structure-of-a-cell/intro-to-cells/v/intro-to-cells", source: "khanacademy", subject: "Science", estimatedMinutes: 10, gradeBand: "6-8" },
+      { externalId: "ka-newton-1", title: "Newton's First Law of Motion", description: "Understanding inertia and the first law", contentType: "video", url: "https://www.khanacademy.org/science/physics/forces-newtons-laws/newtons-laws-of-motion/v/newton-s-first-law-of-motion", source: "khanacademy", subject: "Science", estimatedMinutes: 9, gradeBand: "9-12" },
+      { externalId: "ka-eco-1", title: "Introduction to Ecosystems", description: "How living things interact with their environment", contentType: "video", url: "https://www.khanacademy.org/science/biology/ecology/intro-to-ecosystems/v/ecosystems", source: "khanacademy", subject: "Science", estimatedMinutes: 11, gradeBand: "3-5" },
+      { externalId: "ka-atom-1", title: "Introduction to Atoms", description: "The building blocks of matter", contentType: "video", url: "https://www.khanacademy.org/science/chemistry/atomic-structure-and-properties/introduction-to-the-atom/v/introduction-to-the-atom", source: "khanacademy", subject: "Science", estimatedMinutes: 12, gradeBand: "6-8" },
     ],
     computing: [
-      { externalId: "ka-algo-1", title: "What is an Algorithm?", description: "Understanding algorithms as step-by-step instructions", contentType: "article", url: "https://www.khanacademy.org/computing/computer-science/algorithms/intro-to-algorithms/a/what-is-an-algorithm", source: "khanacademy", subject: "Computing", estimatedMinutes: 5 },
-      { externalId: "ka-bin-1", title: "Binary Numbers", description: "How computers represent numbers in binary", contentType: "video", url: "https://www.khanacademy.org/computing/computers-and-internet/x261d2625:digital-information/x261d2625:binary-numbers/v/binary-numbers", source: "khanacademy", subject: "Computing", estimatedMinutes: 8 },
-      { externalId: "ka-html-1", title: "Intro to HTML", description: "Getting started with web development", contentType: "article", url: "https://www.khanacademy.org/computing/computer-programming/html-css/intro-to-html/pt/html-basics", source: "khanacademy", subject: "Computing", estimatedMinutes: 10 },
+      { externalId: "ka-algo-1", title: "What is an Algorithm?", description: "Understanding algorithms as step-by-step instructions", contentType: "article", url: "https://www.khanacademy.org/computing/computer-science/algorithms/intro-to-algorithms/a/what-is-an-algorithm", source: "khanacademy", subject: "Computing", estimatedMinutes: 5, gradeBand: "6-8" },
+      { externalId: "ka-bin-1", title: "Binary Numbers", description: "How computers represent numbers in binary", contentType: "video", url: "https://www.khanacademy.org/computing/computers-and-internet/x261d2625:digital-information/x261d2625:binary-numbers/v/binary-numbers", source: "khanacademy", subject: "Computing", estimatedMinutes: 8, gradeBand: "6-8" },
+      { externalId: "ka-html-1", title: "Intro to HTML", description: "Getting started with web development", contentType: "article", url: "https://www.khanacademy.org/computing/computer-programming/html-css/intro-to-html/pt/html-basics", source: "khanacademy", subject: "Computing", estimatedMinutes: 10, gradeBand: "9-12" },
     ],
     history: [
-      { externalId: "ka-era-1", title: "The Age of Exploration", description: "European exploration and contact with the Americas", contentType: "video", url: "https://www.khanacademy.org/humanities/us-history/precontact-and-early-colonial-era/before-contact/v/americas-before-contact", source: "khanacademy", subject: "History", estimatedMinutes: 11 },
-      { externalId: "ka-rev-1", title: "The American Revolution", description: "Causes and key events of the American Revolution", contentType: "video", url: "https://www.khanacademy.org/humanities/us-history/road-to-revolution/american-revolution/v/american-revolution", source: "khanacademy", subject: "History", estimatedMinutes: 14 },
+      { externalId: "ka-era-1", title: "The Age of Exploration", description: "European exploration and contact with the Americas", contentType: "video", url: "https://www.khanacademy.org/humanities/us-history/precontact-and-early-colonial-era/before-contact/v/americas-before-contact", source: "khanacademy", subject: "History", estimatedMinutes: 11, gradeBand: "3-5" },
+      { externalId: "ka-rev-1", title: "The American Revolution", description: "Causes and key events of the American Revolution", contentType: "video", url: "https://www.khanacademy.org/humanities/us-history/road-to-revolution/american-revolution/v/american-revolution", source: "khanacademy", subject: "History", estimatedMinutes: 14, gradeBand: "6-8" },
     ],
     economics: [
-      { externalId: "ka-sup-1", title: "Supply and Demand", description: "Core concepts of markets and pricing", contentType: "video", url: "https://www.khanacademy.org/economics-finance-domain/microeconomics/supply-demand-equilibrium/supply-and-demand/v/law-of-demand", source: "khanacademy", subject: "Economics", estimatedMinutes: 8 },
-      { externalId: "ka-gdp-1", title: "What is GDP?", description: "How we measure the size of an economy", contentType: "video", url: "https://www.khanacademy.org/economics-finance-domain/macroeconomics/gdp-topic/gdp/v/introduction-to-gdp", source: "khanacademy", subject: "Economics", estimatedMinutes: 9 },
+      { externalId: "ka-sup-1", title: "Supply and Demand", description: "Core concepts of markets and pricing", contentType: "video", url: "https://www.khanacademy.org/economics-finance-domain/microeconomics/supply-demand-equilibrium/supply-and-demand/v/law-of-demand", source: "khanacademy", subject: "Economics", estimatedMinutes: 8, gradeBand: "9-12" },
+      { externalId: "ka-gdp-1", title: "What is GDP?", description: "How we measure the size of an economy", contentType: "video", url: "https://www.khanacademy.org/economics-finance-domain/macroeconomics/gdp-topic/gdp/v/introduction-to-gdp", source: "khanacademy", subject: "Economics", estimatedMinutes: 9, gradeBand: "9-12" },
     ],
     grammar: [
-      { externalId: "ka-gram-1", title: "What is a Noun?", description: "Introduction to nouns in English grammar", contentType: "video", url: "https://www.khanacademy.org/humanities/grammar/partsofspeech/theNoun/v/introduction-to-nouns-the-parts-of-speech-grammar", source: "khanacademy", subject: "English", estimatedMinutes: 5 },
-      { externalId: "ka-gram-2", title: "Subject-Verb Agreement", description: "Making subjects and verbs agree in sentences", contentType: "video", url: "https://www.khanacademy.org/humanities/grammar/partsofspeech/the-verb/v/subject-verb-agreement", source: "khanacademy", subject: "English", estimatedMinutes: 7 },
+      { externalId: "ka-gram-1", title: "What is a Noun?", description: "Introduction to nouns in English grammar", contentType: "video", url: "https://www.khanacademy.org/humanities/grammar/partsofspeech/theNoun/v/introduction-to-nouns-the-parts-of-speech-grammar", source: "khanacademy", subject: "English", estimatedMinutes: 5, gradeBand: "K-2" },
+      { externalId: "ka-gram-2", title: "Subject-Verb Agreement", description: "Making subjects and verbs agree in sentences", contentType: "video", url: "https://www.khanacademy.org/humanities/grammar/partsofspeech/the-verb/v/subject-verb-agreement", source: "khanacademy", subject: "English", estimatedMinutes: 7, gradeBand: "3-5" },
     ],
     art: [
-      { externalId: "ka-art-1", title: "A Beginner's Guide to Art History", description: "Introduction to studying art history", contentType: "article", url: "https://www.khanacademy.org/humanities/art-history/art-history-beginners-guide/a/a-beginners-guide-to-art-history", source: "khanacademy", subject: "Art", estimatedMinutes: 8 },
+      { externalId: "ka-art-1", title: "A Beginner's Guide to Art History", description: "Introduction to studying art history", contentType: "article", url: "https://www.khanacademy.org/humanities/art-history/art-history-beginners-guide/a/a-beginners-guide-to-art-history", source: "khanacademy", subject: "Art", estimatedMinutes: 8, gradeBand: "6-8" },
+    ],
+    music: [
+      { externalId: "ka-music-1", title: "Rhythm Basics", description: "Introduction to beat, rhythm, and tempo in music", contentType: "video", url: "https://www.khanacademy.org/humanities/music/music-basics/music-basics-rhythm/v/rhythm-basics", source: "khanacademy", subject: "Music", estimatedMinutes: 6, gradeBand: "3-5" },
+      { externalId: "ka-music-2", title: "Reading Musical Notation", description: "How to read notes, staffs, and basic notation", contentType: "article", url: "https://www.khanacademy.org/humanities/music/music-basics/music-basics-notation/a/reading-musical-notation", source: "khanacademy", subject: "Music", estimatedMinutes: 9, gradeBand: "6-8" },
     ],
   };
 
-  for (const [k, items] of Object.entries(catalog)) {
-    if (lookupKey.includes(k) || k.includes(lookupKey)) return items;
-  }
-  return catalog.math;
+  const key = fallbackCatalogKey(subject, Object.keys(catalog));
+  return key ? catalog[key] : [];
 }
 
 // MARK: - Learning Journal (FR-302)
