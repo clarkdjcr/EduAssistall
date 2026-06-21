@@ -18,13 +18,32 @@ struct StudentDashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Greeting
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(greetingText)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Text(profile.displayName)
-                            .font(.largeTitle.bold())
+                    // Greeting with Avatar
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(greetingText)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Text(profile.displayName)
+                                .font(.largeTitle.bold())
+                        }
+                        
+                        Spacer()
+                        
+                        // Phase 2: Avatar display
+                        if let avatarConfig = profile.avatarConfig {
+                            AvatarPreviewView(config: avatarConfig)
+                                .frame(width: 60, height: 60)
+                        } else {
+                            Circle()
+                                .fill(Color.blue.opacity(0.15))
+                                .frame(width: 60, height: 60)
+                                .overlay(
+                                    Text(profile.displayName.prefix(1).uppercased())
+                                        .font(.title.bold())
+                                        .foregroundStyle(.blue)
+                                )
+                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
@@ -48,6 +67,10 @@ struct StudentDashboardView: View {
                         .padding(.horizontal, 20)
                     }
 
+                    // Phase 2: XP and Level Card
+                    XPLevelCard(xp: profile.xp, level: profile.level)
+                        .padding(.horizontal, 20)
+
                     // Stats Row
                     HStack(spacing: 12) {
                         StatCard(
@@ -70,6 +93,12 @@ struct StudentDashboardView: View {
                         )
                     }
                     .padding(.horizontal, 20)
+                    
+                    // Phase 1: Streak Freeze Card
+                    if profile.streakFreezes > 0 {
+                        StreakFreezeCard(count: profile.streakFreezes)
+                            .padding(.horizontal, 20)
+                    }
 
                     // Learning Style Card
                     if let lp = learningProfile, let style = lp.learningStyle {
@@ -627,6 +656,110 @@ private struct RecentMessageRow: View {
         .padding(10)
         .background(Color.appSecondaryGroupedBackground)
         .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+// MARK: - Phase 2: XP and Level Card
+
+private struct XPLevelCard: View {
+    let xp: Int
+    let level: Int
+    
+    private var progress: Double {
+        XPManager.xpProgressInLevel(xp)
+    }
+    
+    private var xpToNextLevel: Int {
+        let currentLevel = XPManager.levelFromXP(xp)
+        let xpForNextLevel = XPManager.xpRequired(forLevel: currentLevel)
+        let xpForCurrentLevel = XPManager.xpRequired(forLevel: currentLevel - 1)
+        return xpForNextLevel - (xp - xpForCurrentLevel)
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Level \(level)")
+                        .font(.title2.bold())
+                    Text("\(xp) XP")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+                
+                ZStack {
+                    Circle()
+                        .fill(Color.purple.opacity(0.15))
+                        .frame(width: 50, height: 50)
+                    Image(systemName: "star.fill")
+                        .font(.title3)
+                        .foregroundStyle(.purple)
+                }
+            }
+            
+            // Progress bar
+            VStack(alignment: .leading, spacing: 4) {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.purple.opacity(0.15))
+                            .frame(height: 8)
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.purple, .pink],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geo.size.width * progress, height: 8)
+                            .animation(.easeInOut(duration: 0.5), value: progress)
+                    }
+                }
+                .frame(height: 8)
+                
+                Text("\(xpToNextLevel) XP to next level")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+        .background(Color.appSecondaryGroupedBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+// MARK: - Phase 1: Streak Freeze Card
+
+private struct StreakFreezeCard: View {
+    let count: Int
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.cyan.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                Image(systemName: "snowflake")
+                    .font(.title3)
+                    .foregroundStyle(.cyan)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Streak Freeze")
+                    .font(.subheadline.bold())
+                Text("\(count) available - protects your streak if you miss a day")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding(14)
+        .background(Color.cyan.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
 

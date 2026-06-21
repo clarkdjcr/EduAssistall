@@ -39,6 +39,55 @@ final class FirestoreService {
         ])
     }
 
+    // Phase 2: Update user profile with gamification fields
+    func updateUserProfile(_ profile: UserProfile) async throws {
+        let data = try Firestore.Encoder().encode(profile)
+        try await db.collection("users").document(profile.id).setData(data, merge: true)
+    }
+
+    // Phase 2: Award XP to student
+    func awardXP(studentId: String, xpAmount: Int) async throws {
+        try await db.collection("users").document(studentId).updateData([
+            "xp": FieldValue.increment(Int64(xpAmount))
+        ])
+    }
+
+    // Phase 2: Update student level
+    func updateLevel(studentId: String, level: Int) async throws {
+        try await db.collection("users").document(studentId).updateData([
+            "level": level
+        ])
+    }
+
+    // Phase 2: Update avatar config
+    func updateAvatarConfig(studentId: String, avatarConfig: AvatarConfig) async throws {
+        let data = try Firestore.Encoder().encode(avatarConfig)
+        try await db.collection("users").document(studentId).updateData([
+            "avatarConfig": data
+        ])
+    }
+
+    // Phase 1: Update streak freeze count
+    func updateStreakFreezes(studentId: String, count: Int) async throws {
+        try await db.collection("users").document(studentId).updateData([
+            "streakFreezes": count
+        ])
+    }
+
+    // Phase 1: Update sound effects preference
+    func updateSoundEffectsEnabled(studentId: String, enabled: Bool) async throws {
+        try await db.collection("users").document(studentId).updateData([
+            "soundEffectsEnabled": enabled
+        ])
+    }
+
+    // Phase 1: Update haptic feedback preference
+    func updateHapticFeedbackEnabled(studentId: String, enabled: Bool) async throws {
+        try await db.collection("users").document(studentId).updateData([
+            "hapticFeedbackEnabled": enabled
+        ])
+    }
+
     /// Refreshes the stored IANA timezone for an existing user. Called on every sign-in
     /// so the digest schedule stays correct after a move, travel, or DST rollover.
     func updateTimezone(uid: String) async throws {

@@ -31,6 +31,39 @@ struct UserProfile: Codable, Identifiable, Equatable {
     var parentalConsentStatus: String?
     var parentEmail: String?
 
+    // Phase 2: Gamification fields
+    var xp: Int
+    var level: Int
+    var avatarConfig: AvatarConfig?
+    var streakFreezes: Int
+    var soundEffectsEnabled: Bool
+    var hapticFeedbackEnabled: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case email
+        case displayName
+        case role
+        case onboardingComplete
+        case createdAt
+        case fcmToken
+        case privacyConsentGiven
+        case privacyConsentAt
+        case aiConsentGiven
+        case aiConsentAt
+        case districtId
+        case timezone
+        case birthYear
+        case parentalConsentStatus
+        case parentEmail
+        case xp
+        case level
+        case avatarConfig
+        case streakFreezes
+        case soundEffectsEnabled
+        case hapticFeedbackEnabled
+    }
+
     // Custom decode so fields added after launch (timezone, onboardingComplete,
     // privacyConsentGiven, aiConsentGiven) don't crash older Firestore documents that lack them.
     init(from decoder: Decoder) throws {
@@ -58,6 +91,12 @@ struct UserProfile: Codable, Identifiable, Equatable {
         birthYear            = try c.decodeIfPresent(Int.self,    forKey: .birthYear)
         parentalConsentStatus = try c.decodeIfPresent(String.self, forKey: .parentalConsentStatus)
         parentEmail          = try c.decodeIfPresent(String.self, forKey: .parentEmail)
+        xp                   = try c.decodeIfPresent(Int.self,    forKey: .xp)                   ?? 0
+        level                = try c.decodeIfPresent(Int.self,    forKey: .level)                ?? 1
+        avatarConfig         = try c.decodeIfPresent(AvatarConfig.self, forKey: .avatarConfig)
+        streakFreezes        = try c.decodeIfPresent(Int.self,    forKey: .streakFreezes)        ?? 0
+        soundEffectsEnabled  = try c.decodeIfPresent(Bool.self,   forKey: .soundEffectsEnabled)  ?? true
+        hapticFeedbackEnabled = try c.decodeIfPresent(Bool.self,   forKey: .hapticFeedbackEnabled) ?? true
     }
 
     /// True if this student account is blocked pending a parent's email approval.
@@ -86,5 +125,12 @@ struct UserProfile: Codable, Identifiable, Equatable {
         } else {
             self.parentalConsentStatus = (role == .student) ? nil : "not_required"
         }
+        // Phase 2: Initialize gamification fields
+        self.xp = 0
+        self.level = 1
+        self.avatarConfig = nil
+        self.streakFreezes = 0
+        self.soundEffectsEnabled = true
+        self.hapticFeedbackEnabled = true
     }
 }

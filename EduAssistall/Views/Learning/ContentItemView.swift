@@ -237,6 +237,20 @@ struct ContentItemView: View {
             try await FirestoreService.shared.saveProgress(progress)
             isComplete = true
             onProgressUpdated(progress)
+            
+            // Phase 2: Award XP for lesson completion
+            let xpAwarded = XPManager.awardLessonCompletion()
+            try? await FirestoreService.shared.awardXP(studentId: studentId, xpAmount: xpAwarded)
+            
+            // Phase 2: Check for level up
+            if let profile = try? await FirestoreService.shared.fetchUserProfile(uid: studentId) {
+                let newXP = profile.xp + xpAwarded
+                if XPManager.checkLevelUp(currentXP: profile.xp, xpToAdd: xpAwarded) {
+                    let newLevel = XPManager.levelFromXP(newXP)
+                    try? await FirestoreService.shared.updateLevel(studentId: studentId, level: newLevel)
+                }
+            }
+            
             // Fire-and-forget: ask AI to generate recommendations for this student
             Task {
                 try? await CloudFunctionService.shared.generateRecommendations(studentId: studentId)

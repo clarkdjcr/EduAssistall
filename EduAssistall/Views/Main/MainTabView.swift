@@ -360,14 +360,20 @@ struct ProfileSettingsView: View {
                 Section {
                     if let profile = authVM.currentProfile {
                         HStack(spacing: 14) {
-                            Circle()
-                                .fill(Color.blue.opacity(0.15))
-                                .frame(width: 56, height: 56)
-                                .overlay(
-                                    Text(profile.displayName.prefix(1).uppercased())
-                                        .font(.title2.bold())
-                                        .foregroundStyle(.blue)
-                                )
+                            // Phase 2: Avatar display in profile
+                            if let avatarConfig = profile.avatarConfig {
+                                AvatarPreviewView(config: avatarConfig)
+                                    .frame(width: 56, height: 56)
+                            } else {
+                                Circle()
+                                    .fill(Color.blue.opacity(0.15))
+                                    .frame(width: 56, height: 56)
+                                    .overlay(
+                                        Text(profile.displayName.prefix(1).uppercased())
+                                            .font(.title2.bold())
+                                            .foregroundStyle(.blue)
+                                    )
+                            }
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(profile.displayName)
                                     .font(.headline)
@@ -380,6 +386,17 @@ struct ProfileSettingsView: View {
                             }
                         }
                         .padding(.vertical, 6)
+                    }
+                }
+
+                // Phase 2: Avatar customization (students only)
+                if let profile = authVM.currentProfile, profile.role == .student {
+                    Section {
+                        NavigationLink {
+                            AvatarCustomizationView()
+                        } label: {
+                            Label("Customize Avatar", systemImage: "person.crop.circle")
+                        }
                     }
                 }
 
@@ -398,6 +415,36 @@ struct ProfileSettingsView: View {
                         Label("Accessibility", systemImage: "accessibility")
                     }
                     .accessibilityLabel("Accessibility settings")
+
+                    // Phase 1: Sound effects toggle (students only)
+                    if let profile = authVM.currentProfile, profile.role == .student {
+                        Toggle("Sound Effects", isOn: Binding(
+                            get: { profile.soundEffectsEnabled },
+                            set: { newValue in
+                                Task {
+                                    var updatedProfile = profile
+                                    updatedProfile.soundEffectsEnabled = newValue
+                                    try? await FirestoreService.shared.updateUserProfile(updatedProfile)
+                                }
+                            }
+                        ))
+                        .tint(.blue)
+                    }
+
+                    // Phase 1: Haptic feedback toggle (students only)
+                    if let profile = authVM.currentProfile, profile.role == .student {
+                        Toggle("Haptic Feedback", isOn: Binding(
+                            get: { profile.hapticFeedbackEnabled },
+                            set: { newValue in
+                                Task {
+                                    var updatedProfile = profile
+                                    updatedProfile.hapticFeedbackEnabled = newValue
+                                    try? await FirestoreService.shared.updateUserProfile(updatedProfile)
+                                }
+                            }
+                        ))
+                        .tint(.blue)
+                    }
 
                     // FR-203: Classroom configuration — visible to teachers
                     if let profile = authVM.currentProfile, profile.role == .teacher {

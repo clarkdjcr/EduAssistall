@@ -283,6 +283,19 @@ struct QuizView: View {
             try? await FirestoreService.shared.saveProgress(progress)
             onProgressUpdated(progress)
             await FirestoreService.shared.checkAndAwardBadges(studentId: studentId)
+            
+            // Phase 2: Award XP for quiz completion
+            let xpAwarded = XPManager.awardQuizCompletion(score: correctCount, maxScore: questions.count)
+            try? await FirestoreService.shared.awardXP(studentId: studentId, xpAmount: xpAwarded)
+            
+            // Phase 2: Check for level up
+            if let profile = try? await FirestoreService.shared.fetchUserProfile(uid: studentId) {
+                let newXP = profile.xp + xpAwarded
+                if XPManager.checkLevelUp(currentXP: profile.xp, xpToAdd: xpAwarded) {
+                    let newLevel = XPManager.levelFromXP(newXP)
+                    try? await FirestoreService.shared.updateLevel(studentId: studentId, level: newLevel)
+                }
+            }
         }
         isSaving = false
     }
