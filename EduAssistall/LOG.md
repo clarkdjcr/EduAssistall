@@ -77,3 +77,9 @@
 **Outcome:** Success
 **Summary:** Fixed quest task progress naming collision.
 **Details:** Updated `Views/Discovery/QuestsView.swift` so `TaskRow` uses `progressFraction` for display math instead of redeclaring `progress`.
+
+## 2026-06-22T12:24:13 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Corrected recommendation review messaging for lesson workflows.
+**Details:** Updated `Views/Recommendations/RecommendationDetailView.swift` so lesson-plan and teaching-day approval no longer claims that students can see the item before assignment.

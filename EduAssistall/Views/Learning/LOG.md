@@ -47,3 +47,9 @@
 **Outcome:** Success
 **Summary:** Clarified assignment prerequisites for teacher-created paths.
 **Details:** Updated `CreateLearningPathView.swift` empty-state copy so teachers invite/link students before assigning paths.
+
+## 2026-06-22T12:24:13 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Recognized daily lesson assignments as EduAssist-native content.
+**Details:** Updated `ContentItemView.swift` so content items with source `eduassist-lesson-day` render in-app with the approved daily assignment text.

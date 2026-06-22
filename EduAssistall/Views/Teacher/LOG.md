@@ -59,3 +59,9 @@
 **Outcome:** Success
 **Summary:** Added a behavior and documentation assistant for teachers.
 **Details:** Created `BehaviorDocumentationView.swift` so teachers can capture classroom incidents, phone/distraction patterns, actions taken, follow-up status, and an admin-ready summary without automated discipline decisions.
+
+## 2026-06-22T12:24:13 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Clarified lesson-plan approval versus student assignment delivery.
+**Details:** Updated `GenerateLessonPlanView.swift` so the review, daily approval, and assignment sections state that students do not receive work until reviewed daily assignments create learning paths.

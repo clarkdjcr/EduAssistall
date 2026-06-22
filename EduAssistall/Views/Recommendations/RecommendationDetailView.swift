@@ -16,7 +16,7 @@ struct RecommendationDetailView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
                         .font(.caption2)
-                    Text("AI generated · Human review required before student sees this")
+                    Text(reviewBadgeText)
                         .font(.caption2)
                 }
                 .foregroundStyle(.white)
@@ -133,7 +133,7 @@ struct RecommendationDetailView: View {
         HStack {
             Image(systemName: actionTaken == .approved ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .foregroundStyle(actionTaken == .approved ? Color.green : Color.red)
-            Text(actionTaken == .approved ? "Approved — student can now see this recommendation." : "Rejected and removed from queue.")
+            Text(actionConfirmationText)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -152,6 +152,26 @@ struct RecommendationDetailView: View {
         case .lessonPlan:   return "Lesson Plan"
         case .lessonDay:    return "Teaching Day"
         }
+    }
+
+    private var isLessonWorkflowRecommendation: Bool {
+        recommendation.type == .lessonPlan || recommendation.type == .lessonDay
+    }
+
+    private var reviewBadgeText: String {
+        isLessonWorkflowRecommendation
+            ? "AI generated · Teacher approval required before assignment"
+            : "AI generated · Human review required before student sees this"
+    }
+
+    private var actionConfirmationText: String {
+        guard actionTaken == .approved else {
+            return "Rejected and removed from queue."
+        }
+        if isLessonWorkflowRecommendation {
+            return "Approved for the lesson workflow. Students will not see it until daily assignments are created."
+        }
+        return "Approved — student can now see this recommendation."
     }
 
     private func act(status: RecommendationStatus) async {

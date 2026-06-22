@@ -351,7 +351,7 @@ struct GenerateLessonPlanView: View {
     private var reviewSection: some View {
         LessonWorkspaceSection(
             "Teacher Review",
-            footer: "Edit the AI recommendation here. Approving the plan asks AI to parse it into teaching-day recommendations for a second review."
+            footer: "Edit the AI recommendation here. Approving the plan does not send anything to students; it creates teaching-day recommendations for a second review."
         ) {
             if result?.documentId != nil {
                 Label("Saved as a draft document for review", systemImage: "checkmark.circle.fill")
@@ -397,8 +397,18 @@ struct GenerateLessonPlanView: View {
     private var dailyRecommendationsSection: some View {
         LessonWorkspaceSection(
             "Daily AI Recommendations",
-            footer: "Review each AI-parsed teaching day. Assignment is available only after every day is approved."
+            footer: "Review each AI-parsed teaching day. These are teacher-only drafts until you approve every day and create student assignments below."
         ) {
+            Label(
+                allDaysApproved
+                    ? "Daily lessons are approved. Use Assign below to create student learning paths."
+                    : "Not sent yet. Students will not see these daily lessons until you approve them and assign them.",
+                systemImage: allDaysApproved ? "paperplane.circle.fill" : "lock.fill"
+            )
+            .font(.subheadline)
+            .foregroundStyle(allDaysApproved ? .green : .secondary)
+            .fixedSize(horizontal: false, vertical: true)
+
             ForEach(dailyRecommendations) { day in
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
@@ -453,7 +463,7 @@ struct GenerateLessonPlanView: View {
     private var assignmentSection: some View {
         LessonWorkspaceSection(
             "Assign",
-            footer: "EduAssist creates one reviewed lesson content item and an active learning path for each selected student."
+            footer: "EduAssist creates reviewed daily lesson content and an active learning path for each selected student. Students see the approved daily assignments, not the raw lesson plan."
         ) {
             LessonField("Assignment title") {
                 TextField("Assignment title", text: $assignmentTitle)
@@ -493,7 +503,7 @@ struct GenerateLessonPlanView: View {
                     }
                     .frame(maxWidth: .infinity)
                 } else {
-                    Label("Assign to \(selectedStudentIds.count) Student\(selectedStudentIds.count == 1 ? "" : "s")", systemImage: "paperplane.fill")
+                    Label("Create Student Assignment\(selectedStudentIds.count == 1 ? "" : "s") for \(selectedStudentIds.count)", systemImage: "paperplane.fill")
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -673,7 +683,7 @@ struct GenerateLessonPlanView: View {
                 )
                 dailyRecommendations = days.sorted { $0.dayNumber < $1.dayNumber }
                 approvedDayIds.removeAll()
-                dailyRecommendationMessage = "Created \(days.count) daily recommendation\(days.count == 1 ? "" : "s") for review."
+                dailyRecommendationMessage = "Created \(days.count) daily recommendation\(days.count == 1 ? "" : "s"). Review and approve each day, then create student assignments below."
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -742,7 +752,7 @@ struct GenerateLessonPlanView: View {
                     studentIds: Array(selectedStudentIds)
                 )
                 assignedCount = response.assignedCount
-                assignmentMessage = "Assigned to \(response.assignedCount) student\(response.assignedCount == 1 ? "" : "s")."
+                assignmentMessage = "Created daily lesson assignment\(response.assignedCount == 1 ? "" : "s") for \(response.assignedCount) student\(response.assignedCount == 1 ? "" : "s"). Students can open the approved work in Learning."
             } catch {
                 errorMessage = error.localizedDescription
             }

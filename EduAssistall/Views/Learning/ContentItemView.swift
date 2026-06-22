@@ -263,6 +263,7 @@ struct ContentItemView: View {
 
     private var isEduAssistAssignment: Bool {
         item.source == "eduassist-lesson-plan" ||
+        item.source == "eduassist-lesson-day" ||
         item.url.hasPrefix("eduassist://lessonPlans/") ||
         item.url.hasPrefix("eduassist://officialDocuments/")
     }
