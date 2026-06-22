@@ -88,6 +88,182 @@ final class FirestoreService {
         ])
     }
 
+    // MARK: - Phase 3: Kudos System
+
+    func sendKudos(_ kudos: Kudos) async throws {
+        let data = try Firestore.Encoder().encode(kudos)
+        try await db.collection("kudos").document(kudos.id).setData(data)
+        
+        // Update sender stats
+        let senderStats = (try? await fetchKudosStats(studentId: kudos.fromStudentId)) ?? KudosStats(studentId: kudos.fromStudentId)
+        var updatedSenderStats = senderStats
+        updatedSenderStats.givenCount += 1
+        updatedSenderStats.lastGivenDate = Date()
+        try await saveKudosStats(updatedSenderStats)
+        
+        // Update receiver stats
+        let receiverStats = (try? await fetchKudosStats(studentId: kudos.toStudentId)) ?? KudosStats(studentId: kudos.toStudentId)
+        var updatedReceiverStats = receiverStats
+        updatedReceiverStats.receivedCount += 1
+        updatedReceiverStats.lastReceivedDate = Date()
+        try await saveKudosStats(updatedReceiverStats)
+    }
+
+    func fetchKudosStats(studentId: String) async throws -> KudosStats? {
+        let snapshot = try await db.collection("kudosStats").document(studentId).getDocument()
+        guard snapshot.exists else { return nil }
+        return try snapshot.data(as: KudosStats.self)
+    }
+
+    func saveKudosStats(_ stats: KudosStats) async throws {
+        let data = try Firestore.Encoder().encode(stats)
+        try await db.collection("kudosStats").document(stats.studentId).setData(data)
+    }
+
+    func fetchRecentKudos(studentId: String) async throws -> [Kudos] {
+        let snapshot = try await db.collection("kudos")
+            .whereField("toStudentId", isEqualTo: studentId)
+            .order(by: "timestamp", descending: true)
+            .limit(to: 10)
+            .getDocuments()
+        return snapshot.documents.compactMap { try? $0.data(as: Kudos.self) }
+    }
+
+    // MARK: - Phase 3: Class Chat
+
+    func sendClassMessage(_ message: ClassChatMessage, classId: String) async throws {
+        let data = try Firestore.Encoder().encode(message)
+        try await db.collection("classes").document(classId).collection("messages").document(message.id).setData(data)
+    }
+
+    func fetchClassMessages(classId: String) async throws -> [ClassChatMessage] {
+        let snapshot = try await db.collection("classes").document(classId).collection("messages")
+            .whereField("approved", isEqualTo: true)
+            .order(by: "timestamp", descending: true)
+            .limit(to: 50)
+            .getDocuments()
+        return snapshot.documents.compactMap { try? $0.data(as: ClassChatMessage.self) }
+    }
+
+    func approveMessage(messageId: String, classId: String, teacherId: String) async throws {
+        try await db.collection("classes").document(classId).collection("messages").document(messageId).updateData([
+            "approved": true,
+            "approvedBy": teacherId,
+            "approvedAt": FieldValue.serverTimestamp()
+        ])
+    }
+
+    // MARK: - Phase 3: Achievement Sharing
+
+    func shareAchievement(_ achievement: ParentAchievement, parentIds: [String]) async throws {
+        let data = try Firestore.Encoder().encode(achievement)
+        // Share to all linked parents
+        for parentId in parentIds {
+            try await db.collection("parents").document(parentId).collection("achievements").document(achievement.id).setData(data)
+        }
+    }
+
+    func fetchParentAchievements(parentId: String) async throws -> [ParentAchievement] {
+        let snapshot = try await db.collection("parents").document(parentId).collection("achievements")
+            .order(by: "timestamp", descending: true)
+            .limit(to: 20)
+            .getDocuments()
+        return snapshot.documents.compactMap { try? $0.data(as: ParentAchievement.self) }
+    }
+
+    func markAchievementViewed(achievementId: String, parentId: String) async throws {
+        try await db.collection("parents").document(parentId).collection("achievements").document(achievementId).updateData([
+            "viewed": true
+        ])
+    }
+
+    // MARK: - Phase 3: Teacher Spotlight
+
+    func createTeacherSpotlight(_ spotlight: TeacherSpotlight) async throws {
+        let data = try Firestore.Encoder().encode(spotlight)
+        try await db.collection("teacherSpotlights").document(spotlight.id).setData(data)
+    }
+
+    func fetchTeacherSpotlights(studentId: String) async throws -> [TeacherSpotlight] {
+        let snapshot = try await db.collection("teacherSpotlights")
+            .whereField("studentId", isEqualTo: studentId)
+            .order(by: "timestamp", descending: true)
+            .limit(to: 10)
+            .getDocuments()
+        return snapshot.documents.compactMap { try? $0.data(as: TeacherSpotlight.self) }
+    }
+
+    func shareSpotlightWithParents(spotlightId: String, parentIds: [String]) async throws {
+        try await db.collection("teacherSpotlights").document(spotlightId).updateData([
+            "sharedWithParents": true
+        ])
+    }
+
+    // MARK: - Phase 4: Quest System
+
+    func saveQuest(_ quest: Quest) async throws {
+        let data = try Firestore.Encoder().encode(quest)
+        try await db.collection("quests").document(quest.id).setData(data)
+    }
+
+    func fetchQuests(studentId: String) async throws -> [Quest] {
+        let snapshot = try await db.collection("quests")
+            .whereField("isActive", isEqualTo: true)
+            .order(by: "startDate", descending: true)
+            .limit(to: 10)
+            .getDocuments()
+        return snapshot.documents.compactMap { try? $0.data(as: Quest.self) }
+    }
+
+    func saveQuestProgress(_ progress: QuestProgress) async throws {
+        let data = try Firestore.Encoder().encode(progress)
+        try await db.collection("questProgress").document(progress.id).setData(data)
+    }
+
+    func fetchQuestProgress(studentId: String, questId: String) async throws -> QuestProgress? {
+        let snapshot = try await db.collection("questProgress")
+            .whereField("studentId", isEqualTo: studentId)
+            .whereField("questId", isEqualTo: questId)
+            .getDocuments()
+        return snapshot.documents.first.map { try? $0.data(as: QuestProgress.self) }
+    }
+
+    func updateQuestTaskProgress(progressId: String, taskId: String, currentValue: Int) async throws {
+        try await db.collection("questProgress").document(progressId).updateData([
+            "taskProgress.\(taskId)": currentValue
+        ])
+    }
+
+    func completeQuest(progressId: String) async throws {
+        try await db.collection("questProgress").document(progressId).updateData([
+            "isCompleted": true,
+            "completedAt": FieldValue.serverTimestamp()
+        ])
+    }
+
+    // MARK: - Phase 4: Content Recommendations
+
+    func saveRecommendation(_ recommendation: ContentRecommendation) async throws {
+        let data = try Firestore.Encoder().encode(recommendation)
+        try await db.collection("recommendations").document(recommendation.id).setData(data)
+    }
+
+    func fetchRecommendations(studentId: String) async throws -> [ContentRecommendation] {
+        let snapshot = try await db.collection("recommendations")
+            .whereField("studentId", isEqualTo: studentId)
+            .whereField("isViewed", isEqualTo: false)
+            .order(by: "relevanceScore", descending: true)
+            .limit(to: 10)
+            .getDocuments()
+        return snapshot.documents.compactMap { try? $0.data(as: ContentRecommendation.self) }
+    }
+
+    func markRecommendationViewed(recommendationId: String) async throws {
+        try await db.collection("recommendations").document(recommendationId).updateData([
+            "isViewed": true
+        ])
+    }
+
     /// Refreshes the stored IANA timezone for an existing user. Called on every sign-in
     /// so the digest schedule stays correct after a move, travel, or DST rollover.
     func updateTimezone(uid: String) async throws {

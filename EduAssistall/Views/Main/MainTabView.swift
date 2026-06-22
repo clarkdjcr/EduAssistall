@@ -76,6 +76,18 @@ private struct StudentTabView: View {
                     Label("Progress", systemImage: "chart.bar.fill")
                 }
 
+            // Phase 4: Quests tab
+            QuestsView(profile: profile)
+                .tabItem {
+                    Label("Quests", systemImage: "flag.fill")
+                }
+
+            // Phase 4: Recommendations tab
+            RecommendationsView(profile: profile, learningProfile: nil)
+                .tabItem {
+                    Label("For You", systemImage: "sparkles")
+                }
+
             ProfileSettingsView()
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")

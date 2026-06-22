@@ -99,6 +99,10 @@ struct StudentDashboardView: View {
                         StreakFreezeCard(count: profile.streakFreezes)
                             .padding(.horizontal, 20)
                     }
+                    
+                    // Phase 4: Daily Educational Tip
+                    DailyTipCard()
+                        .padding(.horizontal, 20)
 
                     // Learning Style Card
                     if let lp = learningProfile, let style = lp.learningStyle {
@@ -760,6 +764,42 @@ private struct StreakFreezeCard: View {
         .padding(14)
         .background(Color.cyan.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+// MARK: - Phase 4: Daily Educational Tip Card
+
+private struct DailyTipCard: View {
+    @State private var tip: String = ""
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.purple.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                Image(systemName: "lightbulb.fill")
+                    .font(.title3)
+                    .foregroundStyle(.purple)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Did You Know?")
+                    .font(.subheadline.bold())
+                Text(tip)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            
+            Spacer()
+        }
+        .padding(14)
+        .background(Color.purple.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .onAppear {
+            tip = EducationalTips.randomTip()
+        }
     }
 }
 

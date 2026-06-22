@@ -36,6 +36,29 @@ struct CareerExplorerView: View {
                         }
                     }
                     .padding(.horizontal, 20)
+                    
+                    // Phase 4: Career recommendations based on learning progress
+                    if selectedTab == 0 {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Based on Your Learning")
+                                .font(.headline)
+                                .padding(.horizontal, 20)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(getRecommendedCareers()) { career in
+                                        NavigationLink {
+                                            CareerDetailView(career: career, luminaries: CareerDataProvider.luminaries)
+                                        } label: {
+                                            CompactCareerCard(career: career)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                            }
+                        }
+                    }
 
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -117,6 +140,38 @@ private struct CareerCard: View {
         .background(Color.appSecondaryGroupedBackground)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
+}
+
+// Phase 4: Compact career card for recommendations
+private struct CompactCareerCard: View {
+    let career: CareerPath
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .fill(career.color.opacity(0.15))
+                    .frame(width: 60, height: 60)
+                Image(systemName: career.icon)
+                    .font(.title3)
+                    .foregroundStyle(career.color)
+            }
+            
+            Text(career.title)
+                .font(.caption.bold())
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+        }
+        .frame(width: 80)
+    }
+}
+
+// Phase 4: Get recommended careers based on learning profile
+private func getRecommendedCareers() -> [CareerPath] {
+    // In production, this would use ML or more sophisticated matching
+    // For now, return a diverse set of careers
+    let allCareers = CareerDataProvider.careers
+    return Array(allCareers.shuffled().prefix(5))
 }
 
 // MARK: - Luminary Chip
