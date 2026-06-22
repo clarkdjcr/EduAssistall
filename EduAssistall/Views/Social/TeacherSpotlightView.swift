@@ -52,7 +52,7 @@ struct TeacherSpotlightView: View {
     let profile: UserProfile
     let students: [UserProfile]
     
-    @State private var selectedStudent: UserProfile?
+    @State private var selectedStudentId = ""
     @State private var reason: String = ""
     @State private var isSending = false
     @State private var showAlert = false
@@ -62,10 +62,10 @@ struct TeacherSpotlightView: View {
         NavigationStack {
             Form {
                 Section {
-                    Picker("Select Student", selection: $selectedStudent) {
-                        Text("Choose a student").tag(nil as UserProfile?)
+                    Picker("Select Student", selection: $selectedStudentId) {
+                        Text("Choose a student").tag("")
                         ForEach(students) { student in
-                            Text(student.displayName).tag(student as UserProfile?)
+                            Text(student.displayName).tag(student.id)
                         }
                     }
                     
@@ -85,11 +85,11 @@ struct TeacherSpotlightView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(selectedStudent != nil && !reason.isEmpty ? Color.blue : Color.gray)
+                        .background(!selectedStudentId.isEmpty && !reason.isEmpty ? Color.blue : Color.gray)
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .disabled(selectedStudent == nil || reason.isEmpty || isSending)
+                    .disabled(selectedStudentId.isEmpty || reason.isEmpty || isSending)
                 } header: {
                     Text("Create Spotlight")
                 }
@@ -104,7 +104,7 @@ struct TeacherSpotlightView: View {
     }
     
     private func createSpotlight() {
-        guard let selected = selectedStudent else { return }
+        guard let selected = students.first(where: { $0.id == selectedStudentId }) else { return }
         
         Task {
             isSending = true
@@ -125,7 +125,7 @@ struct TeacherSpotlightView: View {
                 alertMessage = "Spotlight created for \(selected.displayName)!"
                 showAlert = true
                 reason = ""
-                selectedStudent = nil
+                selectedStudentId = ""
             } catch {
                 alertMessage = "Failed to create spotlight. Please try again."
                 showAlert = true

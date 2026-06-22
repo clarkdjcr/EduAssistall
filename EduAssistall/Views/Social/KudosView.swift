@@ -6,7 +6,7 @@ struct KudosView: View {
     let classmates: [UserProfile]
     
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedStudent: UserProfile?
+    @State private var selectedStudentId = ""
     @State private var reason: String = ""
     @State private var kudosStats: KudosStats?
     @State private var recentKudos: [Kudos] = []
@@ -65,11 +65,11 @@ struct KudosView: View {
                 
                 // Give kudos section
                 Section {
-                    Picker("Select Classmate", selection: $selectedStudent) {
-                        Text("Choose a classmate").tag(nil as UserProfile?)
+                    Picker("Select Classmate", selection: $selectedStudentId) {
+                        Text("Choose a classmate").tag("")
                         ForEach(classmates) { classmate in
                             if classmate.id != profile.id {
-                                Text(classmate.displayName).tag(classmate as UserProfile?)
+                                Text(classmate.displayName).tag(classmate.id)
                             }
                         }
                     }
@@ -90,11 +90,11 @@ struct KudosView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(selectedStudent != nil && !reason.isEmpty ? Color.blue : Color.gray)
+                        .background(!selectedStudentId.isEmpty && !reason.isEmpty ? Color.blue : Color.gray)
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .disabled(selectedStudent == nil || reason.isEmpty || isSending)
+                    .disabled(selectedStudentId.isEmpty || reason.isEmpty || isSending)
                 } header: {
                     Text("Give Kudos")
                 }
@@ -139,7 +139,7 @@ struct KudosView: View {
     }
     
     private func sendKudos() {
-        guard let selected = selectedStudent else { return }
+        guard let selected = classmates.first(where: { $0.id == selectedStudentId }) else { return }
         
         Task {
             isSending = true
@@ -168,7 +168,7 @@ struct KudosView: View {
                 alertMessage = "Kudos sent to \(selected.displayName)!"
                 showAlert = true
                 reason = ""
-                selectedStudent = nil
+                selectedStudentId = ""
             } catch {
                 alertMessage = "Failed to send kudos. Please try again."
                 showAlert = true

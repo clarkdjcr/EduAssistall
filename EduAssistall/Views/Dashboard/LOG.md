@@ -23,3 +23,33 @@
 **Outcome:** Success
 **Summary:** Consolidated student dashboard work entry around assigned learning paths.
 **Details:** Updated `StudentDashboardView.swift` to stop showing separate weekly assignments and approved AI recommendation cards, leaving assigned learning paths as the student-facing activity surface.
+
+## 2026-06-22T11:48:02 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added dashboard access to behavior documentation.
+**Details:** Updated `TeacherDashboardView.swift` with a `Document Behavior` quick action that opens the new teacher documentation workflow.
+
+## 2026-06-22T11:52:26 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added open documentation follow-ups to the teacher dashboard.
+**Details:** Updated `TeacherDashboardView.swift` with a `Today's Teacher Tasks` panel that surfaces unresolved behavior documentation records and lets teachers copy admin-ready summaries.
+
+## 2026-06-22T12:10:09 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added task completion for documentation follow-ups.
+**Details:** Updated `TeacherDashboardView.swift` so open documentation task cards can be marked resolved and disappear from the teacher task list.
+
+## 2026-06-22T12:13:12 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added parent contact drafts to teacher task cards.
+**Details:** Updated `TeacherDashboardView.swift` so documentation follow-up tasks can copy a calm, teacher-reviewed parent contact draft without sending automatically.
+
+## 2026-06-22T12:16:06 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Compacted teacher task card actions.
+**Details:** Updated `TeacherDashboardView.swift` to move copy summary, parent draft, and mark resolved actions into a single task-card menu for smaller screens.

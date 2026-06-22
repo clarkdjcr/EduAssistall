@@ -225,7 +225,7 @@ final class FirestoreService {
             .whereField("studentId", isEqualTo: studentId)
             .whereField("questId", isEqualTo: questId)
             .getDocuments()
-        return snapshot.documents.first.map { try? $0.data(as: QuestProgress.self) }
+        return try snapshot.documents.first?.data(as: QuestProgress.self)
     }
 
     func updateQuestTaskProgress(progressId: String, taskId: String, currentValue: Int) async throws {
@@ -1313,6 +1313,36 @@ final class FirestoreService {
 
     func deleteTeacherJournalEntry(teacherId: String, entryId: String) async throws {
         try await teacherJournalCollection(teacherId).document(entryId).delete()
+    }
+
+    // MARK: - Teacher Documentation (behavior, contact, and intervention notes)
+
+    private func teacherDocumentationCollection(_ teacherId: String) -> CollectionReference {
+        db.collection("teacherDocumentation").document(teacherId).collection("records")
+    }
+
+    func fetchTeacherDocumentationRecords(teacherId: String, limit: Int = 50) async throws -> [TeacherDocumentationRecord] {
+        let snap = try await teacherDocumentationCollection(teacherId)
+            .order(by: "occurredAt", descending: true)
+            .limit(to: limit)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: TeacherDocumentationRecord.self) }
+    }
+
+    func saveTeacherDocumentationRecord(_ record: TeacherDocumentationRecord) async throws {
+        let data = try Firestore.Encoder().encode(record)
+        try await teacherDocumentationCollection(record.teacherId).document(record.id).setData(data)
+    }
+
+    func updateTeacherDocumentationFollowUpStatus(
+        teacherId: String,
+        recordId: String,
+        status: TeacherDocumentationFollowUpStatus
+    ) async throws {
+        try await teacherDocumentationCollection(teacherId).document(recordId).updateData([
+            "followUpStatus": status.rawValue,
+            "updatedAt": Date()
+        ])
     }
 
     // MARK: - SharedFiles

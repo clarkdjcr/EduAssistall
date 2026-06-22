@@ -125,3 +125,9 @@
 **Outcome:** Success
 **Summary:** Restricted first-time client profile creation to parent accounts.
 **Details:** Updated `firestore.rules` so student and teacher roles cannot be self-declared during open signup.
+
+## 2026-06-22T11:48:02 — [CONFIG_CHANGE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added owner-only Firestore rules for teacher documentation records.
+**Details:** Updated `firestore.rules` so `teacherDocumentation/{teacherId}/records/{recordId}` can only be read or written by the owning teacher.

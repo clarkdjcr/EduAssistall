@@ -47,3 +47,21 @@
 **Outcome:** Success
 **Summary:** Removed uninvited student fallback profile creation.
 **Details:** Updated `AuthViewModel.swift` so open self-registration is parent-only and unknown authenticated users without profiles are initialized as parents, not students.
+
+## 2026-06-22T11:48:02 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added Firestore access for teacher documentation records.
+**Details:** Updated `FirestoreService.swift` with owner-scoped save and fetch methods under `teacherDocumentation/{teacherId}/records`.
+
+## 2026-06-22T12:00:31 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Fixed optional decoding for quest progress lookup.
+**Details:** Updated `FirestoreService.swift` so `fetchQuestProgress(studentId:questId:)` returns a single optional `QuestProgress` instead of a nested optional from `map`.
+
+## 2026-06-22T12:10:09 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added follow-up status updates for teacher documentation.
+**Details:** Updated `FirestoreService.swift` with `updateTeacherDocumentationFollowUpStatus(teacherId:recordId:status:)` so dashboard tasks can be marked resolved.

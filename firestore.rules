@@ -368,6 +368,15 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
+    // teacherDocumentation/{teacherId}/records/{recordId}
+    // Teacher-owned behavior/contact/intervention documentation. Owner-only by
+    // default; teachers can copy/export admin-ready summaries when they choose.
+    // -------------------------------------------------------------------------
+    match /teacherDocumentation/{teacherId}/records/{recordId} {
+      allow read, write: if request.auth != null && request.auth.uid == teacherId;
+    }
+
+    // -------------------------------------------------------------------------
     // teacherHints/{studentId}  — one doc per student, written by linked teacher
     // -------------------------------------------------------------------------
     match /teacherHints/{studentId} {

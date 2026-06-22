@@ -41,3 +41,15 @@
 **Outcome:** Success
 **Summary:** Clarified student-adult link semantics.
 **Details:** Updated `StudentAdultLink.swift` comments/defaults so current teacher-invite and parent-lookup links are confirmed relationships, with pending links treated as legacy.
+
+## 2026-06-22T11:48:02 — [FILE_CREATE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added teacher documentation record models.
+**Details:** Created `TeacherDocumentationRecord.swift` with behavior, distraction, contact, intervention, follow-up, and admin-ready summary fields for teacher-owned documentation.
+
+## 2026-06-22T11:58:04 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Fixed Quest model SwiftUI color compilation.
+**Details:** Updated `Quest.swift` to import SwiftUI because `QuestDifficulty.color` returns `Color`.

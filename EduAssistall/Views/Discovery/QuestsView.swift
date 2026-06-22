@@ -293,7 +293,7 @@ private struct TaskRow: View {
         progress?.taskProgress[task.id] ?? 0
     }
     
-    private var progress: Double {
+    private var progressFraction: Double {
         guard task.targetValue > 0 else { return 0 }
         return Double(currentValue) / Double(task.targetValue)
     }
@@ -318,7 +318,7 @@ private struct TaskRow: View {
             
             Spacer()
             
-            Text("\(Int(progress * 100))%")
+            Text("\(Int(progressFraction * 100))%")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

@@ -1,4 +1,9 @@
 import SwiftUI
+#if os(iOS) || os(visionOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 struct TeacherDashboardView: View {
     let profile: UserProfile
@@ -14,14 +19,21 @@ struct TeacherDashboardView: View {
     @State private var showManageRoster = false
     @State private var showAddStudent = false
     @State private var showLessonPlan = false
+    @State private var showBehaviorDocumentation = false
     @State private var assignPathStudent: StudentAdultLink? = nil
     @State private var activePathCount = 0
+    @State private var documentationRecords: [TeacherDocumentationRecord] = []
 
     private var confirmedStudents: [StudentAdultLink] {
         linkedStudents.filter(\.confirmed)
     }
     private var confirmedIds: [String] { confirmedStudents.map(\.studentId) }
     private var totalPending: Int { pendingByStudent.values.reduce(0, +) }
+    private var openDocumentationTasks: [TeacherDocumentationRecord] {
+        documentationRecords
+            .filter { $0.followUpStatus == .needsFollowUp || $0.followUpStatus == .referredToAdmin }
+            .sorted { $0.occurredAt > $1.occurredAt }
+    }
 
     var body: some View {
         NavigationStack {
@@ -36,6 +48,7 @@ struct TeacherDashboardView: View {
                             .padding(.horizontal, 20)
                     }
                     statsRow
+                    teacherTasks
                     studentRoster
                     quickActions
                     Spacer(minLength: 32)
@@ -86,6 +99,10 @@ struct TeacherDashboardView: View {
                 GenerateLessonPlanView(teacherProfile: profile)
                     .macSheetFrame(width: 1100, height: 780)
             }
+            .sheet(isPresented: $showBehaviorDocumentation, onDismiss: { Task { await loadStudents() } }) {
+                BehaviorDocumentationView(teacherProfile: profile)
+                    .macSheetFrame(width: 880, height: 760)
+            }
             .sheet(item: $assignPathStudent) { link in
                 CreateLearningPathView(teacherProfile: profile, preselectedLink: link) {
                     Task { await loadStudents() }
@@ -134,6 +151,54 @@ struct TeacherDashboardView: View {
                               label: "Active Paths",
                               icon: "list.clipboard.fill",
                               color: .purple)
+        }
+        .padding(.horizontal, 20)
+    }
+
+    // MARK: - Teacher Tasks
+
+    private var teacherTasks: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Today's Teacher Tasks")
+                        .font(.headline)
+                    Text(openDocumentationTasks.isEmpty ? "No open behavior follow-ups." : "\(openDocumentationTasks.count) documentation follow-up\(openDocumentationTasks.count == 1 ? "" : "s") need attention.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button {
+                    showBehaviorDocumentation = true
+                } label: {
+                    Label("Document", systemImage: "square.and.pencil")
+                        .font(.caption.bold())
+                }
+            }
+
+            if openDocumentationTasks.isEmpty {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text("You are clear on documented behavior follow-ups.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.appSecondaryGroupedBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                ForEach(openDocumentationTasks.prefix(3)) { record in
+                    TeacherTaskCard(record: record) {
+                        copyToClipboard(record.adminReadySummary)
+                    } onCopyParentDraft: {
+                        copyToClipboard(ParentContactDraftBuilder.draft(for: record, teacherName: profile.displayName))
+                    } onResolve: {
+                        await markDocumentationTaskResolved(record)
+                    }
+                }
+            }
         }
         .padding(.horizontal, 20)
     }
@@ -220,6 +285,13 @@ struct TeacherDashboardView: View {
                 }
                 .buttonStyle(.plain)
 
+                Button {
+                    showBehaviorDocumentation = true
+                } label: {
+                    QuickActionCard(icon: "doc.text.fill", label: "Document Behavior", color: .orange)
+                }
+                .buttonStyle(.plain)
+
                 NavigationLink {
                     PendingRecommendationsView(reviewerProfile: profile, studentIds: confirmedIds)
                 } label: {
@@ -270,6 +342,7 @@ struct TeacherDashboardView: View {
             // Load names, pending recs, and active path count in parallel
             async let pendingFetch = FirestoreService.shared.fetchPendingRecommendations(studentIds: ids)
             async let pathsFetch = FirestoreService.shared.fetchLearningPathsCreatedBy(teacherId: profile.id)
+            async let documentationFetch = FirestoreService.shared.fetchTeacherDocumentationRecords(teacherId: profile.id)
 
             var names: [String: String] = [:]
             await withTaskGroup(of: (String, String?).self) { group in
@@ -292,10 +365,171 @@ struct TeacherDashboardView: View {
 
             let paths = (try? await pathsFetch) ?? []
             activePathCount = paths.filter(\.isActive).count
+
+            documentationRecords = (try? await documentationFetch) ?? []
         } catch {
             loadError = error
         }
         isLoading = false
+    }
+
+    private func copyToClipboard(_ text: String) {
+        #if os(iOS) || os(visionOS)
+        UIPasteboard.general.string = text
+        #elseif os(macOS)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        #endif
+    }
+
+    private func markDocumentationTaskResolved(_ record: TeacherDocumentationRecord) async {
+        do {
+            try await FirestoreService.shared.updateTeacherDocumentationFollowUpStatus(
+                teacherId: profile.id,
+                recordId: record.id,
+                status: .resolved
+            )
+            if let index = documentationRecords.firstIndex(where: { $0.id == record.id }) {
+                documentationRecords[index].followUpStatus = .resolved
+                documentationRecords[index].updatedAt = Date()
+            }
+        } catch {
+            loadError = error
+        }
+    }
+}
+
+// MARK: - Teacher Task Card
+
+private struct TeacherTaskCard: View {
+    let record: TeacherDocumentationRecord
+    let onCopySummary: () -> Void
+    let onCopyParentDraft: () -> Void
+    let onResolve: () async -> Void
+    @State private var isResolving = false
+
+    private var title: String {
+        switch record.followUpStatus {
+        case .needsFollowUp:
+            return "Follow up with \(record.studentName)"
+        case .referredToAdmin:
+            return "Check admin referral"
+        case .contactedHome:
+            return "Home contacted"
+        case .resolved:
+            return "Resolved"
+        case .none:
+            return "Documentation note"
+        }
+    }
+
+    private var subtitle: String {
+        let nextStep = record.nextStep.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !nextStep.isEmpty { return nextStep }
+        return record.category == .distraction
+            ? "Review the distraction pattern and choose the next classroom support."
+            : "Review the record and choose the next support action."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.subheadline.bold())
+                    Text("\(record.category.displayName) · \(record.occurredAt.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(record.followUpStatus.displayName)
+                    .font(.caption2.bold())
+                    .foregroundStyle(record.followUpStatus == .referredToAdmin ? .orange : .blue)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background((record.followUpStatus == .referredToAdmin ? Color.orange : Color.blue).opacity(0.12))
+                    .clipShape(Capsule())
+            }
+
+            Text(subtitle)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+
+            HStack {
+                Menu {
+                    Button(action: onCopySummary) {
+                        Label("Copy Summary", systemImage: "doc.on.doc")
+                    }
+                    Button(action: onCopyParentDraft) {
+                        Label("Copy Parent Draft", systemImage: "envelope")
+                    }
+                    Button {
+                        Task {
+                            isResolving = true
+                            await onResolve()
+                            isResolving = false
+                        }
+                    } label: {
+                        Label("Mark Resolved", systemImage: "checkmark.circle")
+                    }
+                    .disabled(isResolving)
+                } label: {
+                    Label(isResolving ? "Resolving..." : "Actions",
+                          systemImage: isResolving ? "hourglass" : "ellipsis.circle")
+                }
+                .font(.caption)
+                Spacer()
+                Text(record.studentName)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.appSecondaryGroupedBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+private enum ParentContactDraftBuilder {
+    static func draft(for record: TeacherDocumentationRecord, teacherName: String) -> String {
+        let student = record.studentName
+        let summary = record.objectiveSummary.trimmingCharacters(in: .whitespacesAndNewlines)
+        let action = record.teacherAction.trimmingCharacters(in: .whitespacesAndNewlines)
+        let response = record.studentResponse.trimmingCharacters(in: .whitespacesAndNewlines)
+        let nextStep = record.nextStep.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var lines: [String] = []
+        lines.append("Hello,")
+        lines.append("")
+        lines.append("I wanted to share a quick update about \(student) from class on \(record.occurredAt.formatted(date: .abbreviated, time: .shortened)).")
+        if !summary.isEmpty {
+            lines.append("")
+            lines.append("What I observed: \(summary)")
+        }
+        if !action.isEmpty {
+            lines.append("")
+            lines.append("Support provided in class: \(action)")
+        }
+        if !response.isEmpty {
+            lines.append("")
+            lines.append("Student response: \(response)")
+        }
+        if !nextStep.isEmpty {
+            lines.append("")
+            lines.append("Next step: \(nextStep)")
+        } else {
+            lines.append("")
+            lines.append("Next step: I will continue monitoring and supporting \(student) in class.")
+        }
+        lines.append("")
+        lines.append("Please let me know if there is anything helpful I should know from home. This message is meant to support \(student), not to assign a consequence.")
+        lines.append("")
+        lines.append("Thank you,")
+        lines.append(teacherName)
+        return lines.joined(separator: "\n")
     }
 }
 

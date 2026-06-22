@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // Phase 4: Quest system
 struct Quest: Codable, Identifiable {

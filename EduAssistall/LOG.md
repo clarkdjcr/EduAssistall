@@ -59,3 +59,21 @@
 **Outcome:** Success
 **Summary:** Clarified signup, invite, onboarding, and legacy link language.
 **Details:** Updated auth, onboarding, dashboard, parent link, profile link, and teacher invite views so open registration is parent-only and student accounts are teacher-invited.
+
+## 2026-06-22T11:48:02 — [FILE_CREATE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added teacher behavior and documentation support.
+**Details:** Created a teacher-owned documentation record model and behavior documentation workflow, added Firestore save/fetch support, and wired the workflow into the teacher dashboard.
+
+## 2026-06-22T12:03:04 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Fixed social view picker selections for SwiftUI compilation.
+**Details:** Updated `Views/Social/KudosView.swift` and `Views/Social/TeacherSpotlightView.swift` to select student IDs instead of whole `UserProfile` values, avoiding Hashable conformance requirements.
+
+## 2026-06-22T12:06:31 — [FILE_EDIT]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Fixed quest task progress naming collision.
+**Details:** Updated `Views/Discovery/QuestsView.swift` so `TaskRow` uses `progressFraction` for display math instead of redeclaring `progress`.

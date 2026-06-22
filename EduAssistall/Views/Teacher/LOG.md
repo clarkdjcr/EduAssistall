@@ -53,3 +53,9 @@
 **Outcome:** Success
 **Summary:** Added dynamic readiness descriptions to Teacher Assist.
 **Details:** Updated `TeacherAssistView.swift` so each assist feature explains whether it is live now or waiting for roster, assignment, standards, progress, assessment, session, or flag data.
+
+## 2026-06-22T11:48:02 — [FILE_CREATE]
+**Actor:** Opal
+**Outcome:** Success
+**Summary:** Added a behavior and documentation assistant for teachers.
+**Details:** Created `BehaviorDocumentationView.swift` so teachers can capture classroom incidents, phone/distraction patterns, actions taken, follow-up status, and an admin-ready summary without automated discipline decisions.
