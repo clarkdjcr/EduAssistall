@@ -65,9 +65,9 @@ struct AvatarCustomizationView: View {
                 .buttonStyle(.plain)
             }
             .navigationTitle("Customize Avatar")
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineNavigationTitle()
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
             }

@@ -259,9 +259,9 @@ struct QuestDetailView: View {
                 .padding()
             }
             .navigationTitle("Quest Details")
-            .navigationBarTitleDisplayMode(.inline)
+            .inlineNavigationTitle()
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Close") { dismiss() }
                 }
             }

@@ -110,20 +110,44 @@ extension View {
 
 // Phase 1: Haptic feedback helper
 struct HapticFeedback {
-    static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .medium) {
+    // Platform-neutral styles so call sites compile on macOS/visionOS,
+    // where UIKit's feedback generators are unavailable.
+    enum ImpactStyle {
+        case light, medium, heavy, soft, rigid
+    }
+
+    enum NotificationType {
+        case success, warning, error
+    }
+
+    static func impact(_ style: ImpactStyle = .medium) {
         #if os(iOS)
-        let generator = UIImpactFeedbackGenerator(style: style)
+        let uiStyle: UIImpactFeedbackGenerator.FeedbackStyle
+        switch style {
+        case .light: uiStyle = .light
+        case .medium: uiStyle = .medium
+        case .heavy: uiStyle = .heavy
+        case .soft: uiStyle = .soft
+        case .rigid: uiStyle = .rigid
+        }
+        let generator = UIImpactFeedbackGenerator(style: uiStyle)
         generator.impactOccurred()
         #endif
     }
-    
-    static func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+
+    static func notification(_ type: NotificationType) {
         #if os(iOS)
+        let uiType: UINotificationFeedbackGenerator.FeedbackType
+        switch type {
+        case .success: uiType = .success
+        case .warning: uiType = .warning
+        case .error: uiType = .error
+        }
         let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(type)
+        generator.notificationOccurred(uiType)
         #endif
     }
-    
+
     static func selection() {
         #if os(iOS)
         let generator = UISelectionFeedbackGenerator()
