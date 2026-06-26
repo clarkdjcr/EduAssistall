@@ -39,9 +39,14 @@ struct ComposeMessageView: View {
 
                 if let error = vm.composeError {
                     Section {
-                        Text(error)
-                            .foregroundStyle(.red)
-                            .font(.caption)
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundStyle(.red)
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.primary)
+                        }
+                        .padding(4)
                     }
                 }
             }

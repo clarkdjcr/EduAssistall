@@ -690,6 +690,36 @@ final class FirestoreService {
         ])
     }
 
+    /// Real-time listener for all messages in a thread, ordered chronologically.
+    func listenMessages(
+        threadId: String,
+        onChange: @escaping ([Message]) -> Void
+    ) -> ListenerRegistration {
+        db.collection("messageThreads")
+            .document(threadId)
+            .collection("messages")
+            .order(by: "createdAt", descending: false)
+            .addSnapshotListener { snapshot, _ in
+                guard let docs = snapshot?.documents else { return }
+                let messages = docs.compactMap { try? $0.data(as: Message.self) }
+                onChange(messages)
+            }
+    }
+
+    /// Real-time listener for all threads the user participates in, sorted newest-first.
+    func listenMessageThreads(
+        userId: String,
+        onChange: @escaping ([MessageThread]) -> Void
+    ) -> ListenerRegistration {
+        db.collection("messageThreads")
+            .whereField("participants", arrayContains: userId)
+            .addSnapshotListener { snapshot, _ in
+                guard let docs = snapshot?.documents else { return }
+                let threads = docs.compactMap { try? $0.data(as: MessageThread.self) }
+                onChange(threads.sorted { ($0.lastMessageAt ?? $0.createdAt) > ($1.lastMessageAt ?? $1.createdAt) })
+            }
+    }
+
     func fetchLinkedAdults(studentId: String) async throws -> [StudentAdultLink] {
         let snapshot = try await db.collection("studentAdultLinks")
             .whereField("studentId", isEqualTo: studentId)

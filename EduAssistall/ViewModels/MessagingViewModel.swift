@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseFirestore
 
 @Observable
 final class MessagingViewModel {
@@ -11,6 +12,21 @@ final class MessagingViewModel {
     var composeLoading = false
     var composeSending = false
     var composeError: String?
+
+    private var listener: ListenerRegistration?
+
+    func startListening(userId: String) {
+        isLoading = true
+        listener = FirestoreService.shared.listenMessageThreads(userId: userId) { [weak self] threads in
+            self?.threads = threads
+            self?.isLoading = false
+        }
+    }
+
+    func stopListening() {
+        listener?.remove()
+        listener = nil
+    }
 
     func loadThreads(userId: String) async {
         isLoading = true

@@ -20,29 +20,30 @@ struct MessageThreadView: View {
     var body: some View {
         VStack(spacing: 0) {
             if vm.isLoading {
-                ProgressView()
+                SkeletonBubblesView()
+                    .padding(.top, 20)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 10) {
-                            ForEach(vm.messages) { message in
-                                MessageBubble(
-                                    message: message,
-                                    isFromCurrentUser: message.senderId == currentUser.id
-                                )
-                                .id(message.id)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                    }
-                    .onChange(of: vm.messages.count) { _, _ in
-                        if let last = vm.messages.last {
-                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                        }
-                    }
+                messageList
+            }
+
+            if let error = vm.sendError {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .foregroundStyle(.red)
+                        .font(.caption)
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Button("Dismiss") { withAnimation { vm.sendError = nil } }
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color.red.opacity(0.08))
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
             Divider()
@@ -51,12 +52,14 @@ struct MessageThreadView: View {
                 pendingAttachmentBar
             }
 
-            messageInput
+            messageInputBar
         }
         .background(Color.appGroupedBackground)
         .navigationTitle(thread.otherParticipantName(currentUserId: currentUser.id))
         .inlineNavigationTitle()
-        .task { await vm.loadMessages(threadId: thread.id) }
+        .animation(.easeInOut(duration: 0.25), value: vm.sendError)
+        .onAppear { vm.startListening(threadId: thread.id) }
+        .onDisappear { vm.stopListening() }
         #if os(iOS)
         .sheet(isPresented: $showImagePicker) {
             ImageAttachmentPicker { data, filename, mime in
@@ -66,7 +69,46 @@ struct MessageThreadView: View {
         #endif
     }
 
-    // MARK: - Pending attachment bar
+    // MARK: - Message List
+
+    private var messageList: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 10) {
+                    ForEach(vm.messages) { message in
+                        MessageBubble(
+                            message: message,
+                            isFromCurrentUser: message.senderId == currentUser.id
+                        )
+                        .id(message.id)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                    }
+
+                    if vm.isSending {
+                        SendingBubble()
+                            .id("sending")
+                            .transition(.opacity)
+                    }
+
+                    Color.clear.frame(height: 4).id("bottom")
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: vm.messages.count)
+            }
+            .onChange(of: vm.messages.count) { _, _ in
+                withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
+            }
+            .onChange(of: vm.isSending) { _, _ in
+                withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
+            }
+        }
+    }
+
+    // MARK: - Pending Attachment Bar
 
     private var pendingAttachmentBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -100,9 +142,9 @@ struct MessageThreadView: View {
         .background(Color.appGroupedBackground)
     }
 
-    // MARK: - Message input bar
+    // MARK: - Input Bar
 
-    private var messageInput: some View {
+    private var messageInputBar: some View {
         HStack(spacing: 10) {
             #if os(iOS)
             Button {
@@ -120,19 +162,30 @@ struct MessageThreadView: View {
                 .padding(.vertical, 8)
                 .background(Color.appSecondaryGroupedBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
-
-            Button {
-                Task {
+                .onSubmit {
+                    guard canSend else { return }
                     let body = draftText.trimmingCharacters(in: .whitespaces)
                     let captured = pendingAttachments
                     draftText = ""
                     pendingAttachments = []
-                    await vm.send(thread: thread, currentUser: currentUser, body: body, pendingAttachments: captured)
+                    Task { await vm.send(thread: thread, currentUser: currentUser, body: body, pendingAttachments: captured) }
                 }
+
+            Button {
+                let body = draftText.trimmingCharacters(in: .whitespaces)
+                let captured = pendingAttachments
+                draftText = ""
+                pendingAttachments = []
+                Task { await vm.send(thread: thread, currentUser: currentUser, body: body, pendingAttachments: captured) }
             } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 30))
-                    .foregroundStyle(canSend ? Color.blue : Color.secondary)
+                if vm.isSending {
+                    ProgressView()
+                        .frame(width: 30, height: 30)
+                } else {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 30))
+                        .foregroundStyle(canSend ? Color.blue : Color.secondary)
+                }
             }
             .disabled(!canSend)
         }
@@ -147,6 +200,8 @@ struct MessageThreadView: View {
 private struct MessageBubble: View {
     let message: Message
     let isFromCurrentUser: Bool
+
+    @State private var showTimestamp = false
 
     var body: some View {
         HStack {
@@ -177,8 +232,39 @@ private struct MessageBubble: View {
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
+
+                if showTimestamp {
+                    Text(message.createdAt.formatted(date: .omitted, time: .shortened))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 4)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
             if !isFromCurrentUser { Spacer(minLength: 60) }
+        }
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.2)) { showTimestamp.toggle() }
+        }
+    }
+}
+
+// MARK: - Sending Bubble
+
+private struct SendingBubble: View {
+    @State private var pulsing = false
+
+    var body: some View {
+        HStack {
+            Spacer(minLength: 60)
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color.blue.opacity(0.4))
+                .frame(width: 80, height: 36)
+                .overlay(
+                    ProgressView()
+                        .tint(.white)
+                        .scaleEffect(0.7)
+                )
         }
     }
 }

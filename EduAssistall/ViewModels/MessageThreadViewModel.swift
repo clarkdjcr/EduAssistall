@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseFirestore
 
 struct MessagePendingAttachment: Identifiable {
     let id = UUID()
@@ -12,11 +13,21 @@ final class MessageThreadViewModel {
     var messages: [Message] = []
     var isLoading = false
     var isSending = false
+    var sendError: String?
 
-    func loadMessages(threadId: String) async {
+    private var listener: ListenerRegistration?
+
+    func startListening(threadId: String) {
         isLoading = true
-        messages = (try? await FirestoreService.shared.fetchMessages(threadId: threadId)) ?? []
-        isLoading = false
+        listener = FirestoreService.shared.listenMessages(threadId: threadId) { [weak self] messages in
+            self?.messages = messages
+            self?.isLoading = false
+        }
+    }
+
+    func stopListening() {
+        listener?.remove()
+        listener = nil
     }
 
     func send(
@@ -26,6 +37,7 @@ final class MessageThreadViewModel {
         pendingAttachments: [MessagePendingAttachment]
     ) async {
         isSending = true
+        sendError = nil
 
         var uploaded: [MessageAttachment] = []
         for att in pendingAttachments {
@@ -52,8 +64,12 @@ final class MessageThreadViewModel {
             body: body.isEmpty ? "(Attachment)" : body,
             attachments: uploaded
         )
-        try? await FirestoreService.shared.sendMessage(message)
-        messages.append(message)
+        do {
+            try await FirestoreService.shared.sendMessage(message)
+            // Listener delivers the new message — no manual append needed
+        } catch {
+            withAnimation { sendError = "Message failed to send. Please try again." }
+        }
         isSending = false
     }
 }
