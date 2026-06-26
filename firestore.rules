@@ -492,11 +492,12 @@ service cloud.firestore {
 
     // -------------------------------------------------------------------------
     // weeklyAssignments/{assignmentId}
-    // Teachers create/update. Linked adults/admins can read. Students receive
-    // assigned work through learningPaths/contentItems instead.
+    // Teachers create/update via Cloud Function (admin SDK bypasses rules).
+    // Students read their own; linked adults and admins read all linked students.
     // -------------------------------------------------------------------------
     match /weeklyAssignments/{assignmentId} {
       allow read: if request.auth != null && (
+          resource.data.studentId == request.auth.uid ||
           isLinked(resource.data.studentId) ||
           isAdmin()
       );
