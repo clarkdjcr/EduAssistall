@@ -1404,6 +1404,75 @@ final class FirestoreService {
         try await db.collection("sharedFiles").document(file.id).delete()
     }
 
+    // MARK: - Service Health Snapshots (IT Admin Dashboard)
+
+    struct LatencySnapshot {
+        let p50Ms: Double
+        let p95Ms: Double
+        let p99Ms: Double
+        let breachingTarget: Bool
+        let timestamp: Date
+    }
+
+    struct BackupLogEntry {
+        let status: String      // "success" | "error"
+        let bucketPath: String
+        let timestamp: Date
+        var succeeded: Bool { status == "success" }
+    }
+
+    struct SafetyBenchmarkEntry {
+        let tpr: Double         // true-positive rate 0–1
+        let fpr: Double         // false-positive rate 0–1
+        let corpusSize: Int
+        let passed: Bool
+        let timestamp: Date
+    }
+
+    func fetchLatencySnapshot() async throws -> LatencySnapshot? {
+        let snap = try await db.collection("latencyStats").document("current").getDocument()
+        guard snap.exists, let d = snap.data() else { return nil }
+        let ts = (d["timestamp"] as? Timestamp)?.dateValue() ?? Date()
+        return LatencySnapshot(
+            p50Ms:           d["p50Ms"]           as? Double ?? 0,
+            p95Ms:           d["p95Ms"]           as? Double ?? 0,
+            p99Ms:           d["p99Ms"]           as? Double ?? 0,
+            breachingTarget: d["breachingTarget"] as? Bool   ?? false,
+            timestamp: ts
+        )
+    }
+
+    func fetchLatestBackupLog() async throws -> BackupLogEntry? {
+        let snap = try await db.collection("drBackupLog")
+            .order(by: "timestamp", descending: true)
+            .limit(to: 1)
+            .getDocuments()
+        guard let doc = snap.documents.first, let d = doc.data() as [String: Any]? else { return nil }
+        let ts = (d["timestamp"] as? Timestamp)?.dateValue() ?? Date()
+        return BackupLogEntry(
+            status:     d["status"]     as? String ?? "unknown",
+            bucketPath: d["bucketPath"] as? String ?? "",
+            timestamp: ts
+        )
+    }
+
+    func fetchLatestSafetyBenchmark() async throws -> SafetyBenchmarkEntry? {
+        let snap = try await db.collection("safetyBenchmarks")
+            .order(by: "timestamp", descending: true)
+            .limit(to: 1)
+            .getDocuments()
+        guard let doc = snap.documents.first, let d = doc.data() as [String: Any]? else { return nil }
+        let ts = (d["timestamp"] as? Timestamp)?.dateValue() ?? Date()
+        let tpr = d["tpr"] as? Double ?? 0
+        let fpr = d["fpr"] as? Double ?? 0
+        return SafetyBenchmarkEntry(
+            tpr: tpr, fpr: fpr,
+            corpusSize: d["corpusSize"] as? Int ?? 0,
+            passed: tpr >= 0.995 && fpr < 0.005,
+            timestamp: ts
+        )
+    }
+
     // MARK: - Student Grades
 
     func saveStudentGrade(_ grade: StudentGrade) async throws {

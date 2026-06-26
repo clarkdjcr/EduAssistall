@@ -541,7 +541,17 @@ struct ProfileSettingsView: View {
                         }
                     }
 
-                    // IT Admin integration dashboard (SharePoint + Firebase secrets)
+                    // IT Admin service health dashboard
+                    if let profile = authVM.currentProfile,
+                       profile.role == .teacher || profile.role == .admin {
+                        NavigationLink {
+                            ServiceHealthDashboardView(profile: profile)
+                        } label: {
+                            Label("Service Health", systemImage: "waveform.path.ecg")
+                        }
+                    }
+
+                    // IT Admin integration setup (SharePoint + Firebase secrets)
                     if let profile = authVM.currentProfile,
                        profile.role == .teacher || profile.role == .admin {
                         NavigationLink {
