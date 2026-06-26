@@ -193,6 +193,29 @@ private struct DayAssignmentCard: View {
         }
     }
 
+    private var isToday: Bool {
+        Calendar.current.isDateInToday(assignment.scheduledDate)
+    }
+
+    private var borderColor: Color {
+        if assignment.isPast { return .red }
+        if isToday { return .orange }
+        return dayColor
+    }
+
+    @ViewBuilder
+    private var dueBadge: some View {
+        if assignment.isPast {
+            Label("Overdue", systemImage: "exclamationmark.circle.fill")
+                .font(.caption2.bold())
+                .foregroundStyle(.red)
+        } else if isToday {
+            Label("Due Today", systemImage: "clock.fill")
+                .font(.caption2.bold())
+                .foregroundStyle(.orange)
+        }
+    }
+
     var body: some View {
         HStack(spacing: 14) {
             VStack(spacing: 2) {
@@ -218,6 +241,7 @@ private struct DayAssignmentCard: View {
                 Label(assignment.teacherName, systemImage: "person.fill")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                dueBadge
             }
 
             Spacer()
@@ -231,7 +255,7 @@ private struct DayAssignmentCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(dayColor.opacity(0.2), lineWidth: 1)
+                .stroke(borderColor.opacity(0.4), lineWidth: 1)
         )
     }
 }

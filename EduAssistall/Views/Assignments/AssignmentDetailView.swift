@@ -6,12 +6,18 @@ struct AssignmentDetailView: View {
 
     @State private var criteria: [GradingCriteria] = []
     @State private var weights: GradeWeights?
+    @State private var grade: StudentGrade?
     @State private var isLoading = true
     @State private var showSubmit = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                // Grade banner (shown once the teacher has graded this assignment)
+                if let g = grade {
+                    GradeBanner(grade: g)
+                }
+
                 // Header
                 VStack(alignment: .leading, spacing: 6) {
                     Label(assignment.dayLabel, systemImage: "calendar")
@@ -108,8 +114,10 @@ struct AssignmentDetailView: View {
     private func load() async {
         async let wFetch = FirestoreService.shared.fetchGradeWeights(teacherId: assignment.teacherId)
         async let cFetch = FirestoreService.shared.fetchGradingCriteria(teacherId: assignment.teacherId)
+        async let gFetch = FirestoreService.shared.fetchStudentGrade(assignmentId: assignment.id)
         weights = try? await wFetch
         criteria = (try? await cFetch) ?? []
+        grade = try? await gFetch
         isLoading = false
     }
 }
@@ -338,6 +346,58 @@ struct SubmitAssignmentView: View {
         try? await FirestoreService.shared.sendMessage(message)
         isSending = false
         dismiss()
+    }
+}
+
+// MARK: - Grade Banner
+
+private struct GradeBanner: View {
+    let grade: StudentGrade
+
+    private var letterColor: Color {
+        switch grade.score {
+        case 90...:   return .green
+        case 80..<90: return .blue
+        case 70..<80: return .yellow
+        case 60..<70: return .orange
+        default:      return .red
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 16) {
+            VStack(spacing: 2) {
+                Text(grade.letterGrade)
+                    .font(.system(size: 36, weight: .black))
+                    .foregroundStyle(letterColor)
+                Text(String(format: "%.0f%%", grade.score))
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+            }
+            .frame(width: 60)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Label("Graded", systemImage: "checkmark.seal.fill")
+                    .font(.caption.bold())
+                    .foregroundStyle(.green)
+                if !grade.feedback.isEmpty {
+                    Text(grade.feedback)
+                        .font(.subheadline)
+                        .lineLimit(4)
+                }
+                Text(grade.gradedAt, style: .date)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(letterColor.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(letterColor.opacity(0.3), lineWidth: 1)
+        )
     }
 }
 

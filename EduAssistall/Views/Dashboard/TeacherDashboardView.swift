@@ -233,7 +233,8 @@ struct TeacherDashboardView: View {
                 ForEach(confirmedStudents.prefix(3)) { link in
                     NavigationLink {
                         StudentProgressDetailView(studentId: link.studentId,
-                                                  studentEmail: link.studentEmail)
+                                                  studentEmail: link.studentEmail,
+                                                  teacherId: profile.id)
                     } label: {
                         TeacherStudentRow(
                             link: link,
@@ -566,7 +567,8 @@ private struct AllStudentsSheet: View {
             List(students) { link in
                 NavigationLink {
                     StudentProgressDetailView(studentId: link.studentId,
-                                              studentEmail: link.studentEmail)
+                                              studentEmail: link.studentEmail,
+                                              teacherId: teacherProfile.id)
                 } label: {
                     TeacherStudentRow(
                         link: link,

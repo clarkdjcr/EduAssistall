@@ -27,7 +27,8 @@ struct TeacherMonitorView: View {
                             NavigationLink {
                                 StudentProgressDetailView(
                                     studentId: link.studentId,
-                                    studentEmail: link.studentEmail
+                                    studentEmail: link.studentEmail,
+                                    teacherId: teacherProfile.id
                                 )
                                 .toolbar {
                                     ToolbarItem(placement: .adaptiveTrailing) {

@@ -512,6 +512,24 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
+    // studentGrades/{gradeId}  (gradeId == weeklyAssignment.id, one per assignment)
+    // Teachers create/update grades for their own students. Students and linked
+    // adults can read. Only the assigning teacher may write.
+    // -------------------------------------------------------------------------
+    match /studentGrades/{gradeId} {
+      allow read: if request.auth != null && (
+          resource.data.studentId == request.auth.uid ||
+          isLinked(resource.data.studentId) ||
+          isAdmin()
+      );
+      allow create, update: if request.auth != null && (
+          isLinkedTeacher(request.resource.data.studentId) ||
+          isAdmin()
+      );
+      allow delete: if request.auth != null && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
     // gradeWeights/{teacherId}
     // -------------------------------------------------------------------------
     match /gradeWeights/{teacherId} {

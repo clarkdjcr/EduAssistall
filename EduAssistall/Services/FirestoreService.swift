@@ -1404,6 +1404,44 @@ final class FirestoreService {
         try await db.collection("sharedFiles").document(file.id).delete()
     }
 
+    // MARK: - Student Grades
+
+    func saveStudentGrade(_ grade: StudentGrade) async throws {
+        let data = try Firestore.Encoder().encode(grade)
+        try await db.collection("studentGrades").document(grade.id).setData(data)
+    }
+
+    func fetchStudentGrade(assignmentId: String) async throws -> StudentGrade? {
+        let snap = try await db.collection("studentGrades").document(assignmentId).getDocument()
+        guard snap.exists else { return nil }
+        return try snap.data(as: StudentGrade.self)
+    }
+
+    func fetchStudentGrades(studentId: String, teacherId: String) async throws -> [StudentGrade] {
+        let snap = try await db.collection("studentGrades")
+            .whereField("studentId", isEqualTo: studentId)
+            .whereField("teacherId", isEqualTo: teacherId)
+            .order(by: "gradedAt", descending: true)
+            .getDocuments()
+        return try snap.documents.map { try $0.data(as: StudentGrade.self) }
+    }
+
+    // MARK: - Student Companion Config (teacher-controlled per-student settings)
+
+    func updateStudentCompanionConfig(
+        studentId: String,
+        defaultMode: InteractionMode,
+        allowedModes: [InteractionMode],
+        responseStyle: ResponseStyle
+    ) async throws {
+        try await db.collection("learningProfiles").document(studentId).updateData([
+            "defaultInteractionMode": defaultMode.rawValue,
+            "allowedInteractionModes": allowedModes.map(\.rawValue),
+            "currentInteractionMode": defaultMode.rawValue,
+            "responseStyle": responseStyle.rawValue,
+        ])
+    }
+
     // MARK: - Badges
 
     func checkAndAwardBadges(studentId: String) async {
