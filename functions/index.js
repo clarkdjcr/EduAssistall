@@ -2408,6 +2408,7 @@ exports.assignLessonPlan = onCall(
       documentId = "",
       dailyPlans = [],
       studentIds = [],
+      weekOf = null,
     } = request.data || {};
 
     const cleanTitle = String(title).trim();
@@ -2549,6 +2550,41 @@ exports.assignLessonPlan = onCall(
         gradeLevel: String(grade || ""),
         standard: String(standard || ""),
       });
+    }
+
+    // Compute the Monday of the target week so WeeklyPlannerView can find these assignments.
+    // weekOf is an ISO date string (yyyy-MM-dd) sent from the client.
+    const weekOfMonday = (() => {
+      const base = weekOf ? new Date(weekOf + "T00:00:00Z") : new Date();
+      const dayOfWeek = base.getUTCDay(); // 0=Sun, 1=Mon, …, 6=Sat
+      const daysToMonday = (dayOfWeek + 6) % 7;   // 0 when already Monday
+      const monday = new Date(base);
+      monday.setUTCDate(base.getUTCDate() - daysToMonday);
+      monday.setUTCHours(0, 0, 0, 0);
+      return monday;
+    })();
+
+    // Write one weeklyAssignment per student per teaching day so the student's
+    // Weekly Planner tab shows the approved, student-appropriate content.
+    for (const studentId of cleanStudentIds) {
+      for (const day of contentPlans) {
+        const weekOfIso = weekOfMonday.toISOString().slice(0, 10);
+        const waId = `${request.auth.uid}_${studentId}_day${day.dayNumber}_${weekOfIso}`;
+        const dayTitle = contentPlans.length > 1 ? `${cleanTitle}: ${day.title}` : cleanTitle;
+        batch.set(db.collection("weeklyAssignments").doc(waId), {
+          id: waId,
+          studentId,
+          teacherId: request.auth.uid,
+          teacherName: caller.displayName || "Teacher",
+          weekOf: Timestamp.fromDate(weekOfMonday),
+          dayNumber: day.dayNumber,
+          title: dayTitle.slice(0, 200),
+          lessonPlanText: day.lessonPlanText.slice(0, 8000),
+          archived: false,
+          assignedAt: FieldValue.serverTimestamp(),
+          recommendationId: day.recommendationId || null,
+        }, { merge: true });
+      }
     }
 
     await batch.commit();

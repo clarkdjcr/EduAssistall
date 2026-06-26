@@ -225,7 +225,8 @@ final class CloudFunctionService {
         lessonPlan: String,
         documentId: String?,
         dailyPlans: [LessonDayRecommendation] = [],
-        studentIds: [String]
+        studentIds: [String],
+        weekOf: Date = Date()
     ) async throws -> LessonPlanAssignmentResult {
         var data: [String: Any] = [
             "title": title,
@@ -235,6 +236,7 @@ final class CloudFunctionService {
             "standard": standard,
             "lessonPlan": lessonPlan,
             "studentIds": studentIds,
+            "weekOf": Self.lessonDateFormatter.string(from: weekOf),
         ]
         if let documentId { data["documentId"] = documentId }
         if !dailyPlans.isEmpty {

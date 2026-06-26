@@ -749,7 +749,8 @@ struct GenerateLessonPlanView: View {
                     lessonPlan: generatedPlan.trimmingCharacters(in: .whitespacesAndNewlines),
                     documentId: result?.documentId,
                     dailyPlans: approvedDailyRecommendations,
-                    studentIds: Array(selectedStudentIds)
+                    studentIds: Array(selectedStudentIds),
+                    weekOf: startDate
                 )
                 assignedCount = response.assignedCount
                 assignmentMessage = "Created daily lesson assignment\(response.assignedCount == 1 ? "" : "s") for \(response.assignedCount) student\(response.assignedCount == 1 ? "" : "s"). Students can open the approved work in Learning."
