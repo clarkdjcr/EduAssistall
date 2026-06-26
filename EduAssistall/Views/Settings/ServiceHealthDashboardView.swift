@@ -274,7 +274,7 @@ struct ServiceHealthDashboardView: View {
                                 .font(.subheadline.bold())
                             Text(bk.succeeded ? "Backup completed successfully" : "Backup failed — check drBackupLog")
                                 .font(.caption)
-                                .foregroundStyle(bk.succeeded ? .secondary : .red)
+                                .foregroundStyle(bk.succeeded ? AnyShapeStyle(.secondary) : AnyShapeStyle(Color.red))
                             Text(bk.timestamp, style: .relative)
                                 .font(.caption2)
                                 .foregroundStyle(.tertiary)
