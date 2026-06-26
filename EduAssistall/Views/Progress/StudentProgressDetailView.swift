@@ -7,6 +7,7 @@ struct StudentProgressDetailView: View {
 
     @State private var paths: [LearningPath] = []
     @State private var progressMap: [String: StudentProgress] = [:]
+    @State private var studentFiles: [SharedFile] = []
     @State private var isLoading = true
 
     private var allItems: [LearningPathItem] { paths.flatMap(\.items) }
@@ -65,6 +66,19 @@ struct StudentProgressDetailView: View {
                                 }
                             }
                         }
+
+                        if !studentFiles.isEmpty {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Submitted Files")
+                                    .font(.headline)
+                                    .padding(.horizontal, 20)
+
+                                ForEach(studentFiles) { file in
+                                    SharedFileRow(file: file)
+                                        .padding(.horizontal, 20)
+                                }
+                            }
+                        }
                     }
                     .padding(.vertical, 16)
                 }
@@ -90,9 +104,11 @@ struct StudentProgressDetailView: View {
         isLoading = true
         async let fetchPaths = FirestoreService.shared.fetchAllLearningPaths(studentId: studentId)
         async let fetchProgress = FirestoreService.shared.fetchAllProgress(studentId: studentId)
+        async let fetchFiles = FirestoreService.shared.fetchIndividualFiles(studentId: studentId)
 
         let loadedPaths = (try? await fetchPaths) ?? []
         let progressList = (try? await fetchProgress) ?? []
+        studentFiles = (try? await fetchFiles) ?? []
 
         paths = loadedPaths.sorted { $0.createdAt > $1.createdAt }
         progressMap = Dictionary(uniqueKeysWithValues: progressList.map { ($0.contentItemId, $0) })

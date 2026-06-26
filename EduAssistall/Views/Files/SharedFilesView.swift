@@ -163,7 +163,7 @@ struct SharedFilesView: View {
 
 // MARK: - File Row
 
-private struct SharedFileRow: View {
+struct SharedFileRow: View {
     let file: SharedFile
 
     var body: some View {
