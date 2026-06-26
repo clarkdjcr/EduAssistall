@@ -2970,20 +2970,35 @@ exports.curateContent = onCall(
       return { items: filterByGradeBand(await fetchNasaItems(normalizedSubject.label), gradeLevel) };
     }
 
-    const slugMap = {
-      math: "math", mathematics: "math", algebra: "algebra",
-      geometry: "geometry", calculus: "calculus",
-      science: "science", biology: "biology",
-      chemistry: "chemistry", physics: "physics",
-      computing: "computing", "computer science": "computing", programming: "computing",
-      history: "us-history", "world history": "world-history", "social studies": "us-history",
-      english: "grammar", ela: "grammar", "language arts": "grammar", grammar: "grammar", writing: "grammar",
-      economics: "economics-finance-domain", finance: "economics-finance-domain",
-      art: "art-history", music: "music",
+    // Grade-aware topic slugs so a grade-3 teacher gets arithmetic, not calculus.
+    const band = gradeBandFor(gradeLevel);
+    const gradeAwareSlugFor = (subjectKey) => {
+      if (subjectKey === "math" || subjectKey === "mathematics") {
+        if (band === "K-2") return "early-math";
+        if (band === "3-5") return "arithmetic";
+        if (band === "6-8") return "pre-algebra";
+        if (band === "9-12") return "algebra2";
+        return "pre-algebra";
+      }
+      if (subjectKey === "science") {
+        if (band === "K-2" || band === "3-5") return "science";
+        if (band === "6-8") return "biology";
+        return "physics";
+      }
+      const slugMap = {
+        algebra: "algebra", geometry: "geometry", calculus: "calculus",
+        biology: "biology", chemistry: "chemistry", physics: "physics",
+        computing: "computing", "computer science": "computing", programming: "computing",
+        history: "us-history", "world history": "world-history", "social studies": "us-history",
+        english: "grammar", ela: "grammar", "language arts": "grammar", grammar: "grammar", writing: "grammar",
+        economics: "economics-finance-domain", finance: "economics-finance-domain",
+        art: "art-history", music: "music",
+      };
+      return slugMap[subjectKey] || slugMap[subjectKey.split(" ")[0]] || null;
     };
 
     const key = normalizedSubject.key;
-    const slug = slugMap[key] || slugMap[key.split(" ")[0]] || null;
+    const slug = gradeAwareSlugFor(key);
 
     // No Khan Academy topic corresponds to this subject (e.g. PE, Other) — go
     // straight to the curated fallback instead of silently querying "math".
@@ -3011,6 +3026,7 @@ exports.curateContent = onCall(
             url: `https://www.khanacademy.org${v.url || v.ka_url || ""}`,
             source: "khanacademy",
             subject: normalizedSubject.label,
+            gradeBand: band || undefined,
             estimatedMinutes: Math.max(1, Math.round((v.duration || 300) / 60)),
           }))
           .filter((v) => v.url && v.url !== "https://www.khanacademy.org");
@@ -3029,6 +3045,7 @@ exports.curateContent = onCall(
             url: `https://www.khanacademy.org${a.url || a.ka_url || ""}`,
             source: "khanacademy",
             subject: normalizedSubject.label,
+            gradeBand: band || undefined,
             estimatedMinutes: 8,
           }))
           .filter((a) => a.url && a.url !== "https://www.khanacademy.org");
