@@ -71,17 +71,41 @@ struct RegisterView: View {
                             .background(Color.appSecondaryBackground)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                        SecureField("Confirm Password", text: $confirmPassword)
-                            .newPasswordInput()
-                            .padding()
-                            .background(Color.appSecondaryBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        VStack(alignment: .leading, spacing: 4) {
+                            SecureField("Confirm Password", text: $confirmPassword)
+                                .newPasswordInput()
+                                .padding()
+                                .background(Color.appSecondaryBackground)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                            if !confirmPassword.isEmpty {
+                                HStack(spacing: 4) {
+                                    Image(systemName: password == confirmPassword ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                        .font(.caption2)
+                                    Text(password == confirmPassword ? "Passwords match" : "Passwords don't match")
+                                        .font(.caption2)
+                                }
+                                .foregroundStyle(password == confirmPassword ? Color.green : Color.red)
+                                .transition(.opacity)
+                                .animation(.easeInOut(duration: 0.2), value: password == confirmPassword)
+                            }
+                        }
 
                         if let error = errorMessage {
-                            Text(error)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .foregroundStyle(.red)
+                                Text(error)
+                                    .font(.footnote)
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                            }
+                            .padding(12)
+                            .background(Color.red.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.2), lineWidth: 1))
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                            .animation(.easeInOut(duration: 0.25), value: errorMessage)
                         }
 
                         Toggle(isOn: $consentGiven) {

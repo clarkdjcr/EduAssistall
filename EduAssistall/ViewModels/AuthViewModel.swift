@@ -240,6 +240,10 @@ final class AuthViewModel {
         AuditService.shared.log(.signIn, userId: result.user.uid)
     }
 
+    func resetPassword(email: String) async throws {
+        try await Auth.auth().sendPasswordReset(withEmail: email)
+    }
+
     // MARK: - Sign Out
 
     @MainActor
