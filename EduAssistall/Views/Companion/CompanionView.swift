@@ -27,6 +27,8 @@ struct CompanionView: View {
     @State private var pendingHint: TeacherHint?
     @State private var hintListener: ListenerRegistration?
 
+    @State private var lastFailedText: String?
+
     // FR-003: Interaction mode
     @State private var currentMode: InteractionMode = .guidedDiscovery
     @State private var allowedModes: [InteractionMode] = InteractionMode.allCases
@@ -65,6 +67,19 @@ struct CompanionView: View {
                 if currentProfile.aiConsentGiven {
                     aiDisclosureStrip
                     messageList
+                    if let error = errorMessage {
+                        ErrorBannerView(message: error) {
+                            errorMessage = nil
+                            if let failedText = lastFailedText {
+                                inputText = failedText
+                                lastFailedText = nil
+                            }
+                            Task { await sendMessage() }
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 4)
+                    }
                     Divider()
                     inputBar
                 } else {
@@ -72,6 +87,8 @@ struct CompanionView: View {
                 }
             }
             .background(Color.appGroupedBackground)
+            .animation(.easeInOut(duration: 0.25), value: errorMessage)
+            .sensoryFeedback(.impact(weight: .light), trigger: messages.count)
             .navigationTitle("AI Companion")
             .inlineNavigationTitle()
             .toolbar {
@@ -217,21 +234,23 @@ struct CompanionView: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     if isLoading {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 60)
+                        SkeletonBubblesView()
+                            .padding(.top, 20)
                     } else if messages.isEmpty {
                         emptyState
                     } else {
                         ForEach(messages) { message in
                             ChatBubbleView(message: message)
                                 .id(message.id)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                                    removal: .opacity
+                                ))
                         }
                     }
 
                     if isThinking {
                         if let draft = draftReply {
-                            // 2C: Show on-device draft while cloud reply is in flight.
                             ChatBubbleView(message: ChatMessage(role: .assistant, text: draft))
                                 .id("draft")
                                 .opacity(0.7)
@@ -241,14 +260,6 @@ struct CompanionView: View {
                                 .id("typing")
                                 .transition(.opacity)
                         }
-                    }
-
-                    if let error = errorMessage {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                            .padding(.horizontal, 16)
-                            .id("error")
                     }
 
                     Color.clear.frame(height: 4).id("bottom")
@@ -348,25 +359,28 @@ struct CompanionView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
-            VStack(alignment: .leading, spacing: 10) {
-                if let path = activePath {
-                    SuggestionChip(text: "Help me with \(path.title)") {
-                        inputText = "Help me with \(path.title)"
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    if let path = activePath {
+                        SuggestionChip(text: "Help me with \(path.title)") {
+                            inputText = "Help me with \(path.title)"
+                        }
+                        SuggestionChip(text: "Quiz me on \(path.title)") {
+                            inputText = "Quiz me on \(path.title)"
+                        }
+                    } else {
+                        SuggestionChip(text: "Help me understand fractions") {
+                            inputText = "Help me understand fractions"
+                        }
+                        SuggestionChip(text: "What is photosynthesis?") {
+                            inputText = "What is photosynthesis?"
+                        }
                     }
-                    SuggestionChip(text: "Quiz me on \(path.title)") {
-                        inputText = "Quiz me on \(path.title)"
-                    }
-                } else {
-                    SuggestionChip(text: "Help me understand fractions") {
-                        inputText = "Help me understand fractions"
-                    }
-                    SuggestionChip(text: "What is photosynthesis?") {
-                        inputText = "What is photosynthesis?"
+                    SuggestionChip(text: "Can you quiz me on my current lesson?") {
+                        inputText = "Can you quiz me on my current lesson?"
                     }
                 }
-                SuggestionChip(text: "Can you quiz me on my current lesson?") {
-                    inputText = "Can you quiz me on my current lesson?"
-                }
+                .padding(.horizontal, 32)
             }
         }
         .frame(maxWidth: .infinity)
@@ -442,16 +456,21 @@ struct CompanionView: View {
                 currentSubject: inferSubject(from: activePath?.title)
             )
             draftReply = nil
-            messages.append(ChatMessage(role: .assistant, text: reply))
+            lastFailedText = nil
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                messages.append(ChatMessage(role: .assistant, text: reply))
+            }
         } catch let ce as CompanionError {
             draftReply = nil
-            messages.removeLast() // remove the optimistically-added user bubble on failure
+            messages.removeLast()
             inputText = ce.isRetryable ? text : ""
+            lastFailedText = ce.isRetryable ? text : nil
             errorMessage = ce.errorDescription
         } catch {
             draftReply = nil
             messages.removeLast()
             inputText = text
+            lastFailedText = text
             errorMessage = "Something went wrong. Please try again."
         }
 
@@ -552,6 +571,8 @@ struct CompanionView: View {
 struct ChatBubbleView: View {
     let message: ChatMessage
 
+    @State private var showTimestamp = false
+
     private var isUser: Bool { message.role == .user }
 
     private var assistantAttributed: AttributedString {
@@ -564,40 +585,53 @@ struct ChatBubbleView: View {
     }
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            if isUser { Spacer(minLength: 48) }
+        VStack(alignment: isUser ? .trailing : .leading, spacing: 3) {
+            HStack(alignment: .bottom, spacing: 8) {
+                if isUser { Spacer(minLength: 48) }
 
-            if !isUser {
-                Image(systemName: "brain.filled.head.profile")
-                    .font(.caption)
-                    .foregroundStyle(.blue)
-                    .frame(width: 28, height: 28)
-                    .background(Color.blue.opacity(0.1))
-                    .clipShape(Circle())
-            }
-
-            Group {
-                if isUser {
-                    Text(message.text)
-                } else {
-                    Text(assistantAttributed)
+                if !isUser {
+                    Image(systemName: "brain.filled.head.profile")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                        .frame(width: 28, height: 28)
+                        .background(Color.blue.opacity(0.1))
+                        .clipShape(Circle())
                 }
-            }
-            .font(.body)
-            .foregroundStyle(isUser ? Color.white : Color.primary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(isUser ? Color.blue : Color.appSecondaryGroupedBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
 
-            if isUser {
-                Image(systemName: "person.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 28, height: 28)
+                Group {
+                    if isUser {
+                        Text(message.text)
+                    } else {
+                        Text(assistantAttributed)
+                    }
+                }
+                .font(.body)
+                .foregroundStyle(isUser ? Color.white : Color.primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(isUser ? Color.blue : Color.appSecondaryGroupedBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+
+                if isUser {
+                    Image(systemName: "person.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28, height: 28)
+                }
+
+                if !isUser { Spacer(minLength: 48) }
             }
 
-            if !isUser { Spacer(minLength: 48) }
+            if showTimestamp {
+                Text(message.createdAt.formatted(date: .omitted, time: .shortened))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, isUser ? 4 : 40)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.2)) { showTimestamp.toggle() }
         }
     }
 }
@@ -662,6 +696,81 @@ private struct SuggestionChip: View {
                 )
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Skeleton Loading
+
+struct SkeletonBubblesView: View {
+    @State private var pulsing = false
+
+    var body: some View {
+        VStack(spacing: 12) {
+            skeletonRow(isUser: false, width: 230)
+            skeletonRow(isUser: true,  width: 160)
+            skeletonRow(isUser: false, width: 270)
+            skeletonRow(isUser: true,  width: 120)
+            skeletonRow(isUser: false, width: 200)
+        }
+        .opacity(pulsing ? 0.45 : 1.0)
+        .animation(.easeInOut(duration: 0.95).repeatForever(autoreverses: true), value: pulsing)
+        .onAppear { pulsing = true }
+    }
+
+    private func skeletonRow(isUser: Bool, width: CGFloat) -> some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            if isUser { Spacer(minLength: 48) }
+            if !isUser {
+                Circle()
+                    .fill(Color.secondary.opacity(0.25))
+                    .frame(width: 28, height: 28)
+            }
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color.secondary.opacity(0.2))
+                .frame(width: width, height: 40)
+            if isUser {
+                Circle()
+                    .fill(Color.secondary.opacity(0.25))
+                    .frame(width: 28, height: 28)
+            }
+            if !isUser { Spacer(minLength: 48) }
+        }
+        .padding(.horizontal, 16)
+    }
+}
+
+// MARK: - Error Banner
+
+struct ErrorBannerView: View {
+    let message: String
+    let onRetry: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+                .font(.callout)
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 4)
+            Button("Retry", action: onRetry)
+                .font(.caption.bold())
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.red)
+                .clipShape(Capsule())
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color.red.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.red.opacity(0.2), lineWidth: 1)
+        )
     }
 }
 
