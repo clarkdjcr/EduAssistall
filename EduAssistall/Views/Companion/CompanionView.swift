@@ -198,17 +198,24 @@ struct CompanionView: View {
     // MARK: - Offline Banner
 
     private var offlineBanner: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             Image(systemName: "wifi.slash")
-            Text("You're offline. Messages will fail until your connection is restored.")
-                .font(.caption.bold())
-                .multilineTextAlignment(.leading)
+                .symbolEffect(.pulse)
+                .font(.callout)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("You're Offline")
+                    .font(.caption.bold())
+                Text("AI Companion unavailable — reconnect to continue")
+                    .font(.caption2)
+                    .opacity(0.85)
+            }
+            Spacer()
         }
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Color.gray)
+        .background(Color(red: 0.22, green: 0.32, blue: 0.52))
     }
 
     // MARK: - Hint Banner (FR-204)

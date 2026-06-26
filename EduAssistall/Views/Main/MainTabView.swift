@@ -3,6 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @Environment(AuthViewModel.self) private var authVM
     @State private var connectivity = ConnectivityService.shared
+    @State private var showBackOnlineToast = false
     let profile: UserProfile
 
     var body: some View {
@@ -23,8 +24,23 @@ struct MainTabView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(1)
             }
+
+            if showBackOnlineToast {
+                BackOnlineToast()
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(2)
+            }
         }
-        .animation(.easeInOut(duration: 0.3), value: connectivity.isOnline)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: connectivity.isOnline)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showBackOnlineToast)
+        .onChange(of: connectivity.isOnline) { wasOnline, isNowOnline in
+            guard !wasOnline && isNowOnline else { return }
+            showBackOnlineToast = true
+            Task {
+                try? await Task.sleep(for: .seconds(2.5))
+                withAnimation { showBackOnlineToast = false }
+            }
+        }
         #if os(iOS)
         .task {
             await NotificationService.shared.requestPermission()
@@ -37,15 +53,47 @@ struct MainTabView: View {
 
 private struct OfflineBanner: View {
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             Image(systemName: "wifi.slash")
-            Text("You're offline — showing cached content")
-                .font(.caption.bold())
+                .symbolEffect(.pulse)
+                .font(.callout)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("You're Offline")
+                    .font(.caption.bold())
+                Text("Learning paths and progress available from your last sync")
+                    .font(.caption2)
+                    .opacity(0.85)
+            }
+
+            Spacer()
         }
         .foregroundStyle(.white)
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(Color.orange)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color(red: 0.22, green: 0.32, blue: 0.52))
+    }
+}
+
+// MARK: - Back Online Toast
+
+private struct BackOnlineToast: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi")
+                .font(.caption.bold())
+            Text("Back online")
+                .font(.caption.bold())
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 9)
+        .background(Color.green.opacity(0.92))
+        .clipShape(Capsule())
+        .shadow(color: .green.opacity(0.25), radius: 8, y: 4)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 12)
     }
 }
 
