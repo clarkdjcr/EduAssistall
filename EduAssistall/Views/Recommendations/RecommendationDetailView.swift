@@ -8,10 +8,12 @@ struct RecommendationDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isActing = false
     @State private var actionTaken: RecommendationStatus?
+    @State private var errorMessage: String?
+    @State private var showRejectConfirm = false
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 20) {
                 // NYC DOE: AI-generated content must be labeled and require educator sign-off.
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
@@ -55,6 +57,11 @@ struct RecommendationDetailView: View {
                 .background(Color.appSecondaryGroupedBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
 
+                // Lesson plan content — shown when available so reviewers can read what students will receive
+                if let planText = recommendation.lessonPlanText, !planText.isEmpty {
+                    lessonPlanCard(planText)
+                }
+
                 // Date
                 HStack {
                     Image(systemName: "clock")
@@ -64,20 +71,87 @@ struct RecommendationDetailView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Spacer(minLength: 80)
+                Spacer(minLength: 100)
             }
             .padding(20)
         }
         .background(Color.appGroupedBackground)
         .navigationTitle("Recommendation")
         .inlineNavigationTitle()
-        .safeAreaInset(edge: .bottom) {
-            if actionTaken == nil {
-                actionButtons
-            } else {
-                actionConfirmation
+        .sensoryFeedback(.success, trigger: actionTaken == .approved)
+        .sensoryFeedback(.warning, trigger: actionTaken == .rejected)
+        .confirmationDialog(
+            "Reject this recommendation?",
+            isPresented: $showRejectConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Reject", role: .destructive) {
+                Task { await act(status: .rejected) }
             }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("The student won't see this AI suggestion. This can't be undone.")
         }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 0) {
+                if let error = errorMessage {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                            .font(.caption)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Button("Dismiss") { withAnimation { errorMessage = nil } }
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(Color.red.opacity(0.08))
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
+                if actionTaken == nil {
+                    actionButtons
+                } else {
+                    actionConfirmation
+                }
+            }
+            .animation(.easeInOut(duration: 0.25), value: errorMessage)
+        }
+    }
+
+    // MARK: - Lesson Plan Card
+
+    private func lessonPlanCard(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Lesson Plan Content", systemImage: "doc.text.fill")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("Students will receive this")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Divider()
+
+            Text(text)
+                .font(.callout)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .background(Color.appSecondaryGroupedBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.blue.opacity(0.15), lineWidth: 1)
+        )
     }
 
     // MARK: - Action Buttons
@@ -85,16 +159,12 @@ struct RecommendationDetailView: View {
     private var actionButtons: some View {
         HStack(spacing: 12) {
             Button {
-                Task { await act(status: .rejected) }
+                showRejectConfirm = true
             } label: {
                 HStack {
-                    if isActing {
-                        ProgressView().tint(.white)
-                    } else {
-                        Image(systemName: "xmark.circle.fill")
-                        Text("Reject")
-                            .fontWeight(.semibold)
-                    }
+                    Image(systemName: "xmark.circle.fill")
+                    Text("Reject")
+                        .fontWeight(.semibold)
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
@@ -130,16 +200,27 @@ struct RecommendationDetailView: View {
     }
 
     private var actionConfirmation: some View {
-        HStack {
+        HStack(spacing: 10) {
             Image(systemName: actionTaken == .approved ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.title3)
                 .foregroundStyle(actionTaken == .approved ? Color.green : Color.red)
-            Text(actionConfirmationText)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(actionTaken == .approved ? "Approved" : "Rejected")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
+                Text(actionConfirmationText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
         }
-        .padding()
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
         .background(Color.appSecondaryGroupedBackground)
+        .transition(.asymmetric(
+            insertion: .move(edge: .bottom).combined(with: .opacity),
+            removal: .opacity
+        ))
     }
 
     // MARK: - Helpers
@@ -166,30 +247,33 @@ struct RecommendationDetailView: View {
 
     private var actionConfirmationText: String {
         guard actionTaken == .approved else {
-            return "Rejected and removed from queue."
+            return "Removed from queue. The student won't see this."
         }
         if isLessonWorkflowRecommendation {
-            return "Approved for the lesson workflow. Students will not see it until daily assignments are created."
+            return "Approved for the lesson workflow. Students receive it when daily assignments are created."
         }
-        return "Approved — student can now see this recommendation."
+        return "Student can now see this recommendation."
     }
 
     private func act(status: RecommendationStatus) async {
         isActing = true
+        errorMessage = nil
         do {
             try await FirestoreService.shared.updateRecommendationStatus(
                 id: recommendation.id,
                 status: status,
                 reviewedBy: reviewerProfile.id
             )
-            actionTaken = status
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                actionTaken = status
+            }
             var updated = recommendation
             updated.status = status
             onReviewed(updated)
-            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
             dismiss()
         } catch {
-            // Stay on screen — Firestore error
+            withAnimation { errorMessage = "Failed to save. Please try again." }
         }
         isActing = false
     }
