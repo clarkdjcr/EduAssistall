@@ -114,6 +114,11 @@ private struct StudentTabView: View {
                     Label("Learning", systemImage: "book.fill")
                 }
 
+            WeeklyPlannerView(profile: profile)
+                .tabItem {
+                    Label("Assignments", systemImage: "calendar.badge.checkmark")
+                }
+
             CompanionView(profile: profile)
                 .tabItem {
                     Label("Companion", systemImage: "bubble.left.and.bubble.right.fill")

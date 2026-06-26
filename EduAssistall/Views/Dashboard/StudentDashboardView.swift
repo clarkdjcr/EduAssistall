@@ -126,6 +126,16 @@ struct StudentDashboardView: View {
                     }
                     .padding(.horizontal, 20)
 
+                    // Weekly Assignments CTA
+                    NavigationLink { WeeklyPlannerView(profile: profile) } label: {
+                        GradientNavCard(title: "My Assignments",
+                                        subtitle: "View this week's daily work from your teacher",
+                                        icon: "calendar.badge.checkmark",
+                                        colors: [.green, .teal.opacity(0.8)])
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 20)
+
                     // Interests
                     if let lp = learningProfile, !lp.interests.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
