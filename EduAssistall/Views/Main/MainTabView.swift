@@ -141,6 +141,12 @@ private struct StudentTabView: View {
                     Label("For You", systemImage: "sparkles")
                 }
 
+            // Phase 5A: Leaderboard tab
+            LeaderboardView(profile: profile, classId: nil)
+                .tabItem {
+                    Label("Leaderboard", systemImage: "trophy.fill")
+                }
+
             ProfileSettingsView()
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")
