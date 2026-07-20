@@ -12,8 +12,6 @@ const crypto = require("crypto");
 
 initializeApp();
 
-const OPENAI_LEARNING_MODEL = "gpt-4.1-mini";
-
 // Lazy singleton — instantiated on first use so the secret is available at call time.
 let _anthropic = null;
 function getAnthropicClient() {
@@ -34,17 +32,6 @@ async function getAnthropicClientForDistrict(districtId, db) {
     console.warn(`districtSecrets lookup failed for ${districtId}:`, e.message);
   }
   return getAnthropicClient();
-}
-
-function extractOpenAIText(data) {
-  if (typeof data?.output_text === "string") return data.output_text;
-  const parts = [];
-  for (const item of data?.output || []) {
-    for (const content of item.content || []) {
-      if (typeof content.text === "string") parts.push(content.text);
-    }
-  }
-  return parts.join("\n").trim();
 }
 
 function parseLearningJournalResponse(text) {
@@ -80,84 +67,6 @@ function parseLearningJournalResponse(text) {
   }
 
   return { summary: raw.slice(0, 400), keyTopics: [] };
-}
-
-async function buildOpenAILearningEnhancement({
-  grade,
-  subject,
-  topic,
-  standard,
-  curriculumItems,
-  contentSnippets,
-  supplementalResources,
-}) {
-  if (!process.env.OPENAI_API_KEY) {
-    return { text: "", provider: null, status: "not_configured" };
-  }
-
-  const curriculumSummary = curriculumItems.slice(0, 2).map((item, index) => {
-    const f = item.fields || item;
-    const snippet = String(contentSnippets[index] || "").slice(0, 2500);
-    return [
-      `Title: ${f.Title || f.title || "Untitled"}`,
-      `Subject: ${f.Subject || f.subject || subject}`,
-      `Standard: ${f.Standard || f.standard || standard || "Not specified"}`,
-      snippet ? `Excerpt:\n${snippet}` : null,
-    ].filter(Boolean).join("\n");
-  }).join("\n\n---\n\n");
-
-  const input = [
-    `Grade: ${grade}`,
-    `Subject: ${subject}`,
-    `Topic: ${topic}`,
-    standard ? `Standard: ${standard}` : null,
-    curriculumSummary ? `Approved curriculum context:\n${curriculumSummary}` : "Approved curriculum context: none found",
-    supplementalResources ? `Teacher-approved supplemental resources:\n${String(supplementalResources).slice(0, 3000)}` : null,
-  ].filter(Boolean).join("\n\n");
-
-  try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: OPENAI_LEARNING_MODEL,
-        max_output_tokens: 700,
-        temperature: 0.2,
-        input: [
-          {
-            role: "system",
-            content:
-              "You are an instructional design reviewer for a K-12 education app. " +
-              "Return concise enhancements only. Do not replace district standards or curriculum. " +
-              "Focus on misconceptions, scaffolds, retrieval practice, formative checks, and safe source-use cautions.",
-          },
-          {
-            role: "user",
-            content:
-              `${input}\n\n` +
-              "Create an instructional enhancement block with these exact headings:\n" +
-              "MISCONCEPTIONS TO WATCH\nSCAFFOLDS\nRETRIEVAL PRACTICE\nFORMATIVE CHECKS\nSOURCE USE CAUTIONS",
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      console.warn(`OpenAI learning enhancement skipped (${response.status}): ${errorText.slice(0, 300)}`);
-      return { text: "", provider: "openai", status: "failed" };
-    }
-
-    const data = await response.json();
-    const text = extractOpenAIText(data).slice(0, 5000);
-    return { text, provider: "openai", status: text ? "success" : "empty" };
-  } catch (err) {
-    console.warn("OpenAI learning enhancement skipped:", err.message);
-    return { text: "", provider: "openai", status: "failed" };
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1840,7 +1749,7 @@ function buildPacingInputBlock({
 exports.generateLessonPlan = onCall(
   {
     secrets: [
-      "ANTHROPIC_API_KEY", "OPENAI_API_KEY",
+      "ANTHROPIC_API_KEY",
       "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
       "SHAREPOINT_SITE_ID", "SHAREPOINT_CURRICULUM_LIST_ID", "SHAREPOINT_OFFICIAL_DOCS_LIST_ID",
     ],
@@ -1947,22 +1856,6 @@ exports.generateLessonPlan = onCall(
       }
     }
 
-    const learningEnhancement = await buildOpenAILearningEnhancement({
-      grade,
-      subject,
-      topic,
-      standard,
-      curriculumItems,
-      contentSnippets,
-      supplementalResources,
-    });
-
-    const learningEnhancementBlock = learningEnhancement.text
-      ? "\n\nOPENAI LEARNING ENHANCEMENT MODULE:\n" +
-        learningEnhancement.text +
-        "\nUse this as instructional design guidance only. The approved district curriculum remains authoritative.\n"
-      : "";
-
     // Tier-2 teacher enhancement knowledge (FR-T7): the teacher's personal wiki, used to
     // amplify the assignment with their creativity WITHOUT overriding the approved curriculum.
     // Prefer the on-device-compressed digest the client sends (token-minimal); otherwise fall
@@ -2021,7 +1914,6 @@ exports.generateLessonPlan = onCall(
       pacingBlock +
       groundingBlock +
       ncStandardsBlock +
-      learningEnhancementBlock +
       teacherEnhancementBlock +
       `\nFormat the lesson plan exactly as follows (use these headings verbatim):\n\n` +
       `LESSON PLAN: ${topic}\n` +
@@ -2077,8 +1969,6 @@ exports.generateLessonPlan = onCall(
       documentType: "LessonPlan",
       districtId:   callerData.districtId || null,
       workflowStatus: "Draft",
-      learningEnhancementProvider: learningEnhancement.provider,
-      learningEnhancementStatus: learningEnhancement.status,
     };
     const documentId = await (backendLP === "firebase"
       ? writeToFirebaseOfficialDocs({ filename, content: lessonPlanText, metadata: docMeta, teacherUid: request.auth.uid, db })
@@ -2125,8 +2015,6 @@ exports.generateLessonPlan = onCall(
       lessonPlan:  lessonPlanText,
       documentId:  documentId ?? null,
       recommendationId: recommendationRef.id,
-      learningEnhancementProvider: learningEnhancement.provider,
-      learningEnhancementStatus: learningEnhancement.status,
       curriculumSources: curriculumItems.slice(0, 2).map((i) => {
         const f = i.fields || i;
         return { id: i.id, title: f.Title || f.title || "Untitled", subject: f.Subject || f.subject, standard: f.Standard || f.standard };
@@ -5410,7 +5298,7 @@ exports.getAIUsageStats = onCall(
 exports.verifySharePointSetup = onCall(
   {
     secrets: [
-      "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "SENDGRID_API_KEY",
+      "ANTHROPIC_API_KEY", "SENDGRID_API_KEY",
       "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
       "SHAREPOINT_SITE_ID", "SHAREPOINT_CURRICULUM_LIST_ID",
       "SHAREPOINT_OFFICIAL_DOCS_LIST_ID", "SHAREPOINT_STUDENT_CONTENT_LIST_ID",
@@ -5439,7 +5327,6 @@ exports.verifySharePointSetup = onCall(
 
     const secretsConfigured = {
       ANTHROPIC_API_KEY:               !!process.env.ANTHROPIC_API_KEY,
-      OPENAI_API_KEY:                  !!process.env.OPENAI_API_KEY,
       SENDGRID_API_KEY:                !!process.env.SENDGRID_API_KEY,
       AZURE_TENANT_ID:                 !!process.env.AZURE_TENANT_ID,
       AZURE_CLIENT_ID:                 !!process.env.AZURE_CLIENT_ID,

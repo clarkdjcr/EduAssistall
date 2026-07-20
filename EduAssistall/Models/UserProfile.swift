@@ -38,9 +38,6 @@ struct UserProfile: Codable, Identifiable, Equatable {
     var streakFreezes: Int
     var soundEffectsEnabled: Bool
     var hapticFeedbackEnabled: Bool
-    
-    // Phase 5A: Leaderboard privacy
-    var leaderboardOptOut: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -65,7 +62,6 @@ struct UserProfile: Codable, Identifiable, Equatable {
         case streakFreezes
         case soundEffectsEnabled
         case hapticFeedbackEnabled
-        case leaderboardOptOut
     }
 
     // Custom decode so fields added after launch (timezone, onboardingComplete,
@@ -101,7 +97,6 @@ struct UserProfile: Codable, Identifiable, Equatable {
         streakFreezes        = try c.decodeIfPresent(Int.self,    forKey: .streakFreezes)        ?? 0
         soundEffectsEnabled  = try c.decodeIfPresent(Bool.self,   forKey: .soundEffectsEnabled)  ?? true
         hapticFeedbackEnabled = try c.decodeIfPresent(Bool.self,   forKey: .hapticFeedbackEnabled) ?? true
-        leaderboardOptOut    = try c.decodeIfPresent(Bool.self,   forKey: .leaderboardOptOut)    ?? false
     }
 
     /// True if this student account is blocked pending a parent's email approval.
@@ -138,6 +133,5 @@ struct UserProfile: Codable, Identifiable, Equatable {
         self.soundEffectsEnabled = true
         self.hapticFeedbackEnabled = true
         // Phase 5A: Initialize leaderboard privacy
-        self.leaderboardOptOut = false
     }
 }

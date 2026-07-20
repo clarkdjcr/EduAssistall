@@ -506,7 +506,6 @@ final class CloudFunctionService {
     struct SetupVerificationResult {
         struct SecretsStatus {
             let anthropicKey: Bool
-            let openAIKey: Bool
             let sendgridKey: Bool
             let azureTenantId: Bool
             let azureClientId: Bool
@@ -520,7 +519,6 @@ final class CloudFunctionService {
 
             /// True when at least one Anthropic key is usable (district key preferred).
             var coreAIReady: Bool { districtApiKeyConfigured || anthropicKey }
-            var learningEnhancementReady: Bool { openAIKey }
             var emailReady: Bool { sendgridKey }
             var azureCredsReady: Bool { azureTenantId && azureClientId && azureClientSecret }
             var sharepointCoreReady: Bool { sharepointSiteId }
@@ -566,7 +564,6 @@ final class CloudFunctionService {
         return SetupVerificationResult(
             secrets: SetupVerificationResult.SecretsStatus(
                 anthropicKey:             s["ANTHROPIC_API_KEY"]                ?? false,
-                openAIKey:                s["OPENAI_API_KEY"]                   ?? false,
                 sendgridKey:              s["SENDGRID_API_KEY"]                 ?? false,
                 azureTenantId:            s["AZURE_TENANT_ID"]                  ?? false,
                 azureClientId:            s["AZURE_CLIENT_ID"]                  ?? false,

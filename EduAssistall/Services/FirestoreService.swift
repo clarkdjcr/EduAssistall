@@ -264,139 +264,6 @@ final class FirestoreService {
         ])
     }
 
-    // MARK: - Phase 5A: Leaderboard System
-
-    func saveLeaderboardEntry(_ entry: LeaderboardEntry, config: LeaderboardConfig) async throws {
-        let data = try Firestore.Encoder().encode(entry)
-        let collectionPath = "leaderboards/\(config.timePeriod.rawValue)/\(config.category.rawValue)"
-        try await db.collection(collectionPath).document(entry.id).setData(data)
-    }
-
-    func fetchLeaderboardEntries(config: LeaderboardConfig, classId: String? = nil) async throws -> [LeaderboardEntry] {
-        var query = db.collection("leaderboards/\(config.timePeriod.rawValue)/\(config.category.rawValue)")
-        
-        if config.scope == .classScope, let classId = classId {
-            // In production, filter by class membership
-            // query = query.whereField("classId", isEqualTo: classId)
-        }
-        
-        let snapshot = try await query
-            .order(by: "xp", descending: true)
-            .limit(to: 50)
-            .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: LeaderboardEntry.self) }
-    }
-
-    func updateLeaderboardPrivacy(studentId: String, optOut: Bool) async throws {
-        try await db.collection("users").document(studentId).updateData([
-            "leaderboardOptOut": optOut
-        ])
-    }
-
-    // MARK: - Phase 5A: Quiz Challenges
-
-    func saveQuizChallenge(_ challenge: QuizChallenge) async throws {
-        let data = try Firestore.Encoder().encode(challenge)
-        try await db.collection("quizChallenges").document(challenge.id).setData(data)
-    }
-
-    func fetchActiveQuizChallenges() async throws -> [QuizChallenge] {
-        let now = Date()
-        let snapshot = try await db.collection("quizChallenges")
-            .whereField("isActive", isEqualTo: true)
-            .whereField("startDate", isLessThanOrEqualTo: now)
-            .whereField("endDate", isGreaterThanOrEqualTo: now)
-            .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: QuizChallenge.self) }
-    }
-
-    func saveQuizChallengeEntry(_ entry: QuizChallengeEntry) async throws {
-        let data = try Firestore.Encoder().encode(entry)
-        try await db.collection("quizChallengeEntries").document(entry.id).setData(data)
-    }
-
-    func fetchQuizChallengeEntry(studentId: String, challengeId: String) async throws -> QuizChallengeEntry? {
-        let snapshot = try await db.collection("quizChallengeEntries")
-            .whereField("studentId", isEqualTo: studentId)
-            .whereField("challengeId", isEqualTo: challengeId)
-            .getDocuments()
-        return snapshot.documents.first.map { try? $0.data(as: QuizChallengeEntry.self) }
-    }
-
-    // MARK: - Phase 5A: Path Races
-
-    func savePathRace(_ race: PathRace) async throws {
-        let data = try Firestore.Encoder().encode(race)
-        try await db.collection("pathRaces").document(race.id).setData(data)
-    }
-
-    func fetchActivePathRaces() async throws -> [PathRace] {
-        let now = Date()
-        let snapshot = try await db.collection("pathRaces")
-            .whereField("isActive", isEqualTo: true)
-            .whereField("startDate", isLessThanOrEqualTo: now)
-            .whereField("endDate", isGreaterThanOrEqualTo: now)
-            .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: PathRace.self) }
-    }
-
-    func savePathRaceProgress(_ progress: PathRaceProgress) async throws {
-        let data = try Firestore.Encoder().encode(progress)
-        try await db.collection("pathRaceProgress").document(progress.id).setData(data)
-    }
-
-    func fetchPathRaceProgress(studentId: String, raceId: String) async throws -> PathRaceProgress? {
-        let snapshot = try await db.collection("pathRaceProgress")
-            .whereField("studentId", isEqualTo: studentId)
-            .whereField("raceId", isEqualTo: raceId)
-            .getDocuments()
-        return snapshot.documents.first.map { try? $0.data(as: PathRaceProgress.self) }
-    }
-
-    // MARK: - Phase 5A: Streak Competitions
-
-    func saveStreakCompetition(_ competition: StreakCompetition) async throws {
-        let data = try Firestore.Encoder().encode(competition)
-        try await db.collection("streakCompetitions").document(competition.id).setData(data)
-    }
-
-    func fetchActiveStreakCompetitions() async throws -> [StreakCompetition] {
-        let now = Date()
-        let snapshot = try await db.collection("streakCompetitions")
-            .whereField("isActive", isEqualTo: true)
-            .whereField("startDate", isLessThanOrEqualTo: now)
-            .whereField("endDate", isGreaterThanOrEqualTo: now)
-            .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: StreakCompetition.self) }
-    }
-
-    func saveStreakCompetitionEntry(_ entry: StreakCompetitionEntry) async throws {
-        let data = try Firestore.Encoder().encode(entry)
-        try await db.collection("streakCompetitionEntries").document(entry.id).setData(data)
-    }
-
-    // MARK: - Phase 5A: Tournaments
-
-    func saveTournament(_ tournament: Tournament) async throws {
-        let data = try Firestore.Encoder().encode(tournament)
-        try await db.collection("tournaments").document(tournament.id).setData(data)
-    }
-
-    func fetchActiveTournaments() async throws -> [Tournament] {
-        let now = Date()
-        let snapshot = try await db.collection("tournaments")
-            .whereField("isActive", isEqualTo: true)
-            .whereField("startDate", isLessThanOrEqualTo: now)
-            .whereField("endDate", isGreaterThanOrEqualTo: now)
-            .getDocuments()
-        return snapshot.documents.compactMap { try? $0.data(as: Tournament.self) }
-    }
-
-    func saveTournamentParticipation(_ participation: TournamentParticipation) async throws {
-        let data = try Firestore.Encoder().encode(participation)
-        try await db.collection("tournamentParticipation").document(participation.id).setData(data)
-    }
-
     /// Refreshes the stored IANA timezone for an existing user. Called on every sign-in
     /// so the digest schedule stays correct after a move, travel, or DST rollover.
     func updateTimezone(uid: String) async throws {
@@ -1169,6 +1036,23 @@ final class FirestoreService {
             .limit(to: limit)
             .getDocuments()
         return try snap.documents.map { try $0.data(as: LearningJournalEntry.self) }
+    }
+
+    /// FR-302: Persists a journal entry summarised on-device (Apple Intelligence).
+    /// The entry must start private and unsubmitted — the Firestore rules reject any client
+    /// create that pre-sets a sharing flag or a safety verdict. Sharing is enabled later only
+    /// through the server `saveJournalReflection` callable, which runs the safety classifiers.
+    func saveJournalEntry(_ entry: LearningJournalEntry) async throws {
+        var entry = entry
+        entry.shareWithTeacher = false
+        entry.shareWithParent = false
+        entry.reflectionSafetyStatus = "not_submitted"
+        let data = try Firestore.Encoder().encode(entry)
+        try await db.collection("learningJournal")
+            .document(entry.studentId)
+            .collection("entries")
+            .document(entry.id)
+            .setData(data)
     }
 
     // MARK: - Data Retention Config (FR-402)

@@ -145,12 +145,26 @@ struct CompanionView: View {
                     studentEmail: profile.email,
                     isActive: false
                 )
-                // FR-302: Generate journal entry if the session had at least 4 messages (2 exchanges).
+                // FR-302: Summarise the session for the learning journal if it had at least
+                // 4 messages (2 exchanges). Prefer on-device (Apple Intelligence) so the
+                // transcript never leaves the device; fall back to the cloud summariser when
+                // on-device generation is unavailable (older iPads without Apple Intelligence).
                 if messages.count >= 4 {
-                    CloudFunctionService.shared.generateJournalEntry(
-                        studentId: profile.id,
-                        conversationId: profile.id
-                    )
+                    let studentId = profile.id
+                    let sessionMessages = messages
+                    Task {
+                        if let entry = await LearningJournalAIService.shared.generateEntry(
+                            studentId: studentId,
+                            messages: sessionMessages
+                        ) {
+                            try? await FirestoreService.shared.saveJournalEntry(entry)
+                        } else {
+                            CloudFunctionService.shared.generateJournalEntry(
+                                studentId: studentId,
+                                conversationId: studentId
+                            )
+                        }
+                    }
                 }
             }
         }

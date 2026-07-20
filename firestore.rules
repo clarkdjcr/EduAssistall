@@ -275,7 +275,13 @@ service cloud.firestore {
 
     // -------------------------------------------------------------------------
     // learningJournal/{studentId}/entries/{entryId}
-    // Written only by Cloud Functions (Admin SDK).
+    // Reflection + sharing are written only by Cloud Functions (Admin SDK, which bypasses
+    // these rules) via saveJournalReflection, after the safety classifiers run.
+    //
+    // The auto-generated session summary is now produced ON-DEVICE (Apple Intelligence) and
+    // written directly by the student. To keep the adult-visibility gate tamper-evident, a
+    // client create MUST start private and unsubmitted: it may not pre-set a sharing flag or a
+    // safety verdict. Enabling sharing still happens only through the server path above.
     // -------------------------------------------------------------------------
     match /learningJournal/{studentId}/entries/{entryId} {
       allow read: if request.auth != null && (
@@ -284,7 +290,12 @@ service cloud.firestore {
           (isLinkedParent(studentId) && resource.data.shareWithParent == true) ||
           isAdmin()
       );
-      allow write: if false;
+      allow create: if request.auth != null
+          && request.auth.uid == studentId
+          && request.resource.data.shareWithTeacher == false
+          && request.resource.data.shareWithParent == false
+          && request.resource.data.reflectionSafetyStatus == "not_submitted";
+      allow update, delete: if false;
     }
 
     // -------------------------------------------------------------------------
