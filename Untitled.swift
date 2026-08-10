@@ -9,7 +9,7 @@
 /##/ The creation of the lesson plan allows for selection of the grade and the subject.  When the subject is any thing other than math the cooresponding search through external sources should be relativet to the subject matter chosen along with appropriate grade level filteing. Presently this only shows items related to math reguardless of what subject is chosen. Same isse for the grade level condition/##/
                                                     
 /##/The output of the final lesson plan has an option for review  Once approved, there should be a message sent and a daily asignment that is ready for distribution to either all students or indiviual students.  Presently this function doesn't exist.  The UI indicates that this is available but the actual delivery of the daily assignment is not available for the student./##/
-                                                            
+/##/The approvedd lesson plan never actually makes its way to the student.  Students should not get the raw lesson plan and should get the approved daily lesson plan that is appropriate for their subject and grade level. /##/
                                                             
                                                     
                                                     

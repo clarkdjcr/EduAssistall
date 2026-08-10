@@ -51,3 +51,6 @@ functions/.env
 # Secrets
 *.env
 secrets/
+
+# Beta reviewer kit — contains live test-account credentials, never commit
+BETA_REVIEWER_KIT.md
