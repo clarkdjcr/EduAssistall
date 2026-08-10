@@ -1615,8 +1615,10 @@ exports.generateRecommendations = onCall(
     const progressList = progressSnap.docs.map((d) => d.data());
 
     // Fetch curriculum grounding now that we have grade from the profile.
-    const districtSnapRec = profile.districtId
-      ? await db.collection("districtConfig").doc(profile.districtId).get()
+    // districtId lives on the users doc, not learningProfiles — callerData
+    // is already fetched above for the Anthropic API key lookup below.
+    const districtSnapRec = callerData.districtId
+      ? await db.collection("districtConfig").doc(callerData.districtId).get()
       : null;
     const backendRec = getDocumentBackend(districtSnapRec?.data());
     const curriculumItems = await (backendRec === "firebase"
@@ -1661,9 +1663,7 @@ Return ONLY the JSON array, no other text.`;
 
     let recommendations = [];
     try {
-      const parsed = JSON.parse(response.content[0].text);
-      if (!Array.isArray(parsed)) throw new Error("not an array");
-      recommendations = parsed;
+      recommendations = parseJsonArrayFromModel(response.content[0].text);
     } catch {
       throw new HttpsError("internal", "Failed to parse AI recommendations.");
     }
